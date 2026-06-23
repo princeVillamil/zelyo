@@ -17,7 +17,7 @@
     "test:e2e": "pnpm --filter @zelyo/web --if-present test:e2e",
     "db:migrate": "pnpm --filter @zelyo/web --if-present db:migrate",
     "db:seed": "pnpm --filter @zelyo/web --if-present db:seed",
-    "zk:build": "pnpm --filter @zelyo/web --if-present zk:build",
+    "zk:build": "node scripts/zk-build.mjs",
     "contracts:build": "bash scripts/contracts-build.sh",
     "contracts:deploy": "bash scripts/contracts-deploy.sh"
   },

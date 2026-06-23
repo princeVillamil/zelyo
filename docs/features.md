@@ -11,6 +11,7 @@ A running, append-only log of shipped changes. Newest entries on top.
 - **Toolchain runbook** (#5) — `docs/toolchain.md`: nargo 1.0.0-beta.22 (noirup), bb (bbup, matching bb.js 4.3.x), Rust **1.90.0** + `wasm32-unknown-unknown` + soroban-sdk, Stellar CLI, Friendbot funding.
 - **Poseidon parity rig** (#7) — `packages/zk-shared`: locked contract types (`FieldHex`, `Attributes`, `MERKLE_DEPTH`) + stub builders, Vitest parity rig with one pending vector (`expectedLeaf` filled in Phase 1).
 - **Directory skeleton** (#8) — placeholder dirs for Phase 2 contracts (`contracts/credential_registry`, `contracts/verifier`) and Phase 3 web (`apps/web/public/circuit`); full-stack bootstrap smoke green.
+- **CI gate** — `.github/workflows/ci.yml`: on `pull_request` targeting `develop`, runs install (`--frozen-lockfile`) → lint → typecheck → test → build (`pnpm -r --if-present build`, a no-op until the Next.js app lands in Phase 3). Concurrency-cancels superseded runs. Bootstrap note: it activates for develop PRs once this branch merges (a `pull_request` workflow does not run on the PR that first introduces it, since `develop` does not yet carry the file).
 
 > **Deferred:** #6 (THE SPIKE — circuit → bb.js proof → on-chain verify → `ZK_VERIFY_MODE` decision) is **not** in this change. It requires the Noir toolchain (`nargo`/`bb`, absent in the build environment) plus a funded Stellar testnet run. `ZK_VERIFY_MODE` remains at the `onchain` placeholder until the spike runs. Tracked in #6.
 

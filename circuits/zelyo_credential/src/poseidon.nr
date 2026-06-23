@@ -32,3 +32,10 @@ pub fn id_commitment(s: Field) -> Field {
 pub fn compute_nullifier(s: Field, scope: Field) -> Field {
     Poseidon2::hash([s, scope], 2)
 }
+
+// Two-input Poseidon, used for Merkle node hashing. Lives here so `main` (which
+// declares `mod poseidon`, shadowing the external `poseidon` crate name) does not
+// need to import `Poseidon2` directly.
+pub fn hash_two(left: Field, right: Field) -> Field {
+    Poseidon2::hash([left, right], 2)
+}

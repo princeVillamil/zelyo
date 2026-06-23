@@ -1,0 +1,17 @@
+{
+  "_comment": "Phase 0 locks the vector SHAPE. expectedLeaf is filled in Phase 1 from the circuit (nargo execute) — until then the parity test is pending.",
+  "vectors": [
+    {
+      "name": "fixed-vector-1",
+      "s": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "attributes": {
+        "track": "Data Engineering",
+        "grade": "A",
+        "issueDate": "2026-06-23",
+        "courseName": "Distributed Systems",
+        "learnerName": "Ada Lovelace"
+      },
+      "expectedLeaf": null
+    }
+  ]
+}

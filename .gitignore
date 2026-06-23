@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+dist/
+.next/
+.env
+.env.local
+*.log
+coverage/
+target/
+circuits/**/target/
+spike/**/target/
+.DS_Store

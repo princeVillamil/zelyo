@@ -6,3 +6,11 @@ export {
   BN254_MODULUS,
   encodeAddressToField,
 } from "./field.js";
+export {
+  poseidon,
+  idCommitment,
+  computeNullifier,
+  attributesToFields,
+  buildLeaf,
+  computeScope,
+} from "./poseidon.js";

@@ -184,6 +184,30 @@ fn test_predicate_range_on_succeeds() {
     );
 }
 
+// Prints golden vectors for the JS parity fixture. Run with --show-output and
+// pipe through circuits/export-vectors.sh, which converts the field prints into
+// the committed parity-vectors.json.
+#[test]
+fn print_parity_vectors() {
+    let s: Field = 12345;
+    let attrs = AttributesF { track: 42, grade: 90, issue_date: 20260601 };
+    let scope: Field = 999;
+
+    let idc = id_commitment(s);
+    let attr_hash = crate::poseidon::hash_attributes(attrs);
+    let leaf = build_leaf(idc, attrs);
+    let nul = compute_nullifier(s, scope);
+
+    let track = attrs.track;
+    let grade = attrs.grade;
+    let issue_date = attrs.issue_date;
+    println(f"VEC s={s} track={track} grade={grade} issue_date={issue_date} scope={scope}");
+    println(f"VEC idCommitment={idc}");
+    println(f"VEC attrHash={attr_hash}");
+    println(f"VEC leaf={leaf}");
+    println(f"VEC nullifier={nul}");
+}
+
 #[test(should_fail)]
 fn test_predicate_range_out_of_bounds_fails() {
     let s: Field = 12345;

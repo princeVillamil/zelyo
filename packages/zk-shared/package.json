@@ -1,0 +1,17 @@
+{
+  "name": "@zelyo/zk-shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"lint configured in Phase 3\" && exit 0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "4.1.9",
+    "@types/node": "22.20.0"
+  }
+}

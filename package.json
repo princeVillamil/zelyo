@@ -1,0 +1,27 @@
+{
+  "name": "zelyo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @zelyo/web dev",
+    "build": "pnpm --filter @zelyo/web build",
+    "start": "pnpm --filter @zelyo/web start",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "pnpm --filter @zelyo/web --if-present test:e2e",
+    "db:migrate": "pnpm --filter @zelyo/web --if-present db:migrate",
+    "db:seed": "pnpm --filter @zelyo/web --if-present db:seed",
+    "zk:build": "pnpm --filter @zelyo/web --if-present zk:build",
+    "contracts:build": "bash scripts/contracts-build.sh",
+    "contracts:deploy": "bash scripts/contracts-deploy.sh"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

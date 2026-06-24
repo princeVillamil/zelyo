@@ -1,7 +1,8 @@
 [package]
 name = "zelyo_credential"
 type = "bin"
-authors = [""]
+authors = ["Zelyo"]
+compiler_version = ">=1.0.0"
 
 [dependencies]
 poseidon = { tag = "v0.3.0", git = "https://github.com/noir-lang/poseidon" }

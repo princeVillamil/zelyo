@@ -4,6 +4,8 @@ A running, append-only log of shipped changes. Newest entries on top.
 
 ## Phase 2 — Soroban Contracts
 
+- **Storage keys + `set_root` + `is_root_valid`** (#18) — `storage.rs` with `DataKey` enum (Issuer, Attestor, Verifier, Root, Nullifier), role storage in instance storage, root/nullifier in persistent storage. `initialize`, `set_root` (issuer-only via `require_auth`), `is_root_valid`. Tests for happy path and unauthorized `set_root`. `cargo test` green.
+
 - **Contract workspace scaffold** (#17) — `contracts/Cargo.toml` workspace (members `credential_registry`, `verifier`), `contracts/rust-toolchain.toml` (Rust 1.92.0 + `wasm32v1-none`), `contracts/credential_registry` crate with `Error` enum (`NotAuthorized=1` … `InvalidProof=5`) and `PublicInputsXdr { root, scope, bound_address, nullifier, disclosed }`. `cargo test` and `stellar contract build` green. Uses `soroban-sdk` 26.1.0 to match current testnet protocol 27.
 
 ## Phase 1 — ZK circuit (full) + zk-shared parity

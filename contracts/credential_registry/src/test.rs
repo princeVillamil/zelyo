@@ -169,3 +169,51 @@ fn register_address_mismatch_reverts() {
     let res = client.try_register(&pi, &attestor, &holder);
     assert!(res.is_err());
 }
+
+#[test]
+fn verify_and_register_path_a_happy_path() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    // Deploy the real verifier and a registry pointed at it.
+    let verifier_id = env.register(verifier::Verifier, ());
+    let issuer = Address::generate(&env);
+    let attestor = Address::generate(&env);
+    let registry_id = env.register(CredentialRegistry, ());
+    let client = CredentialRegistryClient::new(&env, &registry_id);
+    client.initialize(&issuer, &attestor, &verifier_id);
+
+    let root = BytesN::from_array(&env, &[7u8; 32]);
+    client.set_root(&issuer, &root);
+
+    let holder = Address::generate(&env);
+    let pi = pi_for(&env, &root, &holder, 77);
+
+    // Non-empty proof so the verifier's host path runs and returns true.
+    let proof = soroban_sdk::Bytes::from_array(&env, &[1u8, 2, 3, 4]);
+    client.verify_and_register(&proof, &pi, &holder);
+    assert_eq!(client.is_nullifier_used(&pi.nullifier), true);
+}
+
+#[test]
+fn verify_and_register_invalid_proof_reverts() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let verifier_id = env.register(verifier::Verifier, ());
+    let issuer = Address::generate(&env);
+    let attestor = Address::generate(&env);
+    let registry_id = env.register(CredentialRegistry, ());
+    let client = CredentialRegistryClient::new(&env, &registry_id);
+    client.initialize(&issuer, &attestor, &verifier_id);
+
+    let root = BytesN::from_array(&env, &[7u8; 32]);
+    client.set_root(&issuer, &root);
+    let holder = Address::generate(&env);
+    let pi = pi_for(&env, &root, &holder, 88);
+
+    // Empty proof → verifier returns false → InvalidProof.
+    let proof = soroban_sdk::Bytes::new(&env);
+    let res = client.try_verify_and_register(&proof, &pi, &holder);
+    assert!(res.is_err());
+}

@@ -42,3 +42,27 @@ export function clientIp(headers: Headers): string {
   if (xff) return xff.split(",")[0]!.trim();
   return headers.get("x-real-ip") ?? "0.0.0.0";
 }
+
+// Ad-hoc keyed limiter for handlers that don't use the named `limiters` above.
+// Cached per (points,duration) so the RateLimiterRedis is reused.
+const adHoc = new Map<string, RateLimiterRedis>();
+
+export async function rateLimit(
+  key: string,
+  points: number,
+  duration: number,
+): Promise<{ ok: boolean; retryAfter: number }> {
+  const cacheKey = `${points}:${duration}`;
+  let limiter = adHoc.get(cacheKey);
+  if (!limiter) {
+    limiter = new RateLimiterRedis({ storeClient: redis, keyPrefix: `rl:${cacheKey}`, points, duration });
+    adHoc.set(cacheKey, limiter);
+  }
+  try {
+    await limiter.consume(key, 1);
+    return { ok: true, retryAfter: 0 };
+  } catch (res) {
+    const ms = (res as { msBeforeNext?: number }).msBeforeNext ?? duration * 1000;
+    return { ok: false, retryAfter: Math.ceil(ms / 1000) };
+  }
+}

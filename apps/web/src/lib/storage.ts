@@ -17,15 +17,18 @@ const s3 = new S3Client({
   },
 });
 
-export async function putVcJson(key: string, json: unknown): Promise<void> {
+export async function putObject(
+  key: string,
+  body: string,
+  contentType: string,
+): Promise<void> {
   await s3.send(
-    new PutObjectCommand({
-      Bucket: env.S3_BUCKET,
-      Key: key,
-      Body: JSON.stringify(json),
-      ContentType: "application/json",
-    }),
+    new PutObjectCommand({ Bucket: env.S3_BUCKET, Key: key, Body: body, ContentType: contentType }),
   );
+}
+
+export async function putVcJson(key: string, json: unknown): Promise<void> {
+  await putObject(key, JSON.stringify(json), "application/json");
 }
 
 export async function signedVcUrl(key: string, expiresSec = 300): Promise<string> {

@@ -1,4 +1,4 @@
-import type { FieldHex } from "./types.js";
+import type { FieldHex } from "./types";
 
 // BN254 (alt_bn128) scalar field modulus — the field Noir's poseidon2 operates over.
 export const BN254_MODULUS =

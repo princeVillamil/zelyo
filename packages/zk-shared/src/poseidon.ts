@@ -1,7 +1,7 @@
 import { poseidon2Hash } from "@zkpassport/poseidon2";
-import type { Attributes, FieldHex } from "./types.js";
-import { MERKLE_DEPTH } from "./types.js";
-import { toFieldHex, fieldHexToBigInt, BN254_MODULUS } from "./field.js";
+import type { Attributes, FieldHex } from "./types";
+import { MERKLE_DEPTH } from "./types";
+import { toFieldHex, fieldHexToBigInt, BN254_MODULUS } from "./field";
 
 // Wraps the circuit-parity Poseidon2 permutation (same BN254 params as Noir's
 // `poseidon::poseidon2::Poseidon2::hash`). Inputs/outputs are FieldHex so the

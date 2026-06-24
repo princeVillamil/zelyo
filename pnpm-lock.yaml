@@ -42,8 +42,8 @@ importers:
         specifier: 3.700.0
         version: 3.700.0
       '@hookform/resolvers':
-        specifier: 5.0.0
-        version: 5.0.0(react-hook-form@7.54.0(react@19.2.0))
+        specifier: 5.4.0
+        version: 5.4.0(react-hook-form@7.54.0(react@19.2.0))
       '@node-rs/argon2':
         specifier: 2.0.2
         version: 2.0.2
@@ -59,6 +59,9 @@ importers:
       '@zelyo/zk-shared':
         specifier: workspace:*
         version: link:../../packages/zk-shared
+      '@zk-kit/imt':
+        specifier: 2.0.0-beta.8
+        version: 2.0.0-beta.8
       ioredis:
         specifier: 5.4.1
         version: 5.4.1
@@ -868,10 +871,10 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hookform/resolvers@5.0.0':
-    resolution: {integrity: sha512-3w/nL/GcafcBnehyvOGzrhFACAQoLAEVzJjRJrBpedEiD+dPvu/K+UL51wVOB4toZq8p6UkTfkd4aoAW+LOpRQ==}
+  '@hookform/resolvers@5.4.0':
+    resolution: {integrity: sha512-EIsqr/t/qbinPIhGjMdtvutIN1Kk4uwbROE9/UQ93CAVGR7GkA7Y92+fX80OzXi/OB67jVFYwKGO1WzkxmkFZw==}
     peerDependencies:
-      react-hook-form: 7.55.0
+      react-hook-form: ^7.55.0
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2106,6 +2109,12 @@ packages:
 
   '@vitest/utils@4.1.9':
     resolution: {integrity: sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA==}
+
+  '@zk-kit/imt@2.0.0-beta.8':
+    resolution: {integrity: sha512-E6woWWhX+NaDZuB6x932DJ5OACN9zsZZLurcUATyFH6SU+bEn5AX4sW6jfVIAQ1fnKsNOG0qHJtlw3ivwbOmWQ==}
+
+  '@zk-kit/utils@1.3.0':
+    resolution: {integrity: sha512-Gqsq5KLDf2WPuZSsNc2KZy25XeK5d5UV9hwLaPEM5wq+GD2qCi1ZBFzNs0OptiJ9GRGtP2J/xptrszWri+pRqQ==}
 
   '@zkpassport/poseidon2@0.6.2':
     resolution: {integrity: sha512-6sFHX9kAcrmDmBEEndvjZ8DA9FomunirQ5oCV6oD7bqr/lP0n0OBSRn86SZgQBXwRR+vq7sk16y31OgRBIOJ5Q==}
@@ -5152,7 +5161,7 @@ snapshots:
     dependencies:
       hono: 4.12.27
 
-  '@hookform/resolvers@5.0.0(react-hook-form@7.54.0(react@19.2.0))':
+  '@hookform/resolvers@5.4.0(react-hook-form@7.54.0(react@19.2.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.54.0(react@19.2.0)
@@ -6387,6 +6396,14 @@ snapshots:
       '@vitest/pretty-format': 4.1.9
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
+
+  '@zk-kit/imt@2.0.0-beta.8':
+    dependencies:
+      '@zk-kit/utils': 1.3.0
+
+  '@zk-kit/utils@1.3.0':
+    dependencies:
+      buffer: 6.0.3
 
   '@zkpassport/poseidon2@0.6.2': {}
 

@@ -1,5 +1,6 @@
 import { poseidon2Hash } from "@zkpassport/poseidon2";
 import type { Attributes, FieldHex } from "./types.js";
+import { MERKLE_DEPTH } from "./types.js";
 import { toFieldHex, fieldHexToBigInt, BN254_MODULUS } from "./field.js";
 
 // Wraps the circuit-parity Poseidon2 permutation (same BN254 params as Noir's
@@ -46,4 +47,14 @@ export function buildLeaf(idCommitmentHex: FieldHex, attributes: Attributes): Fi
 // scope = Poseidon( H(app_id), H(chain_id), H(registry_id) )
 export function computeScope(appId: string, chainId: string, registryId: string): FieldHex {
   return poseidon([stringToField(appId), stringToField(chainId), stringToField(registryId)]);
+}
+
+// Root of an empty depth-`depth` tree: all-zero leaves with zero siblings,
+// matching the circuit's merkle_root(0, [0; depth], [false; depth]) — fold
+// Poseidon(node, 0) up from a zero leaf.
+export function emptyTreeRoot(depth: number = MERKLE_DEPTH): FieldHex {
+  const ZERO = toFieldHex(0n);
+  let node = ZERO;
+  for (let i = 0; i < depth; i++) node = poseidon([node, ZERO]);
+  return node;
 }

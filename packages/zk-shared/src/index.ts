@@ -13,4 +13,5 @@ export {
   attributesToFields,
   buildLeaf,
   computeScope,
+  emptyTreeRoot,
 } from "./poseidon.js";

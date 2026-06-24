@@ -1,16 +1,9 @@
-import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
-// server-only throws when imported outside RSC; stub it for unit tests.
-vi.mock("server-only", () => ({}));
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// A valid baseline environment so modules that read `env` at import time
-// (logger, db, redis, ratelimit, storage, stellar, auth.config) load in tests.
-// Individual tests may override specific keys. setupFiles run once per test file,
-// so each file starts from this baseline.
-const TEST_ENV: Record<string, string> = {
+const GOOD: Record<string, string> = {
   NODE_ENV: "test",
   APP_URL: "http://localhost:3000",
-  LOG_LEVEL: "silent",
+  LOG_LEVEL: "info",
   AUTH_SECRET: "x".repeat(32),
   AUTH_URL: "http://localhost:3000",
   AUTH_TRUST_HOST: "true",
@@ -37,6 +30,24 @@ const TEST_ENV: Record<string, string> = {
   ISSUER_NAME: "Institute of Distributed Systems",
   ISSUER_STELLAR_ACCOUNT: "G".repeat(56),
 };
-for (const [k, v] of Object.entries(TEST_ENV)) {
-  process.env[k] ??= v;
-}
+
+describe("env", () => {
+  beforeEach(() => {
+    for (const [k, v] of Object.entries(GOOD)) process.env[k] = v;
+  });
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it("parses a valid environment", async () => {
+    const { env } = await import("../env");
+    expect(env.S3_FORCE_PATH_STYLE).toBe(true);
+    expect(env.ZK_VERIFY_MODE).toBe("server");
+    expect(env.AUTH_SECRET.length).toBeGreaterThanOrEqual(32);
+  });
+
+  it("fails fast (parseEnv throws) when AUTH_SECRET is too short", async () => {
+    const { parseEnv } = await import("../env");
+    expect(() => parseEnv({ ...GOOD, AUTH_SECRET: "short" })).toThrow(/AUTH_SECRET/);
+  });
+});

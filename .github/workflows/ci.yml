@@ -41,3 +41,30 @@ jobs:
 
       - name: Build
         run: pnpm -r --if-present build
+        # Placeholder env so module-level client construction (db/redis/stellar)
+        # succeeds during `next build`. No connections happen at build time; the
+        # real values come from the host at runtime. ISSUER_SECRET is a throwaway
+        # testnet key (no funds) needed only because stellar.ts parses it at import.
+        env:
+          APP_URL: http://localhost:3000
+          AUTH_URL: http://localhost:3000
+          AUTH_SECRET: build-time-placeholder-secret-0123456789
+          DATABASE_URL: postgresql://u:p@localhost:5432/db
+          DIRECT_URL: postgresql://u:p@localhost:5432/db
+          REDIS_URL: redis://localhost:6379
+          S3_ENDPOINT: http://localhost:9000
+          S3_REGION: us-east-1
+          S3_BUCKET: zelyo
+          S3_ACCESS_KEY_ID: build
+          S3_SECRET_ACCESS_KEY: build
+          STELLAR_NETWORK: testnet
+          NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+          HORIZON_URL: https://horizon-testnet.stellar.org
+          ISSUER_SECRET: SA3OP4XXQVCPNGQIXCY7N52XFSWLZ6NZIGBNIMO36YFULAMSZFTQPKFY
+          ISSUER_STELLAR_ACCOUNT: GA7S72OIV2JE47JSSAIGMIJAN4BLTHQZIYPFFXYKZRLVQX7QGISWQZA4
+          CREDENTIAL_REGISTRY_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          ZK_SCOPE_APP_ID: zelyo-v1
+          ADMIN_USERNAME: admin
+          ADMIN_PASSWORD: build-placeholder
+          ISSUER_NAME: Institute of Distributed Systems

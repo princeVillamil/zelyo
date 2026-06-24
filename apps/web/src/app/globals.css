@@ -1,6 +1,162 @@
-/*
- * Tailwind v4 entry. Minimal stub so `layout.tsx`'s `import "./globals.css"`
- * resolves and the production build compiles. The full BRAND `@theme` token set,
- * signature utilities, and self-hosted @font-face land in the Phase 3 theme task.
- */
 @import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+/* ── Self-hosted fonts (BRAND.md §3 / §10: font-display: swap) ───────────── */
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/eb-garamond-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/eb-garamond-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/source-serif-4-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Hanken Grotesk";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/hanken-grotesk-600.woff2") format("woff2");
+}
+
+@theme {
+  /* ── Color (BRAND.md §2 — full set, exact hex) ──────────────────────── */
+  --color-background: #fbf9f5;
+  --color-surface: #fbf9f5;
+  --color-surface-bright: #fbf9f5;
+  --color-on-background: #1b1c1a;
+  --color-on-surface: #1b1c1a;
+  --color-on-surface-variant: #424846;
+  --color-primary: #051a17;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1a2f2b;
+  --color-on-primary-container: #809792;
+  --color-primary-fixed: #d0e8e1;
+  --color-primary-fixed-dim: #b4ccc5;
+  --color-inverse-primary: #b4ccc5;
+  --color-secondary: #635e56;
+  --color-secondary-container: #eae1d7;
+  --color-secondary-fixed-dim: #cdc5bc;
+  --color-tertiary: #25120b;
+  --color-tertiary-container: #3c261e;
+  --color-tertiary-fixed: #ffdbcf;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f3ef;
+  --color-surface-container: #efeeea;
+  --color-surface-container-high: #eae8e4;
+  --color-surface-container-highest: #e4e2de;
+  --color-surface-variant: #e4e2de;
+  --color-surface-dim: #dbdad6;
+  --color-outline: #727876;
+  --color-outline-variant: #c2c8c5;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-inverse-surface: #30312e;
+  --color-inverse-on-surface: #f2f0ed;
+
+  /* ── Fonts (BRAND.md §3) ────────────────────────────────────────────── */
+  --font-display: "EB Garamond", serif;
+  --font-headline: "EB Garamond", serif;
+  --font-body: "Source Serif 4", serif;
+  --font-label: "Hanken Grotesk", sans-serif;
+  --font-mono: "Courier New", ui-monospace, monospace;
+
+  /* ── Type scale (BRAND.md §3 — exact) ───────────────────────────────── */
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 56px;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 500;
+  --text-display-lg-mobile: 36px;
+  --text-display-lg-mobile--line-height: 42px;
+  --text-display-lg-mobile--letter-spacing: -0.01em;
+  --text-display-lg-mobile--font-weight: 500;
+  --text-headline-md: 32px;
+  --text-headline-md--line-height: 40px;
+  --text-headline-md--font-weight: 500;
+  --text-body-lg: 20px;
+  --text-body-lg--line-height: 32px;
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 17px;
+  --text-body-md--line-height: 28px;
+  --text-body-md--font-weight: 400;
+  --text-label-md: 14px;
+  --text-label-md--line-height: 20px;
+  --text-label-md--letter-spacing: 0.05em;
+  --text-label-md--font-weight: 600;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--font-weight: 400;
+
+  /* ── Spacing (BRAND.md §4 — named, exact) ───────────────────────────── */
+  --spacing-unit: 4px;
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 24px;
+  --spacing-stack-lg: 48px;
+  --spacing-gutter: 32px;
+  --spacing-margin-page: 64px;
+  --spacing-margin-mobile: 20px;
+
+  /* ── Radius (BRAND.md §4 — note: full = 0.75rem, NOT a pill) ─────────── */
+  --radius: 0.125rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.5rem;
+  --radius-full: 0.75rem;
+}
+
+/* ── Signature utilities (BRAND.md §6 / §11) ──────────────────────────── */
+.manuscript-glow {
+  box-shadow: 0 0 40px rgba(99, 94, 86, 0.05);
+}
+.ledger-line {
+  background-image: linear-gradient(to bottom, transparent 31px, #e4e2de 31px);
+  background-size: 100% 32px;
+}
+.typewriter {
+  font-family: var(--font-mono);
+  letter-spacing: -0.5px;
+}
+.foil-stamp {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #051a17 0%, #1a2f2b 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.foil-stamp::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 45%,
+    rgba(180, 204, 197, 0.1) 50%,
+    transparent 55%
+  );
+  animation: shine 6s infinite linear;
+}
+@keyframes shine {
+  0% {
+    transform: translate(-100%, -100%);
+  }
+  100% {
+    transform: translate(100%, 100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .foil-stamp::before {
+    animation: none;
+  }
+}

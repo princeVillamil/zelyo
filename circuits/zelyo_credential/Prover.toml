@@ -1,0 +1,6 @@
+s = "0x01"
+merkle_path = ["0x02", "0x03", "0x04", "0x05"]
+path_indices = [false, true, false, true]
+root = "0x2f7dd4ff8e632238b86bc141cce2dc0522929822118a7aca320ba5f8ea559bd8"
+scope = "0x2a"
+nullifier = "0x20b8ba3b3d2061707c4ae19f4f9a9c2d57e68d8d5ead94faaf789bd89cfd6328"

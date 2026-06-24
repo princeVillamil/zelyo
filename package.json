@@ -19,9 +19,12 @@
     "db:seed": "pnpm --filter @zelyo/web --if-present db:seed",
     "zk:build": "node scripts/zk-build.mjs",
     "contracts:build": "cd contracts && stellar contract build",
-    "contracts:deploy": "bash scripts/contracts-deploy.sh"
+    "contracts:deploy": "tsx scripts/deploy-contracts.ts"
   },
   "devDependencies": {
+    "@stellar/stellar-sdk": "^16.0.1",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.22.4",
     "typescript": "6.0.3"
   }
 }

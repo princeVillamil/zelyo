@@ -217,3 +217,37 @@ fn verify_and_register_invalid_proof_reverts() {
     let res = client.try_verify_and_register(&proof, &pi, &holder);
     assert!(res.is_err());
 }
+
+#[test]
+fn revoke_root_invalidates_old_root() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, issuer, attestor, _verifier) = setup(&env);
+
+    let root = BytesN::from_array(&env, &[7u8; 32]);
+    client.set_root(&issuer, &root);
+    assert_eq!(client.is_root_valid(&root), true);
+
+    client.revoke_root(&issuer, &root);
+    assert_eq!(client.is_root_valid(&root), false);
+
+    // A register against the revoked root now fails UnknownRoot.
+    let holder = Address::generate(&env);
+    let pi = pi_for(&env, &root, &holder, 13);
+    let res = client.try_register(&pi, &attestor, &holder);
+    assert!(res.is_err());
+}
+
+#[test]
+fn revoke_root_requires_issuer_auth() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, issuer, _attestor, _verifier) = setup(&env);
+
+    let root = BytesN::from_array(&env, &[7u8; 32]);
+    client.set_root(&issuer, &root);
+
+    let stranger = Address::generate(&env);
+    let res = client.try_revoke_root(&stranger, &root);
+    assert!(res.is_err());
+}

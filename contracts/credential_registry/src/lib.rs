@@ -1,5 +1,6 @@
 #![no_std]
 
+mod checks;
 mod storage;
 mod types;
 
@@ -35,5 +36,29 @@ impl CredentialRegistry {
 
     pub fn is_root_valid(env: Env, root: BytesN<32>) -> bool {
         storage::is_root_valid(&env, &root)
+    }
+
+    /// Path B (ZK_VERIFY_MODE = "server"). The off-chain server has already
+    /// verified the proof (bb.js / nargo verify). The attestor authorizes this
+    /// call; the contract still enforces root validity, address binding, and
+    /// nullifier uniqueness on-chain. `holder` is the wallet the proof is
+    /// bound to; the contract asserts `pi.bound_address` matches the holder's
+    /// packed ed25519 key.
+    pub fn register(env: Env, pi: PublicInputsXdr, attestor: Address, holder: Address) {
+        // attestor must sign AND be the configured attestor
+        attestor.require_auth();
+        if attestor != storage::attestor(&env) {
+            panic_with_error!(&env, Error::NotAuthorized);
+        }
+
+        // The holder address is passed by the attestor (server guarantees it).
+        // run_checks_and_register asserts pi.bound_address == holder's key.
+        if let Err(e) = checks::run_checks_and_register(&env, &holder, &pi) {
+            panic_with_error!(&env, e);
+        }
+    }
+
+    pub fn is_nullifier_used(env: Env, nullifier: BytesN<32>) -> bool {
+        storage::is_nullifier_used(&env, &nullifier)
     }
 }

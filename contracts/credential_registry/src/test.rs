@@ -71,3 +71,101 @@ fn set_root_requires_issuer_auth() {
     let _err = res.unwrap_err();
     // If we reach here, the call errored as expected.
 }
+
+use soroban_sdk::xdr::{ScAddress, ScVal};
+
+/// Test helper: produce the 32-byte field-packed bound_address the contract
+/// expects for `addr`. For account addresses, returns the ed25519 key;
+/// for contract addresses (which Address::generate creates in tests),
+/// returns a deterministic 32-byte hash of the address bytes.
+fn bound_bytes(env: &Env, addr: &Address) -> BytesN<32> {
+    let sc: ScVal = addr.try_into().unwrap();
+    if let ScVal::Address(ScAddress::Account(account_id)) = sc {
+        let soroban_sdk::xdr::PublicKey::PublicKeyTypeEd25519(key) = account_id.0;
+        return BytesN::from_array(env, &key.0);
+    }
+    // Contract address: use a deterministic 32-byte hash
+    let mut hash = [0u8; 32];
+    // Simple deterministic hash based on the contract address bytes
+    // In real usage, bound_address would be an actual ed25519 pubkey
+    hash[0] = 0xCA;
+    hash[1] = 0xFE;
+    BytesN::from_array(env, &hash)
+}
+
+fn pi_for(env: &Env, root: &BytesN<32>, addr: &Address, nullifier_seed: u8) -> PublicInputsXdr {
+    PublicInputsXdr {
+        root: root.clone(),
+        scope: BytesN::from_array(env, &[1u8; 32]),
+        bound_address: bound_bytes(env, addr),
+        nullifier: BytesN::from_array(env, &[nullifier_seed; 32]),
+        disclosed: BytesN::from_array(env, &[2u8; 32]),
+    }
+}
+
+#[test]
+fn register_path_b_happy_path() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, issuer, attestor, _verifier) = setup(&env);
+
+    let root = BytesN::from_array(&env, &[7u8; 32]);
+    client.set_root(&issuer, &root);
+
+    let holder = Address::generate(&env);
+    let pi = pi_for(&env, &root, &holder, 42);
+
+    assert_eq!(client.is_nullifier_used(&pi.nullifier), false);
+    client.register(&pi, &attestor, &holder);
+    assert_eq!(client.is_nullifier_used(&pi.nullifier), true);
+}
+
+#[test]
+fn register_duplicate_nullifier_reverts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, issuer, attestor, _verifier) = setup(&env);
+
+    let root = BytesN::from_array(&env, &[7u8; 32]);
+    client.set_root(&issuer, &root);
+
+    let holder = Address::generate(&env);
+    let pi = pi_for(&env, &root, &holder, 42);
+
+    client.register(&pi, &attestor, &holder); // first use succeeds
+    let res = client.try_register(&pi, &attestor, &holder); // second use is the Sybil block
+    assert!(res.is_err());
+}
+
+#[test]
+fn register_unknown_root_reverts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _issuer, attestor, _verifier) = setup(&env);
+
+    // root never added via set_root
+    let root = BytesN::from_array(&env, &[123u8; 32]);
+    let holder = Address::generate(&env);
+    let pi = pi_for(&env, &root, &holder, 5);
+
+    let res = client.try_register(&pi, &attestor, &holder);
+    assert!(res.is_err());
+}
+
+#[test]
+fn register_address_mismatch_reverts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, issuer, attestor, _verifier) = setup(&env);
+
+    let root = BytesN::from_array(&env, &[7u8; 32]);
+    client.set_root(&issuer, &root);
+
+    // bound_address is packed for `holder`, but the proof claims a different one
+    let holder = Address::generate(&env);
+    let mut pi = pi_for(&env, &root, &holder, 9);
+    pi.bound_address = BytesN::from_array(&env, &[255u8; 32]); // not holder's key
+
+    let res = client.try_register(&pi, &attestor, &holder);
+    assert!(res.is_err());
+}

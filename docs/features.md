@@ -4,6 +4,8 @@ A running, append-only log of shipped changes. Newest entries on top.
 
 ## Phase 2 — Soroban Contracts
 
+- **`pnpm contracts:deploy` (testnet deploy + env wiring)** (#23) — `scripts/deploy-contracts.ts` funds the deployer via Friendbot, deploys `verifier.wasm` and `credential_registry.wasm` to Stellar testnet, initializes the registry, and writes `VERIFIER_CONTRACT_ID` + `CREDENTIAL_REGISTRY_CONTRACT_ID` into `.env`. `package.json` `contracts:deploy` runs via `tsx`; `@stellar/stellar-sdk`, `tsx`, and `dotenv` added as root dev dependencies. Verified end-to-end: contracts deployed and initialized.
+
 - **`pnpm contracts:build` + wasm-compatible address extraction** (#22) — `package.json` `contracts:build` runs `stellar contract build` from `contracts/` so `rust-toolchain.toml` (Rust 1.92.0) is honored. Enabled `soroban-sdk/hazmat-address` and rewrote `checks::address_to_key32` plus the test helper to use `AddressPayload::to_payload()`, which works in `wasm32v1-none` release builds. Verified both `credential_registry.wasm` and `verifier.wasm` are produced optimized. `cargo test` green.
 
 - **Storage keys + `set_root` + `is_root_valid`** (#18) — `storage.rs` with `DataKey` enum (Issuer, Attestor, Verifier, Root, Nullifier), role storage in instance storage, root/nullifier in persistent storage. `initialize`, `set_root` (issuer-only via `require_auth`), `is_root_valid`. Tests for happy path and unauthorized `set_root`. `cargo test` green.

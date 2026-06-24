@@ -42,8 +42,8 @@ importers:
         specifier: 3.700.0
         version: 3.700.0
       '@hookform/resolvers':
-        specifier: 5.0.0
-        version: 5.0.0(react-hook-form@7.54.0(react@19.2.0))
+        specifier: 5.4.0
+        version: 5.4.0(react-hook-form@7.54.0(react@19.2.0))
       '@node-rs/argon2':
         specifier: 2.0.2
         version: 2.0.2
@@ -871,10 +871,10 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hookform/resolvers@5.0.0':
-    resolution: {integrity: sha512-3w/nL/GcafcBnehyvOGzrhFACAQoLAEVzJjRJrBpedEiD+dPvu/K+UL51wVOB4toZq8p6UkTfkd4aoAW+LOpRQ==}
+  '@hookform/resolvers@5.4.0':
+    resolution: {integrity: sha512-EIsqr/t/qbinPIhGjMdtvutIN1Kk4uwbROE9/UQ93CAVGR7GkA7Y92+fX80OzXi/OB67jVFYwKGO1WzkxmkFZw==}
     peerDependencies:
-      react-hook-form: 7.55.0
+      react-hook-form: ^7.55.0
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -5161,7 +5161,7 @@ snapshots:
     dependencies:
       hono: 4.12.27
 
-  '@hookform/resolvers@5.0.0(react-hook-form@7.54.0(react@19.2.0))':
+  '@hookform/resolvers@5.4.0(react-hook-form@7.54.0(react@19.2.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.54.0(react@19.2.0)

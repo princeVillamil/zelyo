@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LoginForm } from "./LoginForm";
 
 export default function LoginPage() {
@@ -10,7 +11,10 @@ export default function LoginPage() {
       <p className="mt-stack-sm font-body text-body-md italic text-on-surface-variant">
         Enter your credentials to access the registry.
       </p>
-      <LoginForm />
+      {/* useSearchParams() in LoginForm needs a Suspense boundary to prerender. */}
+      <Suspense>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }

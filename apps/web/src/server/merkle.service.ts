@@ -1,5 +1,5 @@
 import "server-only";
-import { IMT } from "@zk-kit/imt";
+import { IMT, type IMTNode } from "@zk-kit/imt";
 import { db } from "@/lib/db";
 import { poseidon, type FieldHex, MERKLE_DEPTH } from "@zelyo/zk-shared";
 import { AppError } from "@/lib/errors";
@@ -12,9 +12,9 @@ function toFieldHex(n: bigint): FieldHex {
 }
 
 // Poseidon over BN254 — MUST be the zk-shared impl for circuit parity.
-// @zk-kit/imt calls the hash with an array of child node values.
-function hash(inputs: bigint[]): bigint {
-  return BigInt(poseidon(inputs.map(toFieldHex)));
+// @zk-kit/imt calls the hash with an array of child node values (IMTNode).
+function hash(inputs: IMTNode[]): bigint {
+  return BigInt(poseidon(inputs.map((n) => toFieldHex(BigInt(n)))));
 }
 
 // Rebuild the in-memory tree from persisted, index-ordered leaves.
@@ -37,7 +37,7 @@ export async function insertLeaf(leafHex: FieldHex): Promise<{ index: number; ro
   const { tree, treeId } = await loadTree();
   const index = tree.leaves.length;
   tree.insert(BigInt(leafHex));
-  const rootHex = toFieldHex(tree.root);
+  const rootHex = toFieldHex(BigInt(tree.root));
   await db.$transaction(async (tx) => {
     await tx.leaf.create({ data: { treeId, index, leafHex } });
     await tx.merkleTree.update({ where: { id: treeId }, data: { rootHex, leafCount: index + 1 } });
@@ -54,13 +54,13 @@ export async function getMerkleProof(
   }
   const proof = tree.createProof(leafIndex);
   return {
-    siblings: proof.siblings.map((s) => toFieldHex(BigInt(s[0]))),
+    siblings: proof.siblings.map((s) => toFieldHex(BigInt(s[0]!))),
     pathIndices: proof.pathIndices,
-    rootHex: toFieldHex(tree.root),
+    rootHex: toFieldHex(BigInt(tree.root)),
   };
 }
 
 export async function getCurrentRoot(): Promise<FieldHex> {
   const { tree } = await loadTree();
-  return toFieldHex(tree.root);
+  return toFieldHex(BigInt(tree.root));
 }

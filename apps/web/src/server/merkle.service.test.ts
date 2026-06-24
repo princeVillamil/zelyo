@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { IMT } from "@zk-kit/imt";
+import { IMT, type IMTNode } from "@zk-kit/imt";
 import { poseidon, type FieldHex, MERKLE_DEPTH } from "@zelyo/zk-shared";
 
 const store = {
@@ -34,8 +34,8 @@ const toHex = (n: number): FieldHex =>
 
 // Reference tree using the SAME poseidon as zk-shared, for parity.
 function refTree(leaves: FieldHex[]): IMT {
-  const hash = (inputs: bigint[]): bigint =>
-    BigInt(poseidon(inputs.map((n) => ("0x" + n.toString(16).padStart(64, "0")) as FieldHex)));
+  const hash = (inputs: IMTNode[]): bigint =>
+    BigInt(poseidon(inputs.map((n) => ("0x" + BigInt(n).toString(16).padStart(64, "0")) as FieldHex)));
   return new IMT(hash, MERKLE_DEPTH, 0n, 2, leaves.map((l) => BigInt(l)));
 }
 
@@ -61,7 +61,7 @@ describe("merkle.service", () => {
     const ref = refTree([toHex(11), toHex(22)]);
     const refProof = ref.createProof(1);
     expect(proof.rootHex).toBe(("0x" + ref.root.toString(16).padStart(64, "0")) as FieldHex);
-    expect(proof.siblings.map((s) => BigInt(s))).toEqual(refProof.siblings.map((s) => BigInt(s[0])));
+    expect(proof.siblings.map((s) => BigInt(s))).toEqual(refProof.siblings.map((s) => BigInt(s[0]!)));
     expect(proof.pathIndices).toEqual(refProof.pathIndices);
   });
 });

@@ -5,7 +5,7 @@ import { putObject } from "@/lib/storage";
 import { logger } from "@/lib/logger";
 import { AppError } from "@/lib/errors";
 import { buildLeaf, type Attributes, type FieldHex } from "@zelyo/zk-shared";
-import { insertLeaf } from "./merkle.service";
+import { insertLeaf, getCurrentRoot } from "./merkle.service";
 import { publishMintLog } from "./mintlog";
 
 export type MintInput = {
@@ -109,4 +109,40 @@ export async function mintCredential(input: MintInput, ctx: MintCtx): Promise<Cr
   await publishMintLog(jobId, { event: "SEALED", status: "OK", detail: credential.id });
 
   return { id: credential.id, leafIndex, merkleRootHex: rootHex, vcFileKey };
+}
+
+export async function revokeCredential(
+  credentialId: string,
+  ctx: { actorUserId: string; ip?: string },
+): Promise<{ id: string; merkleRootHex: FieldHex; txHash: string }> {
+  const cred = await db.credential.findUniqueOrThrow({
+    where: { id: credentialId },
+    select: { id: true, leafId: true, status: true },
+  });
+  if (cred.status === "REVOKED") throw new AppError("ALREADY_REVOKED", 409, "Credential is already revoked");
+
+  // Zero the leaf so the recomputed tree excludes it, then mark revoked — in one tx.
+  await db.$transaction(async (tx) => {
+    await tx.leaf.update({
+      where: { id: cred.leafId },
+      data: { leafHex: "0x" + "0".repeat(64) },
+    });
+    await tx.credential.update({ where: { id: cred.id }, data: { status: "REVOKED" } });
+  });
+
+  const merkleRootHex = await getCurrentRoot();
+  const { txHash } = await publishRoot(merkleRootHex);
+  await db.rootHistory.create({ data: { rootHex: merkleRootHex, txHash, valid: true } });
+
+  await db.auditLog.create({
+    data: {
+      actorUserId: ctx.actorUserId,
+      action: "REVOKE_CREDENTIAL",
+      target: cred.id,
+      ip: ctx.ip ?? null,
+      meta: { rootHex: merkleRootHex, txHash },
+    },
+  });
+  logger.info({ action: "revoke", credentialId: cred.id, txHash }, "credential revoked");
+  return { id: cred.id, merkleRootHex, txHash };
 }

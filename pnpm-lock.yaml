@@ -59,6 +59,9 @@ importers:
       '@zelyo/zk-shared':
         specifier: workspace:*
         version: link:../../packages/zk-shared
+      '@zk-kit/imt':
+        specifier: 2.0.0-beta.8
+        version: 2.0.0-beta.8
       ioredis:
         specifier: 5.4.1
         version: 5.4.1
@@ -2106,6 +2109,12 @@ packages:
 
   '@vitest/utils@4.1.9':
     resolution: {integrity: sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA==}
+
+  '@zk-kit/imt@2.0.0-beta.8':
+    resolution: {integrity: sha512-E6woWWhX+NaDZuB6x932DJ5OACN9zsZZLurcUATyFH6SU+bEn5AX4sW6jfVIAQ1fnKsNOG0qHJtlw3ivwbOmWQ==}
+
+  '@zk-kit/utils@1.3.0':
+    resolution: {integrity: sha512-Gqsq5KLDf2WPuZSsNc2KZy25XeK5d5UV9hwLaPEM5wq+GD2qCi1ZBFzNs0OptiJ9GRGtP2J/xptrszWri+pRqQ==}
 
   '@zkpassport/poseidon2@0.6.2':
     resolution: {integrity: sha512-6sFHX9kAcrmDmBEEndvjZ8DA9FomunirQ5oCV6oD7bqr/lP0n0OBSRn86SZgQBXwRR+vq7sk16y31OgRBIOJ5Q==}
@@ -6387,6 +6396,14 @@ snapshots:
       '@vitest/pretty-format': 4.1.9
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
+
+  '@zk-kit/imt@2.0.0-beta.8':
+    dependencies:
+      '@zk-kit/utils': 1.3.0
+
+  '@zk-kit/utils@1.3.0':
+    dependencies:
+      buffer: 6.0.3
 
   '@zkpassport/poseidon2@0.6.2': {}
 

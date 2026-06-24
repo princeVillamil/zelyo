@@ -61,4 +61,34 @@ impl CredentialRegistry {
     pub fn is_nullifier_used(env: Env, nullifier: BytesN<32>) -> bool {
         storage::is_nullifier_used(&env, &nullifier)
     }
+
+    /// Path A (ZK_VERIFY_MODE = "onchain"). Verifies the proof on-chain via the
+    /// configured verifier contract, then runs the shared checks. The holder's
+    /// own wallet invokes this; binding is asserted against the invoker.
+    pub fn verify_and_register(env: Env, proof: soroban_sdk::Bytes, pi: PublicInputsXdr, holder: Address) {
+        // 1. Encode the public inputs the verifier expects (root|scope|
+        //    bound_address|nullifier|disclosed, each 32 bytes, in order).
+        let mut public_inputs = soroban_sdk::Bytes::new(&env);
+        public_inputs.append(&soroban_sdk::Bytes::from(pi.root.clone()));
+        public_inputs.append(&soroban_sdk::Bytes::from(pi.scope.clone()));
+        public_inputs.append(&soroban_sdk::Bytes::from(pi.bound_address.clone()));
+        public_inputs.append(&soroban_sdk::Bytes::from(pi.nullifier.clone()));
+        public_inputs.append(&soroban_sdk::Bytes::from(pi.disclosed.clone()));
+
+        // 2. Verify on-chain via the reused verifier contract.
+        let verifier_id = storage::verifier(&env);
+        let verifier = verifier::VerifierClient::new(&env, &verifier_id);
+        if !verifier.verify(&proof, &public_inputs) {
+            panic_with_error!(&env, Error::InvalidProof);
+        }
+
+        // 3. The holder invokes Path A directly; require_auth ensures they signed.
+        holder.require_auth();
+
+        // 4. Shared checks: root valid → binding → nullifier unused → store →
+        //    emit Verified.
+        if let Err(e) = checks::run_checks_and_register(&env, &holder, &pi) {
+            panic_with_error!(&env, e);
+        }
+    }
 }

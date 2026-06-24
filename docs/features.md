@@ -2,6 +2,10 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+## Phase 2 — Soroban Contracts
+
+- **Contract workspace scaffold** (#17) — `contracts/Cargo.toml` workspace (members `credential_registry`, `verifier`), `contracts/rust-toolchain.toml` (Rust 1.92.0 + `wasm32v1-none`), `contracts/credential_registry` crate with `Error` enum (`NotAuthorized=1` … `InvalidProof=5`) and `PublicInputsXdr { root, scope, bound_address, nullifier, disclosed }`. `cargo test` and `stellar contract build` green. Uses `soroban-sdk` 26.1.0 to match current testnet protocol 27.
+
 ## Phase 1 — ZK circuit (full) + zk-shared parity
 
 - **Noir circuit** (#9–#11) — `circuits/zelyo_credential`: depth-20 Merkle inclusion + selective disclosure (`track`) + nullifier + address binding + gated range/date predicate, with an 8-case `nargo test` suite (valid, wrong-root, wrong-disclosed, wrong-nullifier, predicate-on, predicate-out-of-bounds, leaf-helper, vector-print). Poseidon helpers in `poseidon.nr`.

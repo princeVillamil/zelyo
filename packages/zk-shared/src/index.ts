@@ -1,11 +1,11 @@
-export type { FieldHex, Attributes, PublicInputs, ProofBundle } from "./types.js";
-export { MERKLE_DEPTH } from "./types.js";
+export type { FieldHex, Attributes, PublicInputs, ProofBundle } from "./types";
+export { MERKLE_DEPTH } from "./types";
 export {
   toFieldHex,
   fieldHexToBigInt,
   BN254_MODULUS,
   encodeAddressToField,
-} from "./field.js";
+} from "./field";
 export {
   poseidon,
   idCommitment,
@@ -14,4 +14,4 @@ export {
   buildLeaf,
   computeScope,
   emptyTreeRoot,
-} from "./poseidon.js";
+} from "./poseidon";

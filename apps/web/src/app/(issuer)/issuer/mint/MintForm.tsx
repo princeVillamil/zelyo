@@ -151,7 +151,7 @@ export function MintForm() {
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string | undefined; children: ReactNode }) {
   return (
     <label className="block space-y-unit">
       <span className="font-label text-label-md uppercase text-secondary">{label}</span>

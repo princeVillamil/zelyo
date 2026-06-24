@@ -2,6 +2,10 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+## Phase 3 — Web Foundation, Theme & Auth
+
+- **Next.js 16 app scaffold + security headers** (#24) — `apps/web/package.json` (Next 16.2, React 19.2, Auth.js v5 beta, Prisma, Tailwind v4 deps), strict `tsconfig.json`, `next.config.ts` with global CSP/COOP/COEP/hardening headers, Vitest + jsdom + RTL setup, minimal `layout.tsx`/`page.tsx`. Header test passes; `pnpm --filter @zelyo/web test` green.
+
 ## Phase 2 — Soroban Contracts
 
 - **`pnpm contracts:deploy` (testnet deploy + env wiring)** (#23) — `scripts/deploy-contracts.ts` funds the deployer via Friendbot, deploys `verifier.wasm` and `credential_registry.wasm` to Stellar testnet, initializes the registry, and writes `VERIFIER_CONTRACT_ID` + `CREDENTIAL_REGISTRY_CONTRACT_ID` into `.env`. `package.json` `contracts:deploy` runs via `tsx`; `@stellar/stellar-sdk`, `tsx`, and `dotenv` added as root dev dependencies. Verified end-to-end: contracts deployed and initialized.

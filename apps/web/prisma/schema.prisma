@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  HOLDER
+}
+
+enum CredentialStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum VerificationResult {
+  VERIFIED
+  INVALID_PROOF
+  UNKNOWN_ROOT
+  NULLIFIER_USED
+  ERROR
+}
+
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  passwordHash String
+  role         Role       @default(HOLDER)
+  holderKey    HolderKey?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Issuer {
+  id             String       @id @default(cuid())
+  name           String
+  stellarAccount String
+  createdAt      DateTime     @default(now())
+  credentials    Credential[]
+}
+
+model HolderKey {
+  id           String       @id @default(cuid())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String       @unique
+  idCommitment String       @unique
+  createdAt    DateTime     @default(now())
+  credentials  Credential[]
+}
+
+model MerkleTree {
+  id        String   @id @default(cuid())
+  depth     Int      @default(20)
+  rootHex   String
+  leafCount Int      @default(0)
+  updatedAt DateTime @updatedAt
+  leaves    Leaf[]
+}
+
+model Leaf {
+  id         String      @id @default(cuid())
+  tree       MerkleTree  @relation(fields: [treeId], references: [id])
+  treeId     String
+  index      Int
+  leafHex    String
+  credential Credential?
+  createdAt  DateTime    @default(now())
+
+  @@unique([treeId, index])
+}
+
+model RootHistory {
+  id          String   @id @default(cuid())
+  rootHex     String   @unique
+  txHash      String?
+  valid       Boolean  @default(true)
+  publishedAt DateTime @default(now())
+}
+
+model Credential {
+  id            String           @id @default(cuid())
+  issuer        Issuer           @relation(fields: [issuerId], references: [id])
+  issuerId      String
+  holderKey     HolderKey        @relation(fields: [holderKeyId], references: [id])
+  holderKeyId   String
+  attributes    Json
+  leaf          Leaf             @relation(fields: [leafId], references: [id])
+  leafId        String           @unique
+  leafIndex     Int
+  merkleRootHex String
+  vcFileKey     String
+  status        CredentialStatus @default(ACTIVE)
+  createdAt     DateTime         @default(now())
+}
+
+model Nullifier {
+  id           String   @id @default(cuid())
+  nullifierHex String   @unique
+  scope        String
+  boundAddress String
+  txHash       String?
+  createdAt    DateTime @default(now())
+}
+
+model Verification {
+  id           String             @id @default(cuid())
+  nullifierHex String
+  disclosed    Json
+  boundAddress String
+  result       VerificationResult
+  txHash       String?
+  explorerUrl  String?
+  jobGate      JobGate?           @relation(fields: [jobGateId], references: [id])
+  jobGateId    String?
+  createdAt    DateTime           @default(now())
+}
+
+model JobGate {
+  id                String         @id @default(cuid())
+  slug              String         @unique
+  title             String
+  description       String
+  requiredPredicate Json
+  rewardType        String
+  rewardConfig      Json
+  verifications     Verification[]
+  claims            GateClaim[]
+  createdAt         DateTime       @default(now())
+}
+
+model GateClaim {
+  id           String   @id @default(cuid())
+  jobGate      JobGate  @relation(fields: [jobGateId], references: [id])
+  jobGateId    String
+  nullifierHex String
+  boundAddress String
+  txHash       String?
+  createdAt    DateTime @default(now())
+
+  @@unique([jobGateId, nullifierHex])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  target      String?
+  ip          String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+}

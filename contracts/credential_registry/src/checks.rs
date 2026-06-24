@@ -1,26 +1,21 @@
 use soroban_sdk::{
+    address_payload::AddressPayload,
     symbol_short,
-    xdr::{PublicKey, ScAddress, ScVal},
-    Address, BytesN, Env, TryFromVal,
+    Address, BytesN, Env,
 };
 
 use crate::{storage, types::{Error, PublicInputsXdr}};
 
-/// Extract the 32-byte ed25519 public key from a Stellar account `Address`.
-/// This is the canonical field-packing of `bound_address` the circuit binds.
-/// Returns None for contract addresses (only account addresses can be bound).
-fn address_to_key32(env: &Env, addr: &Address) -> Option<BytesN<32>> {
-    let sc: ScVal = addr.try_into().ok()?;
-    if let ScVal::Address(ScAddress::Account(account_id)) = sc {
-        let PublicKey::PublicKeyTypeEd25519(key) = account_id.0;
-        return Some(BytesN::from_array(env, &key.0));
+/// Extract the 32-byte payload from a Stellar `Address`.
+/// For account addresses (G...) this is the ed25519 public key — the canonical
+/// field-packing of `bound_address` the circuit binds.
+/// For contract addresses (C...) this is the 32-byte contract hash.
+/// Returns None only if the address type is unrecognized.
+fn address_to_key32(_env: &Env, addr: &Address) -> Option<BytesN<32>> {
+    match addr.to_payload()? {
+        AddressPayload::AccountIdPublicKeyEd25519(key) => Some(key),
+        AddressPayload::ContractIdHash(hash) => Some(hash),
     }
-    // For contract addresses in tests, return a deterministic hash so the
-    // test helper `bound_bytes` and this function stay in sync.
-    let mut hash = [0u8; 32];
-    hash[0] = 0xCA;
-    hash[1] = 0xFE;
-    Some(BytesN::from_array(env, &hash))
 }
 
 /// The shared on-chain checks both paths run AFTER proof verification:
@@ -62,7 +57,3 @@ pub fn run_checks_and_register(
 
     Ok(())
 }
-
-// Keep TryFromVal in scope for the ScVal conversion above without an unused warning.
-#[allow(unused_imports)]
-use TryFromVal as _TryFromVal;

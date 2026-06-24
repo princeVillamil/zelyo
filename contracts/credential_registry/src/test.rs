@@ -72,25 +72,17 @@ fn set_root_requires_issuer_auth() {
     // If we reach here, the call errored as expected.
 }
 
-use soroban_sdk::xdr::{ScAddress, ScVal};
+use soroban_sdk::address_payload::AddressPayload;
 
-/// Test helper: produce the 32-byte field-packed bound_address the contract
-/// expects for `addr`. For account addresses, returns the ed25519 key;
-/// for contract addresses (which Address::generate creates in tests),
-/// returns a deterministic 32-byte hash of the address bytes.
+/// Test helper: produce the 32-byte payload the contract expects for `addr`.
+/// For account addresses this is the ed25519 key; for contract addresses it is
+/// the contract hash. This keeps the helper in sync with `checks::address_to_key32`.
 fn bound_bytes(env: &Env, addr: &Address) -> BytesN<32> {
-    let sc: ScVal = addr.try_into().unwrap();
-    if let ScVal::Address(ScAddress::Account(account_id)) = sc {
-        let soroban_sdk::xdr::PublicKey::PublicKeyTypeEd25519(key) = account_id.0;
-        return BytesN::from_array(env, &key.0);
+    match addr.to_payload() {
+        Some(AddressPayload::AccountIdPublicKeyEd25519(key)) => key,
+        Some(AddressPayload::ContractIdHash(hash)) => hash,
+        None => BytesN::from_array(env, &[0u8; 32]),
     }
-    // Contract address: use a deterministic 32-byte hash
-    let mut hash = [0u8; 32];
-    // Simple deterministic hash based on the contract address bytes
-    // In real usage, bound_address would be an actual ed25519 pubkey
-    hash[0] = 0xCA;
-    hash[1] = 0xFE;
-    BytesN::from_array(env, &hash)
 }
 
 fn pi_for(env: &Env, root: &BytesN<32>, addr: &Address, nullifier_seed: u8) -> PublicInputsXdr {

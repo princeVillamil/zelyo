@@ -18,7 +18,7 @@
     "db:migrate": "pnpm --filter @zelyo/web --if-present db:migrate",
     "db:seed": "pnpm --filter @zelyo/web --if-present db:seed",
     "zk:build": "node scripts/zk-build.mjs",
-    "contracts:build": "bash scripts/contracts-build.sh",
+    "contracts:build": "cd contracts && stellar contract build",
     "contracts:deploy": "bash scripts/contracts-deploy.sh"
   },
   "devDependencies": {

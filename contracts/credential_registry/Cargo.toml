@@ -8,7 +8,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-soroban-sdk = { workspace = true }
+soroban-sdk = { workspace = true, features = ["hazmat-address"] }
 verifier = { path = "../verifier" }
 
 [dev-dependencies]

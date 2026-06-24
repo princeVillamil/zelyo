@@ -4,6 +4,8 @@ A running, append-only log of shipped changes. Newest entries on top.
 
 ## Phase 2 — Soroban Contracts
 
+- **`pnpm contracts:build` + wasm-compatible address extraction** (#22) — `package.json` `contracts:build` runs `stellar contract build` from `contracts/` so `rust-toolchain.toml` (Rust 1.92.0) is honored. Enabled `soroban-sdk/hazmat-address` and rewrote `checks::address_to_key32` plus the test helper to use `AddressPayload::to_payload()`, which works in `wasm32v1-none` release builds. Verified both `credential_registry.wasm` and `verifier.wasm` are produced optimized. `cargo test` green.
+
 - **Storage keys + `set_root` + `is_root_valid`** (#18) — `storage.rs` with `DataKey` enum (Issuer, Attestor, Verifier, Root, Nullifier), role storage in instance storage, root/nullifier in persistent storage. `initialize`, `set_root` (issuer-only via `require_auth`), `is_root_valid`. Tests for happy path and unauthorized `set_root`. `cargo test` green.
 
 - **Contract workspace scaffold** (#17) — `contracts/Cargo.toml` workspace (members `credential_registry`, `verifier`), `contracts/rust-toolchain.toml` (Rust 1.92.0 + `wasm32v1-none`), `contracts/credential_registry` crate with `Error` enum (`NotAuthorized=1` … `InvalidProof=5`) and `PublicInputsXdr { root, scope, bound_address, nullifier, disclosed }`. `cargo test` and `stellar contract build` green. Uses `soroban-sdk` 26.1.0 to match current testnet protocol 27.

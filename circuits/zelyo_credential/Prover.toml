@@ -1,0 +1,20 @@
+# PRIVATE
+s = "12345"
+merkle_siblings = ["0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0"]
+merkle_indices  = [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false]
+
+[attributes]
+track = "42"
+grade = "90"
+issue_date = "20260601"
+
+# PUBLIC (root/nullifier must match the helper-computed values for s=12345, scope=999)
+# Filled from the circuit-emitted golden vectors (Task 3: print_parity_vectors).
+root = "0"
+scope = "999"
+bound_address = "7"
+nullifier = "0"
+disclosed = "42"
+predicate_mode = "0"
+predicate_lo = "0"
+predicate_hi = "0"

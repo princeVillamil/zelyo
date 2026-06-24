@@ -91,4 +91,13 @@ impl CredentialRegistry {
             panic_with_error!(&env, e);
         }
     }
+
+    /// Could (SPEC §1): issuer revokes a root. Proofs against it then fail
+    /// UnknownRoot — revocation by root rotation.
+    pub fn revoke_root(env: Env, issuer: Address, root: BytesN<32>) {
+        if let Err(e) = storage::require_issuer(&env, &issuer) {
+            panic_with_error!(&env, e);
+        }
+        storage::remove_root(&env, &root);
+    }
 }

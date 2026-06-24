@@ -1,0 +1,6 @@
+/*
+ * Tailwind v4 entry. Minimal stub so `layout.tsx`'s `import "./globals.css"`
+ * resolves and the production build compiles. The full BRAND `@theme` token set,
+ * signature utilities, and self-hosted @font-face land in the Phase 3 theme task.
+ */
+@import "tailwindcss";

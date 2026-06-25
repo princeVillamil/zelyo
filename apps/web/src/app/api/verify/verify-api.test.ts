@@ -8,6 +8,7 @@ vi.mock("@/lib/ratelimit", () => ({
   clientIp: (headers: Headers) => (headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "unknown",
 }));
 vi.mock("@/lib/db", () => ({ db: { verification: { findFirst: vi.fn() } } }));
+vi.mock("@/lib/audit", () => ({ audit: vi.fn() }));
 
 import { POST as verify } from "./route";
 import { GET as getVerify } from "./[txHash]/route";

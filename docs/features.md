@@ -2,6 +2,28 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+## Phase 5 — Holder Wallet + Prove/Verify
+
+- **Client-side holder secret (`holder-key.client.ts`)** (#49) — WebCrypto 32-byte random reduced to BN254 field; AES-GCM encrypted IndexedDB persistence; export/restore versioned backup blob; `deriveIdCommitment` wraps `@zelyo/zk-shared`. Secret `s` never serialized to the network. `fake-indexeddb` added for jsdom tests; connection handles closed to avoid test deadlocks.
+
+- **In-browser UltraHonk prover (`prover.client.ts`)** (#50) — Loads circuit manifest from `/api/circuit/manifest`, builds public inputs with zk-shared (`computeScope`, `computeNullifier`, `encodeAddressToField`, `poseidon`), executes Noir witness, generates proof via `@aztec/bb.js` `UltraHonkBackend`. Injected deps enable unit tests without WASM; `assertCrossOriginIsolated()` throws `ProverError("NOT_ISOLATED")` before touching SharedArrayBuffer.
+
+- **`verifyAndRegister` service (`verification.service.ts`)** (#51) — Fast-fail on unknown root / used nullifier; Path A (`submitVerifyAndRegister`) and Path B (`verifyProofOffchain` → `submitRegister`) gated by `ZK_VERIFY_MODE`. Maps `NullifierUsed`/`InvalidProof`/`UnknownRoot` to `VerificationResult`; mirrors `Nullifier` + `Verification` rows. Stellar helpers added as stubs in `lib/stellar.ts` (wired in Phase 7).
+
+- **Holder APIs (`/api/holder/*`)** (#52) — `GET /api/holder/credentials` returns credentials with merkle path/root; `GET /api/holder/credentials/[id]/vc` returns a short-lived signed URL; `PUT /api/holder/commitment` upserts `idCommitment` with a strict Zod schema that rejects any payload containing the secret `s`. HOLDER RBAC enforced in every handler.
+
+- **Public verify APIs (`/api/verify`, `/api/verify/[txHash]`)** (#53) — `POST /api/verify` validates `{ proof, publicInputs }`, rate-limits 20/min per IP, rejects `s`, reconstructs `Uint8Array` proof, and returns the `VerifyResult`. `GET /api/verify/[txHash]` returns the mirrored verification record.
+
+- **Prove panel (`ProvePanel`)** (#54) — Selective-disclosure checkboxes default to `track` only; Stellar address + vault passphrase inputs; foil-stamp "Generate ZK-Proof" CTA; typewriter prove log via real `LogLine[]`; proves in-browser, POSTs to `/api/verify`, routes to `/verify/result/[txHash]`, surfaces Sybil rejection (`NULLIFIER_USED`) inline.
+
+- **Wallet pages + credential cards** (#55) — `/wallet` lists holder credentials as `CredentialCard` (no PII on card); `/wallet/credentials/[id]` shows track/issuer/date/root/leaf + raw VC download via `VcDownloadButton`. BRAND-styled with foil-stamp links and typewriter hashes.
+
+- **Prove page (`/wallet/prove/[id]`)** (#56) — Server Component authorizes HOLDER, loads the credential + merkle proof, and renders `ProvePanel`.
+
+- **Keys page (`/wallet/keys` + `KeysManager`)** (#57) — Client-only generate/backup/restore for the holder secret; only the public `idCommitment` is published via `PUT /api/holder/commitment`.
+
+- **Phase 5 gate** — `pnpm --filter @zelyo/web typecheck && pnpm --filter @zelyo/web lint && pnpm --filter @zelyo/web test` all green (44 files, 106 tests).
+
 ## Phase 3 — Web Foundation, Theme & Auth
 
 - **Next.js 16 app scaffold + security headers** (#24) — `apps/web/package.json` (Next 16.2, React 19.2, Auth.js v5 beta, Prisma, Tailwind v4 deps), strict `tsconfig.json`, `next.config.ts` with global CSP/COOP/COEP/hardening headers, Vitest + jsdom + RTL setup, minimal `layout.tsx`/`page.tsx`. Header test passes; `pnpm --filter @zelyo/web test` green.

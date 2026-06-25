@@ -1,0 +1,115 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+  gateFindUnique,
+  verificationFindFirst,
+  claimFindUnique,
+  claimCreate,
+  issueClaimableBalance,
+  setVerifiedFlag,
+} = vi.hoisted(() => ({
+  gateFindUnique: vi.fn(),
+  verificationFindFirst: vi.fn(),
+  claimFindUnique: vi.fn(),
+  claimCreate: vi.fn(),
+  issueClaimableBalance: vi.fn(),
+  setVerifiedFlag: vi.fn(),
+}));
+
+vi.mock("../../lib/db", () => ({
+  db: {
+    jobGate: { findUnique: gateFindUnique },
+    verification: { findFirst: verificationFindFirst },
+    gateClaim: { findUnique: claimFindUnique, create: claimCreate },
+  },
+}));
+vi.mock("../../lib/stellar", () => ({ issueClaimableBalance, setVerifiedFlag }));
+
+import { claimGate } from "../jobgate.service";
+import type { FieldHex } from "@zelyo/zk-shared";
+
+const NULL = "0xnull" as FieldHex;
+
+const gate = (rewardType: string) => ({
+  id: "g1",
+  slug: "data-engineering",
+  rewardType,
+  requiredPredicate: { attribute: "track", equals: "Data Engineering" },
+  rewardConfig: { asset: { code: "ZELYO", issuer: "GISSUER", amount: "1" } },
+});
+
+const verified = {
+  result: "VERIFIED",
+  txHash: "tx1",
+  nullifierHex: "0xnull",
+  boundAddress: "GHOLDER",
+  disclosed: { track: "Data Engineering" },
+};
+
+beforeEach(() => {
+  for (const m of [gateFindUnique, verificationFindFirst, claimFindUnique, claimCreate, issueClaimableBalance, setVerifiedFlag]) m.mockReset();
+});
+
+describe("claimGate", () => {
+  it("issues a claimable balance for a CLAIMABLE_BALANCE gate", async () => {
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    issueClaimableBalance.mockResolvedValue({ txHash: "CBTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+
+    expect(issueClaimableBalance).toHaveBeenCalledWith("GHOLDER", {
+      code: "ZELYO",
+      issuer: "GISSUER",
+      amount: "1",
+    });
+    expect(setVerifiedFlag).not.toHaveBeenCalled();
+    expect(claimCreate).toHaveBeenCalledWith({
+      data: { jobGateId: "g1", nullifierHex: "0xnull", boundAddress: "GHOLDER", txHash: "CBTX" },
+    });
+    expect(res).toEqual({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" });
+  });
+
+  it("flips the verified flag for a FLAG gate", async () => {
+    gateFindUnique.mockResolvedValue(gate("FLAG"));
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    setVerifiedFlag.mockResolvedValue({ txHash: "FLAGTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+
+    expect(setVerifiedFlag).toHaveBeenCalledWith("GHOLDER");
+    expect(issueClaimableBalance).not.toHaveBeenCalled();
+    expect(res).toEqual({ txHash: "FLAGTX", rewardType: "FLAG" });
+  });
+
+  it("is idempotent: returns the existing claim without re-issuing", async () => {
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue({ txHash: "OLDTX" });
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+
+    expect(issueClaimableBalance).not.toHaveBeenCalled();
+    expect(claimCreate).not.toHaveBeenCalled();
+    expect(res).toEqual({ txHash: "OLDTX", rewardType: "CLAIMABLE_BALANCE" });
+  });
+
+  it("rejects an unknown gate", async () => {
+    gateFindUnique.mockResolvedValue(null);
+    await expect(claimGate("nope", NULL, "GHOLDER", "tx1")).rejects.toMatchObject({
+      code: "GATE_NOT_FOUND",
+    });
+  });
+
+  it("rejects when no eligible VERIFIED proof matches the predicate", async () => {
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue(null);
+    await expect(claimGate("data-engineering", NULL, "GHOLDER", "tx1")).rejects.toMatchObject({
+      code: "PROOF_NOT_ELIGIBLE",
+    });
+  });
+});

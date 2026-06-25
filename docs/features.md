@@ -2,6 +2,42 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+## Phase 6 — Reveals & Money-Rails
+
+- **Explorer URL helper (`lib/explorer.ts`)** (#58) — `explorerTxUrl(txHash)` joins `NEXT_PUBLIC_EXPLORER_BASE` to `/tx/<hash>`, trailing-slash-safe and tolerant of an unset base. Consolidated as the single source of truth; `lib/stellar.ts` now re-exports it (verification.service keeps importing from `@/lib/stellar`). Env key was already wired in Phase 5.
+
+- **Verification read service (`verification-read.service.ts`)** (#59) — `getVerificationByTxHash` returns a `VerificationView` (txHash, result, nullifierHex, boundAddress, disclosed, explorerUrl, createdAt, jobGateSlug) for the result page + Sybil mirror lookup. Read-only, never touches the chain.
+
+- **`ExplorerRevealPanel`** (#60) — pure presentational panel with two states: the verified "nothing personal is recorded on-chain" reveal (nullifier + bound address + tx + foil-stamp explorer link) and the `NULLIFIER_USED` Sybil-block state (no explorer link). Test asserts disclosed attribute *values* never render.
+
+- **`/verify/result/[txHash]` page** (#61) — async Server Component awaiting `params`; `notFound()` when no mirror row, otherwise renders `ExplorerRevealPanel`. Includes a branded `not-found.tsx`.
+
+- **Stellar reward helpers** (#62) — `issueClaimableBalance(boundAddress, asset)` (Horizon `createClaimableBalance`, unconditional claimant) and `setVerifiedFlag(boundAddress)` (registry `set_verified` via Soroban RPC), both signed server-side with `ISSUER_SECRET`, reusing the module's `issuerKeypair`/`rpcServer`.
+
+- **`jobgate.service.ts`** (#63) — `listGates`/`getGate` read helpers + `claimGate(slug, nullifierHex, boundAddress, txHash)`: requires a `VERIFIED` `Verification` row whose `disclosed.track` matches the gate predicate, idempotent per `@@unique([jobGateId, nullifierHex])`, dispatches `CLAIMABLE_BALANCE` vs `FLAG`, records a `GateClaim`.
+
+- **Job board APIs (`/api/jobboard/gates/*`)** (#64) — `GET` list, `GET` detail (404 on unknown slug), `POST` claim (Zod-validated body, 10/min/IP rate limit → 429 + Retry-After, audited). New `lib/audit.ts` writes claim attempts (success + rejection) to `AuditLog` with hashes/txHashes only — no PII.
+
+- **`GateCard` + `/jobs` board** (#65) — server-rendered gate list; each card shows title, description, and the single disclosed predicate, linking to the gate detail.
+
+- **`ClaimPanel` + `/jobs/[slug]`** (#66) — client component reading `txHash`/`nullifier`/`address` from the post-verification redirect query: shows "Prove with Zelyo" deep-link (`/wallet/prove?gate=<slug>`) or a "Claim Your Reward" button posting to the claim API, surfacing `PROOF_NOT_ELIGIBLE`/`NULLIFIER_USED` as plain copy.
+
+- **Landing three-reveal narrative** (#67) — `RevealNarrative` renders the three acceptance reveals (nothing-personal / one-credential-one-registration / selective-disclosure) with role CTAs to `/issuer`, `/wallet`, `/jobs`; replaces the Phase 3 placeholder home page.
+
+- **Phase 6 gate** — `pnpm --filter @zelyo/web typecheck && lint && test` all green (54 files, 130 tests).
+
+### Plan deviations (vs `docs/superpowers/plans/2026-06-23-zelyo-07-reveals.md`)
+
+The plan code targeted slightly different lib names/signatures than what actually landed in Phases 3–5; adapted to the real codebase:
+
+- **DB client is `db`, not `prisma`** (`lib/db.ts`) — services + test mocks use `db`.
+- **No `withErrorBoundary`** — routes use the established `try/catch` + `toErrorResponse` pattern (matches `api/verify`).
+- **`rateLimit()` returns `{ ok, retryAfter }`** (doesn't throw) — the claim route throws `RateLimitError` when `!ok`.
+- **`lib/audit.ts` created here** (the plan assumed it existed from Phase 3) — minimal `AuditLog` writer; Phase 7 §T3 will extend the audit sweep.
+- **`explorerTxUrl` already existed** in `stellar.ts` — kept one implementation in `lib/explorer.ts` and re-exported.
+- **Prisma models already present** (`JobGate`, `GateClaim`, `AuditLog`, `Verification.jobGate`) — no migration needed.
+- **Self-inconsistent plan tests fixed** — `ExplorerRevealPanel`/`GateCard` tests used over-broad text regexes that matched their own copy; rewritten to assert intent (no leaked PII values; predicate present). The jobboard claim test used a non-hex `nullifierHex` that failed the route's own schema; replaced with valid hex. `nativeToScVal(true)` (no invalid `{type:"bool"}`); idempotent `claimGate` omits `txHash` when null under `exactOptionalPropertyTypes`.
+
 ## Phase 5 — Holder Wallet + Prove/Verify
 
 - **Client-side holder secret (`holder-key.client.ts`)** (#49) — WebCrypto 32-byte random reduced to BN254 field; AES-GCM encrypted IndexedDB persistence; export/restore versioned backup blob; `deriveIdCommitment` wraps `@zelyo/zk-shared`. Secret `s` never serialized to the network. `fake-indexeddb` added for jsdom tests; connection handles closed to avoid test deadlocks.

@@ -8,9 +8,42 @@ import {
   Address,
   nativeToScVal,
 } from "@stellar/stellar-sdk";
-import type { FieldHex } from "@zelyo/zk-shared";
+import type { FieldHex, ProofBundle, PublicInputs } from "@zelyo/zk-shared";
 import { env } from "./env";
 
+export class ContractError extends Error {
+  constructor(
+    public readonly contractError: "NullifierUsed" | "UnknownRoot" | "AddressMismatch" | "InvalidProof",
+  ) {
+    super(contractError);
+    this.name = "ContractError";
+  }
+}
+
+export function explorerTxUrl(txHash: string): string {
+  return `${env.NEXT_PUBLIC_EXPLORER_BASE ?? ""}/tx/${txHash}`;
+}
+
+export async function isRootValid(_root: FieldHex): Promise<boolean> {
+  /* invoke CredentialRegistry.is_root_valid via Soroban RPC */
+  throw new Error("not implemented in this phase; mocked in tests, wired in Phase 7");
+}
+export async function isNullifierUsed(_nullifier: FieldHex): Promise<boolean> {
+  /* invoke is_nullifier_used */
+  throw new Error("not implemented in this phase; mocked in tests, wired in Phase 7");
+}
+export async function submitVerifyAndRegister(_bundle: ProofBundle): Promise<{ txHash: string }> {
+  /* Path A: verify_and_register(proof, pi) signed by ISSUER_SECRET; throws ContractError on revert */
+  throw new Error("not implemented in this phase; mocked in tests, wired in Phase 7");
+}
+export async function submitRegister(_pi: PublicInputs): Promise<{ txHash: string }> {
+  /* Path B: register(pi, attestor) signed by ISSUER_SECRET; throws ContractError on revert */
+  throw new Error("not implemented in this phase; mocked in tests, wired in Phase 7");
+}
+export async function verifyProofOffchain(_bundle: ProofBundle): Promise<boolean> {
+  /* Path B: bb.js / nargo verify server-side */
+  throw new Error("not implemented in this phase; mocked in tests, wired in Phase 7");
+}
 export const rpcServer = new rpc.Server(env.SOROBAN_RPC_URL, {
   allowHttp: env.SOROBAN_RPC_URL.startsWith("http://"),
 });

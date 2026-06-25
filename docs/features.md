@@ -4,6 +4,22 @@ A running, append-only log of shipped changes. Newest entries on top.
 
 ## Phase 7 — Hardening, Tests & Deploy
 
+- **Audit sweep on verify (`api/verify`)** (#71) — `/api/verify` now writes a PII-safe `AuditLog` row (`action: "VERIFY"`, ip, `target` = nullifier hash, `meta` = result code + txHash) so mint/revoke/verify are all audited with actor + ip. `tests/unit/audit.test.ts` asserts the `audit()` writer forwards only whitelisted columns and never a PII field name or value.
+
+- **PII / secret redaction verification** (#72) — `tests/unit/redaction.test.ts`: asserts `authorization`/`password`/`set-cookie`/`s`/`attributes` are censored via the real `REDACT_PATHS`, plus a client-bundle grep guard that fails if `ISSUER_SECRET`/`holderSecret` reach `.next/static` (skipped until a build exists; enforced in CI after the build step).
+
+- **Playwright config + fixtures + axe (`tests/e2e/*`)** (#73) — `playwright.config.ts` (chromium, serial workers, `/api/health` webServer, SharedArrayBuffer flag for bb.js isolation); `fixtures.ts` (`loginAs("admin")` + `registerHolder()`); `axe.ts` `checkA11y()` WCAG2 A/AA serious+critical gate. Added `@playwright/test` + `@axe-core/playwright` devDeps and a `test:e2e` script; e2e specs excluded from vitest.
+
+- **E2E — auth & role redirects (`auth-roles.spec.ts`)** (#74) — SPEC §13.4: unauth → `/login`, seeded admin reaches `/issuer/mint`, holder blocked from `/issuer/**`, plus axe AA on home/jobs/login/mint.
+
+- **E2E — three acceptance reveals (`reveals.spec.ts`)** (#75) — SPEC §13.1–13.3 driven through the real mint → prove → verify spine: nothing-personal-on-chain (explorer link, no PII on result page), Sybil block (`NULLIFIER_USED` on nullifier reuse), and selective-disclosure gate claim. Serial mode; generous timeouts for in-browser proving.
+
+- **Accessibility floor (`a11y-floor.spec.ts`)** (#76) — BRAND §10: visible keyboard focus + ≥40px hit target on the primary CTA, reduced-motion disables the foil shine, and status pills never signal by color alone.
+
+- **CI gate** (#77) — `ci.yml` adds `pnpm audit --audit-level critical`; resolved the one critical (`fast-xml-parser <4.5.4` via `@aws-sdk/client-s3`) with a `pnpm.overrides` bump to `>=4.5.4`. New `e2e.yml` brings up postgres/redis/minio + prisma migrate/seed + build + Playwright specs (with report artifact), triggered on `workflow_dispatch` and push to `develop` — kept out of the PR-blocking path because the reveals specs drive bb.js proving against testnet and need live secrets.
+
+- **Railway deploy** (#78) — `railway.json` (NIXPACKS build, preDeploy migrate+seed, `pnpm start`, `/api/health` healthcheck) + `nixpacks.toml` (Node 22 / pnpm 10) + `docs/DEPLOY.md` (services, secrets-only-in-Railway variable list, prod COOP/COEP/HSTS verification, contracts-deployed-once runbook, release ordering).
+
 - **Centralized security headers (`lib/security-headers.ts`)** (#69) — `securityHeaders(isProd)` + `cspValue(isProd)` become the single source of truth for CSP, COOP/COEP, XFO, XCTO, Referrer/Permissions-Policy, and HSTS in production. Wired into `next.config.ts` with global `/:path*` coverage; assertion tests lock in the AGENT.md §4 header set and CSP rules.
 
 - **Rate-limiting sweep across mutating endpoints** (#70) — Add `claim` to the named `limiters` registry (SPEC §8 floors: auth 10, verify 20, register 5, mint 60, claim 20 per minute). Introduce `enforceRateLimit(name, ip)` in `lib/rate-limit.ts` and switch the job-board claim route to use it, returning `429` + `Retry-After` on exhaustion. Assertion tests lock in the floors and the `RATE_LIMITED` error shape.

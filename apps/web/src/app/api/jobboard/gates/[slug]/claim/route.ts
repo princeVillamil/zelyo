@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { AppError, toErrorResponse } from "../../../../../../lib/errors";
-import { rateLimit, RateLimitError } from "../../../../../../lib/ratelimit";
+import { enforceRateLimit, clientIp } from "../../../../../../lib/rate-limit";
 import { audit } from "../../../../../../lib/audit";
 import { claimGate } from "../../../../../../server/jobgate.service";
 
@@ -13,21 +13,16 @@ const claimBodySchema = z.object({
   txHash: z.string().min(1).max(128),
 });
 
-function clientIp(req: Request): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-}
-
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ slug: string }> },
 ): Promise<Response> {
   try {
     const { slug } = await ctx.params;
-    const ip = clientIp(req);
+    const ip = clientIp(req.headers);
 
-    // Mutating public route — 10/min per IP (returns 429 + Retry-After).
-    const rl = await rateLimit(`jobclaim:${ip}`, 10, 60);
-    if (!rl.ok) throw new RateLimitError(rl.retryAfter);
+    // Mutating public route — enforce the SPEC §8 claim limiter (20/min per IP).
+    await enforceRateLimit("claim", ip);
 
     const json: unknown = await req.json().catch(() => null);
     const parsed = claimBodySchema.safeParse(json);

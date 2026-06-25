@@ -6,6 +6,8 @@ A running, append-only log of shipped changes. Newest entries on top.
 
 - **Centralized security headers (`lib/security-headers.ts`)** (#69) — `securityHeaders(isProd)` + `cspValue(isProd)` become the single source of truth for CSP, COOP/COEP, XFO, XCTO, Referrer/Permissions-Policy, and HSTS in production. Wired into `next.config.ts` with global `/:path*` coverage; assertion tests lock in the AGENT.md §4 header set and CSP rules.
 
+- **Rate-limiting sweep across mutating endpoints** (#70) — Add `claim` to the named `limiters` registry (SPEC §8 floors: auth 10, verify 20, register 5, mint 60, claim 20 per minute). Introduce `enforceRateLimit(name, ip)` in `lib/rate-limit.ts` and switch the job-board claim route to use it, returning `429` + `Retry-After` on exhaustion. Assertion tests lock in the floors and the `RATE_LIMITED` error shape.
+
 ## Phase 6 — Reveals & Money-Rails
 
 - **Explorer URL helper (`lib/explorer.ts`)** (#58) — `explorerTxUrl(txHash)` joins `NEXT_PUBLIC_EXPLORER_BASE` to `/tx/<hash>`, trailing-slash-safe and tolerant of an unset base. Consolidated as the single source of truth; `lib/stellar.ts` now re-exports it (verification.service keeps importing from `@/lib/stellar`). Env key was already wired in Phase 5.

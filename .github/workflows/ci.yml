@@ -68,3 +68,6 @@ jobs:
           ADMIN_USERNAME: admin
           ADMIN_PASSWORD: build-placeholder
           ISSUER_NAME: Institute of Distributed Systems
+
+      - name: Audit (fail on critical)
+        run: pnpm audit --audit-level critical

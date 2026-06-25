@@ -1,0 +1,7 @@
+# Node 22 + pnpm 10 toolchain for the Railway build. The actual build/release/start
+# commands live in railway.json (buildCommand / preDeployCommand / startCommand).
+[phases.setup]
+nixPkgs = ["nodejs_22", "pnpm-10_x"]
+
+[phases.build]
+cmds = ["echo 'build handled by railway.json buildCommand'"]

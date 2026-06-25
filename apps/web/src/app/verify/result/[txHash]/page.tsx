@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { ExplorerRevealPanel } from "../../../../components/ExplorerRevealPanel";
 import { getVerificationByTxHash } from "../../../../server/verification-read.service";
 
+// Reads a live verification mirror row — render on-demand, never prerender at build.
+export const dynamic = "force-dynamic";
+
 export default async function VerifyResultPage({
   params,
 }: {

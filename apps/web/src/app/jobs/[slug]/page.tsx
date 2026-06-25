@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { getGate } from "../../../server/jobgate.service";
 import { ClaimPanel } from "./ClaimPanel";
 
+// Reads live gate data — render on-demand, never prerender at build.
+export const dynamic = "force-dynamic";
+
 export default async function GateDetailPage({
   params,
 }: {

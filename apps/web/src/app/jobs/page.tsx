@@ -1,6 +1,9 @@
 import { GateCard } from "../../components/GateCard";
 import { listGates } from "../../server/jobgate.service";
 
+// Public board reads live registry data — render on-demand, never prerender at build.
+export const dynamic = "force-dynamic";
+
 export default async function JobsPage() {
   const gates = await listGates();
   return (

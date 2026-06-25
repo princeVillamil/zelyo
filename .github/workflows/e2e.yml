@@ -1,0 +1,105 @@
+name: E2E / Acceptance
+
+# Full-stack acceptance gate (SPEC §13): brings up postgres/redis/minio, migrates
+# + seeds the DB, builds, and runs the Playwright reveals/auth/a11y specs.
+#
+# It is NOT wired into the PR-blocking `ci.yml` because the reveals specs drive
+# in-browser bb.js proving against Stellar testnet, which needs live secrets
+# (CI_ISSUER_SECRET, contract IDs) and is too slow/flaky to gate every PR. Run it
+# manually (workflow_dispatch) for release acceptance, and automatically after a
+# merge to develop as a post-merge signal.
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Acceptance (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: zelyo
+          POSTGRES_PASSWORD: zelyo
+          POSTGRES_DB: zelyo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U zelyo" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+      minio:
+        image: bitnami/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+          MINIO_DEFAULT_BUCKETS: zelyo
+        ports: ["9000:9000"]
+    env:
+      DATABASE_URL: postgresql://zelyo:zelyo@localhost:5432/zelyo
+      DIRECT_URL: postgresql://zelyo:zelyo@localhost:5432/zelyo
+      REDIS_URL: redis://localhost:6379
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: zelyo
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      S3_FORCE_PATH_STYLE: "true"
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'ci-only-secret-at-least-32-bytes-long!!' }}
+      AUTH_URL: http://127.0.0.1:3000
+      AUTH_TRUST_HOST: "true"
+      APP_URL: http://127.0.0.1:3000
+      LOG_LEVEL: silent
+      STELLAR_NETWORK: testnet
+      NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+      SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+      HORIZON_URL: https://horizon-testnet.stellar.org
+      ISSUER_SECRET: ${{ secrets.CI_ISSUER_SECRET }}
+      ISSUER_STELLAR_ACCOUNT: ${{ secrets.CI_ISSUER_ACCOUNT }}
+      CREDENTIAL_REGISTRY_CONTRACT_ID: ${{ secrets.CI_REGISTRY_ID }}
+      VERIFIER_CONTRACT_ID: ${{ secrets.CI_VERIFIER_ID }}
+      ZK_SCOPE_APP_ID: zelyo-v1
+      ZK_VERIFY_MODE: ${{ secrets.CI_ZK_VERIFY_MODE || 'server' }}
+      CIRCUIT_ARTIFACT_BASE: /circuit
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin-password
+      ISSUER_NAME: "Institute of Distributed Systems"
+      NEXT_PUBLIC_EXPLORER_BASE: https://stellar.expert/explorer/testnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate / migrate / seed
+        working-directory: apps/web
+        run: |
+          pnpm prisma generate
+          pnpm prisma migrate deploy
+          pnpm prisma db seed
+      - name: Build
+        working-directory: apps/web
+        run: pnpm build
+      - name: Install Playwright browser
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+      - name: E2E (Playwright)
+        run: pnpm test:e2e
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

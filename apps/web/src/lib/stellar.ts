@@ -7,6 +7,10 @@ import {
   BASE_FEE,
   Address,
   nativeToScVal,
+  Asset,
+  Claimant,
+  Horizon,
+  Operation,
 } from "@stellar/stellar-sdk";
 import type { FieldHex, ProofBundle, PublicInputs } from "@zelyo/zk-shared";
 import { env } from "./env";
@@ -82,5 +86,54 @@ export async function publishRoot(rootHex: FieldHex): Promise<{ txHash: string }
   tx.sign(issuerKeypair);
 
   const sent = await rpcServer.sendTransaction(tx);
+  return { txHash: sent.hash };
+}
+
+/** Issue a testnet claimable balance of `asset` claimable by `boundAddress`. Signed by ISSUER_SECRET. */
+export async function issueClaimableBalance(
+  boundAddress: string,
+  asset: { code: string; issuer: string; amount: string },
+): Promise<{ txHash: string }> {
+  const server = new Horizon.Server(env.HORIZON_URL);
+  const source = await server.loadAccount(issuerKeypair.publicKey());
+  const claimant = new Claimant(boundAddress, Claimant.predicateUnconditional());
+  const tx = new TransactionBuilder(source, {
+    fee: BASE_FEE,
+    networkPassphrase: env.NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.createClaimableBalance({
+        asset: new Asset(asset.code, asset.issuer),
+        amount: asset.amount,
+        claimants: [claimant],
+      }),
+    )
+    .setTimeout(60)
+    .build();
+  tx.sign(issuerKeypair);
+  const res = await server.submitTransaction(tx);
+  return { txHash: res.hash };
+}
+
+/** Flip is_verified(address)=true on the registry contract. Signed by ISSUER_SECRET. */
+export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: string }> {
+  const source = await rpcServer.getAccount(issuerKeypair.publicKey());
+  const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
+  const built = new TransactionBuilder(source, {
+    fee: BASE_FEE,
+    networkPassphrase: env.NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      contract.call(
+        "set_verified",
+        new Address(boundAddress).toScVal(),
+        nativeToScVal(true, { type: "bool" }),
+      ),
+    )
+    .setTimeout(60)
+    .build();
+  const prepared = await rpcServer.prepareTransaction(built);
+  prepared.sign(issuerKeypair);
+  const sent = await rpcServer.sendTransaction(prepared);
   return { txHash: sent.hash };
 }

@@ -4,7 +4,7 @@ import nextConfig from "../../next.config";
 describe("security headers", () => {
   it("declares COOP/COEP and the hardening headers globally", async () => {
     const groups = await nextConfig.headers!();
-    const all = groups.find((g) => g.source === "/(.*)");
+    const all = groups.find((g) => g.source === "/:path*");
     expect(all).toBeDefined();
     const map = Object.fromEntries(all!.headers.map((h) => [h.key, h.value]));
     expect(map["Cross-Origin-Opener-Policy"]).toBe("same-origin");

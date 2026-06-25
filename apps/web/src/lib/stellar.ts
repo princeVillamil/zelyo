@@ -20,9 +20,9 @@ export class ContractError extends Error {
   }
 }
 
-export function explorerTxUrl(txHash: string): string {
-  return `${env.NEXT_PUBLIC_EXPLORER_BASE ?? ""}/tx/${txHash}`;
-}
+// Single source of truth lives in ./explorer; re-exported here for back-compat
+// (verification.service imports it from @/lib/stellar).
+export { explorerTxUrl } from "./explorer";
 
 export async function isRootValid(_root: FieldHex): Promise<boolean> {
   /* invoke CredentialRegistry.is_root_valid via Soroban RPC */

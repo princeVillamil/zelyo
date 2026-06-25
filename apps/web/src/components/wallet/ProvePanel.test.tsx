@@ -58,7 +58,7 @@ describe("ProvePanel", () => {
 
     await waitFor(() => expect(proveCredential).toHaveBeenCalledOnce());
     // proof bytes are serialized as a number array; s is never in the request body
-    const body = JSON.parse(vi.mocked(global.fetch).mock.calls[0][1]!.body as string);
+    const body = JSON.parse(((vi.mocked(global.fetch).mock.calls[0]![1] as RequestInit | undefined)?.body as string) ?? '{}');
     expect(Array.isArray(body.proof)).toBe(true);
     expect(JSON.stringify(body)).not.toContain("11".repeat(32));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/verify/result/TX123"));

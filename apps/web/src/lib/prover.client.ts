@@ -97,12 +97,13 @@ const defaultDeps: ProverDeps = {
   async loadNoir(manifest) {
     const { Noir } = await import("@noir-lang/noir_js");
     const acir = await (await fetch(manifest.artifact.acirUrl)).json();
-    return new Noir(acir, manifest.abi) as unknown as NoirLike;
+    return new Noir(acir) as unknown as NoirLike;
   },
   async loadBackend(manifest) {
-    const { UltraHonkBackend } = await import("@aztec/bb.js");
+    const { UltraHonkBackend, Barretenberg } = await import("@aztec/bb.js");
     const acir = await (await fetch(manifest.artifact.acirUrl)).json();
-    return new UltraHonkBackend(acir.bytecode, { manifest: manifest }) as unknown as BackendLike;
+    const api = await Barretenberg.new({ threads: navigator.hardwareConcurrency ?? 4 });
+    return new UltraHonkBackend(acir.bytecode, api) as unknown as BackendLike;
   },
 };
 

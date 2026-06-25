@@ -35,7 +35,7 @@ const RESULT_COPY: Record<string, string> = {
 export function ProvePanel({ credential }: { credential: ProvePanelCredential }) {
   const router = useRouter();
   // Default: reveal only `track`; name/grade hidden.
-  const [disclose, setDisclose] = useState<Record<keyof Attributes, boolean>>({ track: true });
+  const [disclose, setDisclose] = useState<Partial<Record<keyof Attributes, boolean>>>({ track: true });
   const [address, setAddress] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [lines, setLines] = useState<LogLine[]>([]);
@@ -87,7 +87,7 @@ export function ProvePanel({ credential }: { credential: ProvePanelCredential })
         router.push(`/verify/result/${result.txHash}`);
       } else {
         log("REGISTRY REJECTED", result.result);
-        setError(RESULT_COPY[result.result] ?? RESULT_COPY.ERROR);
+        setError((RESULT_COPY[result.result] ?? RESULT_COPY.ERROR) as string | null);
       }
     } catch (err) {
       if (err instanceof ProverError && err.code === "NOT_ISOLATED") {

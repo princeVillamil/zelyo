@@ -54,7 +54,7 @@ async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKe
     ["deriveKey"],
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 250_000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: 250_000, hash: "SHA-256" },
     base,
     { name: "AES-GCM", length: 256 },
     false,
@@ -76,7 +76,7 @@ async function seal(s: FieldHex, passphrase: string): Promise<Envelope> {
   // Store the field hex (without 0x) as bytes — never the raw decimal/string in clear.
   const plaintext = new TextEncoder().encode(s);
   const ct = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plaintext),
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, plaintext as BufferSource),
   );
   return { v: BACKUP_VERSION, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
 }
@@ -86,9 +86,9 @@ async function open(env: Envelope, passphrase: string): Promise<FieldHex> {
   let plain: ArrayBuffer;
   try {
     plain = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: unb64(env.iv) },
+      { name: "AES-GCM", iv: unb64(env.iv) as BufferSource },
       key,
-      unb64(env.ct),
+      unb64(env.ct) as BufferSource,
     );
   } catch {
     throw new HolderKeyError("DECRYPT_FAILED");

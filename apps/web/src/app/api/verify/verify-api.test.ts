@@ -36,7 +36,7 @@ describe("POST /api/verify", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ ok: true, result: "VERIFIED", txHash: "TX" });
     // proof reconstructed as bytes before reaching the service
-    const arg = vi.mocked(verifyAndRegister).mock.calls[0][0];
+    const arg = vi.mocked(verifyAndRegister).mock.calls[0]![0];
     expect(arg.proof).toBeInstanceOf(Uint8Array);
   });
 

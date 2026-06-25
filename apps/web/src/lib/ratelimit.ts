@@ -12,11 +12,13 @@ function make(keyPrefix: string, points: number) {
   });
 }
 
+// SPEC §8 floors, per IP, per minute. `claim` covers the public job-board claim route.
 export const limiters = {
   auth: make("rl:auth", 10),
   verify: make("rl:verify", 20),
   register: make("rl:register", 5),
   mint: make("rl:mint", 60),
+  claim: make("rl:claim", 20),
 };
 
 export class RateLimitError extends AppError {
@@ -35,6 +37,14 @@ export async function consumeOrThrow(
     const ms = (res as { msBeforeNext?: number }).msBeforeNext ?? 60000;
     throw new RateLimitError(Math.ceil(ms / 1000));
   }
+}
+
+/** Enforce a named SPEC §8 limiter for a given IP. Throws RATE_LIMITED with retryAfter. */
+export async function enforceRateLimit(
+  name: keyof typeof limiters,
+  ip: string,
+): Promise<void> {
+  await consumeOrThrow(limiters[name], ip);
 }
 
 export function clientIp(headers: Headers): string {

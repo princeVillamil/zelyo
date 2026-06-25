@@ -1,24 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { listGates, getGate, claimGate, rateLimit, audit } = vi.hoisted(() => ({
+const { listGates, getGate, claimGate, enforceRateLimit, audit } = vi.hoisted(() => ({
   listGates: vi.fn(),
   getGate: vi.fn(),
   claimGate: vi.fn(),
-  rateLimit: vi.fn(),
+  enforceRateLimit: vi.fn(),
   audit: vi.fn(),
 }));
 
 vi.mock("../../../../server/jobgate.service", () => ({ listGates, getGate, claimGate }));
-vi.mock("../../../../lib/ratelimit", () => ({
-  rateLimit,
-  RateLimitError: class RateLimitError extends Error {
-    constructor(public readonly retryAfter: number) {
-      super("RATE_LIMITED");
-    }
-    code = "RATE_LIMITED";
-    httpStatus = 429;
-    publicMessage = "Too many requests.";
-  },
+vi.mock("../../../../lib/rate-limit", () => ({
+  enforceRateLimit,
+  clientIp: (_headers: Headers) => "1.2.3.4",
 }));
 vi.mock("../../../../lib/audit", () => ({ audit }));
 
@@ -27,8 +20,8 @@ import { GET as detailRoute } from "../gates/[slug]/route";
 import { POST as claimRoute } from "../gates/[slug]/claim/route";
 
 beforeEach(() => {
-  for (const m of [listGates, getGate, claimGate, rateLimit, audit]) m.mockReset();
-  rateLimit.mockResolvedValue({ ok: true, retryAfter: 0 });
+  for (const m of [listGates, getGate, claimGate, enforceRateLimit, audit]) m.mockReset();
+  enforceRateLimit.mockResolvedValue(undefined);
 });
 
 const claimReq = (body: unknown) =>
@@ -58,7 +51,7 @@ describe("jobboard routes", () => {
     claimGate.mockResolvedValue({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" });
     const body = { nullifierHex: "0xdeadbeef", boundAddress: "G" + "A".repeat(55), txHash: "tx1" };
     const res = await claimRoute(claimReq(body), { params: Promise.resolve({ slug: "data-engineering" }) });
-    expect(rateLimit).toHaveBeenCalled();
+    expect(enforceRateLimit).toHaveBeenCalledWith("claim", "1.2.3.4");
     expect(claimGate).toHaveBeenCalledWith("data-engineering", "0xdeadbeef", "G" + "A".repeat(55), "tx1");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" });

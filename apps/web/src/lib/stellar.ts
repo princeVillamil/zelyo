@@ -127,7 +127,7 @@ export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: s
       contract.call(
         "set_verified",
         new Address(boundAddress).toScVal(),
-        nativeToScVal(true, { type: "bool" }),
+        nativeToScVal(true),
       ),
     )
     .setTimeout(60)

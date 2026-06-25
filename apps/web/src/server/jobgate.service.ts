@@ -71,7 +71,11 @@ export async function claimGate(
   const existing = await db.gateClaim.findUnique({
     where: { jobGateId_nullifierHex: { jobGateId: gate.id, nullifierHex } },
   });
-  if (existing) return { txHash: existing.txHash ?? undefined, rewardType: gate.rewardType };
+  if (existing) {
+    return existing.txHash != null
+      ? { txHash: existing.txHash, rewardType: gate.rewardType }
+      : { rewardType: gate.rewardType };
+  }
 
   let rewardTxHash: string;
   if (gate.rewardType === "CLAIMABLE_BALANCE") {

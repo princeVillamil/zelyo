@@ -2,6 +2,10 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+## Phase 7 — Hardening, Tests & Deploy
+
+- **Centralized security headers (`lib/security-headers.ts`)** (#69) — `securityHeaders(isProd)` + `cspValue(isProd)` become the single source of truth for CSP, COOP/COEP, XFO, XCTO, Referrer/Permissions-Policy, and HSTS in production. Wired into `next.config.ts` with global `/:path*` coverage; assertion tests lock in the AGENT.md §4 header set and CSP rules.
+
 ## Phase 6 — Reveals & Money-Rails
 
 - **Explorer URL helper (`lib/explorer.ts`)** (#58) — `explorerTxUrl(txHash)` joins `NEXT_PUBLIC_EXPLORER_BASE` to `/tx/<hash>`, trailing-slash-safe and tolerant of an unset base. Consolidated as the single source of truth; `lib/stellar.ts` now re-exports it (verification.service keeps importing from `@/lib/stellar`). Env key was already wired in Phase 5.

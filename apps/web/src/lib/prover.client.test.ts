@@ -6,23 +6,40 @@ import {
   ProverError,
   type ProveInput,
 } from "./prover.client";
-import { computeScope, computeNullifier, encodeAddressToField, type FieldHex } from "@zelyo/zk-shared";
+import {
+  computeScope,
+  computeNullifier,
+  encodeAddressToField,
+  idCommitment,
+  buildLeaf,
+  poseidon,
+  type FieldHex,
+  type Attributes,
+} from "@zelyo/zk-shared";
 
 const SCOPE = computeScope("zelyo-v1", "Test SDF Network ; September 2015", "CDREG...");
 const ADDR = "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H";
 
+const S = ("0x" + "11".repeat(32)) as FieldHex;
+const ATTRS: Attributes = {
+  track: "Data Engineering",
+  grade: "A",
+  issueDate: "2026-01-01",
+  courseName: "Distributed Systems",
+  learnerName: "Ada Lovelace",
+};
+const SIBLING = ("0x" + "00".repeat(32)) as FieldHex;
+// Build a consistent leaf/path/root so the prover's Merkle preflight passes.
+// pathIndices[0] === 0 → the leaf is the left child: root = Poseidon(leaf, sibling).
+const LEAF = buildLeaf(idCommitment(S), ATTRS);
+const ROOT = poseidon([LEAF, SIBLING]);
+
 const input: ProveInput = {
-  s: ("0x" + "11".repeat(32)) as FieldHex,
-  attributes: {
-    track: "Data Engineering",
-    grade: "A",
-    issueDate: "2026-01-01",
-    courseName: "Distributed Systems",
-    learnerName: "Ada Lovelace",
-  },
+  s: S,
+  attributes: ATTRS,
   disclose: { track: true },
-  merklePath: { siblings: [("0x" + "00".repeat(32)) as FieldHex], pathIndices: [0] },
-  root: ("0x" + "ab".repeat(32)) as FieldHex,
+  merklePath: { siblings: [SIBLING], pathIndices: [0] },
+  root: ROOT,
   boundStellarAddress: ADDR,
 };
 

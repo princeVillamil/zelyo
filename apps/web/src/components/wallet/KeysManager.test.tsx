@@ -41,8 +41,7 @@ describe("KeysManager", () => {
     await waitFor(() => expect(screen.getByText(new RegExp(commitment.slice(0, 10)))).toBeInTheDocument());
   });
 
-  it("restores a backup blob client-side and shows the recovered commitment", async () => {
-    const s = ("0x" + "33".repeat(32)) as FieldHex;
+  it("restores a backup blob client-side and shows the recovered commitment", async () => {    const s = ("0x" + "33".repeat(32)) as FieldHex;
     const commitment = ("0x" + "44".repeat(32)) as FieldHex;
     vi.mocked(keys.restoreBackup).mockResolvedValue(s);
     vi.mocked(keys.deriveIdCommitment).mockReturnValue(commitment);
@@ -54,5 +53,52 @@ describe("KeysManager", () => {
     await user.click(screen.getByRole("button", { name: /restore/i }));
     await waitFor(() => expect(keys.restoreBackup).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByText(new RegExp(commitment.slice(0, 10)))).toBeInTheDocument());
+  });
+
+  it("on 409, confirms before forcing the replace and only then persists the new secret", async () => {
+    const s = ("0x" + "55".repeat(32)) as FieldHex;
+    const commitment = ("0x" + "66".repeat(32)) as FieldHex;
+    vi.mocked(keys.generateHolderSecret).mockResolvedValue(s);
+    vi.mocked(keys.deriveIdCommitment).mockReturnValue(commitment);
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "would orphan 2 credential(s)" } }), { status: 409 }),
+      )
+      .mockResolvedValueOnce(new Response("{}", { status: 200 })) as never;
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    const user = userEvent.setup();
+    render(<KeysManager />);
+    await user.type(screen.getByLabelText(/passphrase/i), "vault");
+    await user.click(screen.getByRole("button", { name: /generate identity/i }));
+
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    await waitFor(() => expect(keys.persistHolderSecret).toHaveBeenCalledWith(s, "vault"));
+    // Second PUT carries force: true.
+    const retryBody = (vi.mocked(global.fetch).mock.calls[1]![1] as RequestInit).body as string;
+    expect(JSON.parse(retryBody)).toEqual({ idCommitment: commitment, force: true });
+    confirmSpy.mockRestore();
+  });
+
+  it("on 409, cancelling the confirm leaves the local secret untouched", async () => {
+    const s = ("0x" + "77".repeat(32)) as FieldHex;
+    const commitment = ("0x" + "88".repeat(32)) as FieldHex;
+    vi.mocked(keys.generateHolderSecret).mockResolvedValue(s);
+    vi.mocked(keys.deriveIdCommitment).mockReturnValue(commitment);
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ error: { message: "would orphan" } }), { status: 409 })) as never;
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    const user = userEvent.setup();
+    render(<KeysManager />);
+    await user.type(screen.getByLabelText(/passphrase/i), "vault");
+    await user.click(screen.getByRole("button", { name: /generate identity/i }));
+
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    expect(keys.persistHolderSecret).not.toHaveBeenCalled();
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledTimes(1); // no forced retry
+    confirmSpy.mockRestore();
   });
 });

@@ -30,4 +30,12 @@ describe("CredentialCard", () => {
     expect(screen.getByRole("link", { name: /view/i })).toHaveAttribute("href", "/wallet/credentials/c1");
     expect(screen.getByRole("link", { name: /prove/i })).toHaveAttribute("href", "/wallet/prove/c1");
   });
+
+  it("flags an orphaned credential and disables Prove", () => {
+    render(<CredentialCard credential={credential} signatureHash={"0x" + "ab".repeat(32)} orphaned />);
+    expect(screen.getByText(/previous identity/i)).toBeInTheDocument();
+    // Prove is no longer a navigable link.
+    expect(screen.queryByRole("link", { name: /prove/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/^Prove$/)).toHaveAttribute("aria-disabled", "true");
+  });
 });

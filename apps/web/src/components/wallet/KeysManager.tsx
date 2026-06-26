@@ -18,13 +18,32 @@ export function KeysManager() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function publishCommitment(c: FieldHex) {
+  async function publishCommitment(c: FieldHex, force = false): Promise<Response> {
     // Only the public commitment is ever sent to the server; never `s`.
-    await fetch("/api/holder/commitment", {
+    return fetch("/api/holder/commitment", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ idCommitment: c }),
+      body: JSON.stringify(force ? { idCommitment: c, force: true } : { idCommitment: c }),
     });
+  }
+
+  // Publishes the commitment. On 409 (the change would orphan provable credentials)
+  // it asks for confirmation and retries with force. Returns false if the user
+  // cancelled, true on success; throws on any other failure.
+  async function publishWithGuard(c: FieldHex): Promise<boolean> {
+    let res = await publishCommitment(c);
+    if (res.status === 409) {
+      const body = (await res.json().catch(() => null)) as
+        | { error?: { message?: string } }
+        | null;
+      const ok = window.confirm(
+        `${body?.error?.message ?? "Your existing credentials will be orphaned."}\n\nReplace your identity anyway? Previously minted credentials will no longer be provable. To keep them, cancel and restore the matching backup blob instead.`,
+      );
+      if (!ok) return false;
+      res = await publishCommitment(c, true);
+    }
+    if (!res.ok) throw new Error(`commitment ${res.status}`);
+    return true;
   }
 
   async function onGenerate() {
@@ -33,8 +52,12 @@ export function KeysManager() {
     try {
       const s = await generateHolderSecret();
       const c = deriveIdCommitment(s);
+
+      // Publish first (don't touch the local secret yet) so the server guard can
+      // reject before we overwrite the existing identity in this browser.
+      if (!(await publishWithGuard(c))) return;
+
       await persistHolderSecret(s, passphrase);
-      await publishCommitment(c);
       setBackup(await exportBackup(s, passphrase));
       setCommitment(c);
     } catch {
@@ -50,8 +73,13 @@ export function KeysManager() {
     try {
       const s = await restoreBackup(blob, passphrase);
       const c = deriveIdCommitment(s);
+
+      // Publish first: restoring the key the credentials were minted under re-homes
+      // them and is accepted; restoring a different key that would orphan provable
+      // credentials hits the same 409 confirm path as Generate.
+      if (!(await publishWithGuard(c))) return;
+
       await persistHolderSecret(s, passphrase);
-      await publishCommitment(c);
       setCommitment(c);
     } catch {
       setError("Restore failed: check the backup blob and passphrase.");
@@ -132,6 +160,15 @@ export function KeysManager() {
         >
           Restore
         </button>
+        {!busy && (!passphrase || !blob) && (
+          <p className="mt-stack-sm font-body text-caption italic text-on-surface-variant">
+            {!passphrase && !blob
+              ? "Enter the vault passphrase and paste your backup blob to restore."
+              : !passphrase
+                ? "Enter the vault passphrase that sealed this backup to restore."
+                : "Paste your backup blob above to restore."}
+          </p>
+        )}
       </div>
     </div>
   );

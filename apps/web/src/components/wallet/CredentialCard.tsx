@@ -11,13 +11,23 @@ export interface CredentialCardModel {
 export function CredentialCard({
   credential,
   signatureHash,
+  orphaned = false,
 }: {
   credential: CredentialCardModel;
   signatureHash: string;
+  orphaned?: boolean;
 }) {
   // Only non-PII fields are rendered: course, track, issuer, date, status, signature hash.
   return (
     <article className="manuscript-glow relative border-l border-primary border border-outline-variant rounded-lg bg-surface-container-lowest p-stack-lg">
+      {orphaned && (
+        <p
+          role="alert"
+          className="mb-stack-md border border-error rounded bg-error-container/40 px-stack-sm py-unit font-label text-label-md uppercase text-error"
+        >
+          Previous identity — not provable
+        </p>
+      )}
       <p className="font-label text-caption uppercase tracking-wider text-secondary">
         Identity Folio No. {credential.leafIndex}
       </p>
@@ -49,9 +59,19 @@ export function CredentialCard({
         <Link className="font-label text-label-md uppercase text-primary underline" href={`/wallet/credentials/${credential.id}`}>
           View
         </Link>
-        <Link className="font-label text-label-md uppercase text-primary underline" href={`/wallet/prove/${credential.id}`}>
-          Prove
-        </Link>
+        {orphaned ? (
+          <span
+            aria-disabled="true"
+            title="This credential was issued to a previous identity. Restore that identity to prove it."
+            className="font-label text-label-md uppercase text-on-surface-variant line-through cursor-not-allowed"
+          >
+            Prove
+          </span>
+        ) : (
+          <Link className="font-label text-label-md uppercase text-primary underline" href={`/wallet/prove/${credential.id}`}>
+            Prove
+          </Link>
+        )}
       </div>
     </article>
   );

@@ -39,3 +39,9 @@ pub fn compute_nullifier(s: Field, scope: Field) -> Field {
 pub fn hash_two(left: Field, right: Field) -> Field {
     Poseidon2::hash([left, right], 2)
 }
+
+// One-input Poseidon. Used for the selective-disclosure commitment:
+// disclosed = Poseidon(track). Mirrors the JS `poseidon([trackField])`.
+pub fn hash_one(x: Field) -> Field {
+    Poseidon2::hash([x], 1)
+}

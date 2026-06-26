@@ -15,6 +15,9 @@ import {
   computeScope,
   computeNullifier,
   encodeAddressToField,
+  attributesToFields,
+  idCommitment,
+  buildLeaf,
   poseidon,
   type FieldHex,
   type Attributes,
@@ -23,7 +26,9 @@ import {
 } from "@zelyo/zk-shared";
 
 export class ProverError extends Error {
-  constructor(public readonly code: "NOT_ISOLATED" | "MANIFEST" | "EXECUTE" | "PROVE") {
+  constructor(
+    public readonly code: "NOT_ISOLATED" | "MANIFEST" | "EXECUTE" | "PROVE" | "LEAF_MISMATCH",
+  ) {
     super(code);
     this.name = "ProverError";
   }
@@ -68,29 +73,32 @@ export function assertCrossOriginIsolated(): void {
   }
 }
 
-// `disclosed` is the encoding of the single revealed attribute (track).
-function encodeTrack(track: string): FieldHex {
-  const bytes = new TextEncoder().encode(track);
-  let v = 0n;
-  for (const b of bytes) v = (v << 8n) | BigInt(b);
-  const field = ("0x" + v.toString(16).padStart(64, "0")) as FieldHex;
-  return poseidon([field]);
+// Field-pack the three on-circuit attributes (track/grade/issue_date) exactly as
+// the leaf builder + Noir `AttributesF` do. Returned in circuit field order.
+function attrFields(a: Attributes): { track: FieldHex; grade: FieldHex; issue_date: FieldHex } {
+  const [track, grade, issue_date] = attributesToFields(a);
+  return { track, grade, issue_date };
 }
 
 export function buildPublicInputs(input: ProveInput, scope: FieldHex): PublicInputs {
+  const { track } = attrFields(input.attributes);
   return {
     root: input.root,
     scope,
     boundAddress: encodeAddressToField(input.boundStellarAddress),
     nullifier: computeNullifier(input.s, scope),
-    disclosed: encodeTrack(input.attributes.track),
+    // disclosed = Poseidon(trackField) — must equal the circuit's hash_one(track).
+    disclosed: poseidon([track]),
   };
 }
 
 // Default deps: dynamic-import the WASM packages only in the browser, lazily.
 const defaultDeps: ProverDeps = {
   async fetchManifest() {
-    const res = await fetch("/api/circuit/manifest", { cache: "force-cache" });
+    // Manifest is small JSON whose hash/scope/URLs gate proof correctness — never
+    // serve a stale copy. `no-store` always revalidates against the server; the
+    // large circuit artifact is fetched + cached separately in loadNoir/loadBackend.
+    const res = await fetch("/api/circuit/manifest", { cache: "no-store" });
     if (!res.ok) throw new ProverError("MANIFEST");
     return (await res.json()) as CircuitManifest;
   },
@@ -122,12 +130,35 @@ export async function proveCredential(
   const publicInputs = buildPublicInputs(input, scope);
 
   const noir = await deps.loadNoir(manifest);
+
+  // Preflight: rebuild the leaf from the holder's secret and walk the Merkle path
+  // locally. The circuit does the same and aborts with an opaque ACVM error if it
+  // fails — doing it here gives a clear, actionable message and logs the mismatch.
+  const idc = idCommitment(input.s);
+  const localLeaf = buildLeaf(idc, input.attributes);
+  let node = localLeaf;
+  input.merklePath.siblings.forEach((sib, i) => {
+    node = input.merklePath.pathIndices[i] === 1 ? poseidon([sib, node]) : poseidon([node, sib]);
+  });
+  if (node !== input.root) {
+    console.error("[prover] Merkle preflight FAILED — credential leaf does not match your identity key.", {
+      idCommitmentFromSecret: idc,
+      rebuiltLeaf: localLeaf,
+      derivedRoot: node,
+      expectedRoot: input.root,
+    });
+    throw new ProverError("LEAF_MISMATCH");
+  }
+
   let witness: Uint8Array;
   try {
     const result = await noir.execute({
       s: input.s,
-      attributes: input.attributes,
-      merkle_path: input.merklePath,
+      // AttributesF struct — field-packed, never the raw strings.
+      attributes: attrFields(input.attributes),
+      // Flat depth-20 arrays the circuit expects (not the {siblings,pathIndices} wrapper).
+      merkle_path: input.merklePath.siblings,
+      path_indices: input.merklePath.pathIndices.map((i) => i === 1),
       root: publicInputs.root,
       scope: publicInputs.scope,
       bound_address: publicInputs.boundAddress,
@@ -135,7 +166,8 @@ export async function proveCredential(
       disclosed: publicInputs.disclosed,
     });
     witness = result.witness;
-  } catch {
+  } catch (err) {
+    console.error("[prover] noir.execute failed:", err);
     throw new ProverError("EXECUTE");
   }
 
@@ -143,7 +175,8 @@ export async function proveCredential(
   let proof: Uint8Array;
   try {
     ({ proof } = await backend.generateProof(witness));
-  } catch {
+  } catch (err) {
+    console.error("[prover] backend.generateProof failed:", err);
     throw new ProverError("PROVE");
   }
 

@@ -7,11 +7,28 @@ export function cspValue(isProd: boolean): string {
   // style-src allows 'self'; Next injects nonce'd styles, never inline scripts.
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'wasm-unsafe-eval'"],
-    "style-src": ["'self'"],
+    // Next.js dev + browser extensions inject inline scripts/styles, and the
+    // Turbopack dev runtime / Fast Refresh use eval(). Keep prod strict; relax
+    // only in development so the app is usable locally.
+    "script-src": [
+      "'self'",
+      "'wasm-unsafe-eval'",
+      ...(isProd ? [] : ["'unsafe-inline'", "'unsafe-eval'"]),
+    ],
+    "style-src": ["'self'", ...(isProd ? [] : ["'unsafe-inline'"])],
     "img-src": ["'self'", "data:"],
     "font-src": ["'self'"],
-    "connect-src": ["'self'"], // RPC/Horizon go through our own /api routes
+    // 'self' covers our own /api routes (RPC/Horizon are proxied). 'data:' is
+    // required because @noir-lang/noir_js / bb.js decompress the gzipped circuit
+    // bytecode by fetching a `data:application/gzip;base64,…` URL. The crs.aztec
+    // hosts serve the UltraHonk SRS (g1.dat trusted-setup points) that bb.js
+    // downloads on first proof — see zk:srs follow-up to self-host and drop these.
+    "connect-src": [
+      "'self'",
+      "data:",
+      "https://crs.aztec-cdn.foundation",
+      "https://crs.aztec-labs.com",
+    ],
     "worker-src": ["'self'", "blob:"],
     "frame-ancestors": ["'none'"],
     "object-src": ["'none'"],

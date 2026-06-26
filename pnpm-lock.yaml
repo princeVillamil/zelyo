@@ -45,8 +45,8 @@ importers:
         specifier: 3.700.0
         version: 3.700.0
       '@aztec/bb.js':
-        specifier: ^4.3.1
-        version: 4.3.1
+        specifier: 5.0.0-nightly.20260522
+        version: 5.0.0-nightly.20260522
       '@hookform/resolvers':
         specifier: 5.4.0
         version: 5.4.0(react-hook-form@7.54.0(react@19.2.0))
@@ -406,8 +406,8 @@ packages:
     peerDependencies:
       playwright-core: '>= 1.0.0'
 
-  '@aztec/bb.js@4.3.1':
-    resolution: {integrity: sha512-qIUgIxcr0Sn8zDCGXm5L+IOhwTxUv0QPzfCeKpNkpy8IbV/0oPbPKTW1U3iqI8zXSiJ0Zkw/ysBdlCyN5cWezw==}
+  '@aztec/bb.js@5.0.0-nightly.20260522':
+    resolution: {integrity: sha512-3QCyPPQrPaFKgXcHw+7Mk+ScGJiMoeOtc6FpQFPTwTVbyFj9FGFdB6bceS6ulyNsmM6JfFmJRcbGerTAjzfbhw==}
     hasBin: true
 
   '@babel/code-frame@7.29.7':
@@ -4933,7 +4933,7 @@ snapshots:
       axe-core: 4.12.1
       playwright-core: 1.61.1
 
-  '@aztec/bb.js@4.3.1':
+  '@aztec/bb.js@5.0.0-nightly.20260522':
     dependencies:
       comlink: 4.4.2
       commander: 12.1.0

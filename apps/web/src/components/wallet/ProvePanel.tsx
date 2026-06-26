@@ -92,10 +92,23 @@ export function ProvePanel({ credential }: { credential: ProvePanelCredential })
     } catch (err) {
       if (err instanceof ProverError && err.code === "NOT_ISOLATED") {
         setError("Secure proving is unavailable: this page is not cross-origin isolated.");
+      } else if (err instanceof ProverError && err.code === "LEAF_MISMATCH") {
+        setError(
+          "This credential was issued to a different identity key than the one in this browser. " +
+            "It can't be proven — likely you regenerated your keys after it was issued. Restore the original key backup, or have it re-issued.",
+        );
       } else {
         setError("Proof generation failed. Please try again.");
       }
-      log("ERROR", "FAILED");
+      // Surface the precise failure on-page (ledger) so debugging doesn't depend
+      // on the browser console: ProverError code, or the raw error message.
+      const detail =
+        err instanceof ProverError
+          ? err.code
+          : err instanceof Error
+            ? `${err.name}: ${err.message}`.slice(0, 80)
+            : "FAILED";
+      log("ERROR", detail);
     } finally {
       setBusy(false);
     }

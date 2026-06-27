@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { securityHeaders, cspValue } from "../../src/lib/security-headers";
+import { hardeningHeaders, cspValue } from "../../src/lib/security-headers";
 
 function asMap(isProd: boolean) {
-  return new Map(securityHeaders(isProd).map((h) => [h.key, h.value]));
+  return new Map(hardeningHeaders(isProd).map((h) => [h.key, h.value]));
 }
 
 describe("security headers", () => {

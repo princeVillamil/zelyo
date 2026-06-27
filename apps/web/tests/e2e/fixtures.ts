@@ -30,7 +30,8 @@ export const test = base.extend<{
       await page.goto("/register");
       await page.getByLabel(/username/i).fill(username);
       await page.getByLabel(/password/i).fill(password);
-      await page.getByRole("button", { name: /register|create/i }).click();
+      // The register submit button is the brand-voiced "Open Folio".
+      await page.getByRole("button", { name: /register|create|open folio/i }).click();
       await page.waitForURL((u) => !u.pathname.endsWith("/register"));
       return { username, password };
     });

@@ -14,7 +14,8 @@ test.describe("auth & role redirects (SPEC §13.4)", () => {
     await page.goto("/issuer/mint");
     await expect(page).toHaveURL(/\/issuer\/mint/);
     await expect(
-      page.getByRole("heading", { name: /mint|issue|distillation|seal/i }),
+      // h1 specifically — MintForm also has an h2 "Mint Log" that matches /mint/i.
+      page.getByRole("heading", { level: 1, name: /mint|issue|distillation|seal/i }),
     ).toBeVisible();
     await checkA11y(page, "issuer/mint");
   });

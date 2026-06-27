@@ -21,9 +21,13 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "pnpm dev",
+    // Acceptance must run against the production build, not `next dev`: the dev
+    // server blocks cross-origin dev resources (HMR/client chunks) over 127.0.0.1,
+    // which breaks hydration → forms submit as native GET and interactions hang.
+    // CI builds in a prior step, so it only needs `start`; locally we build first.
+    command: process.env.CI ? "pnpm start" : "pnpm build && pnpm start",
     url: `http://127.0.0.1:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });

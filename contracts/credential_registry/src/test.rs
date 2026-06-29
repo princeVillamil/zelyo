@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::types::{Error, PublicInputsXdr};
-use soroban_sdk::{BytesN, Env};
+use soroban_sdk::{Address, Bytes, BytesN, Env, U256};
 
 #[test]
 fn types_construct_and_error_codes_match_index() {
@@ -27,7 +27,7 @@ fn types_construct_and_error_codes_match_index() {
 }
 
 use crate::{CredentialRegistry, CredentialRegistryClient};
-use soroban_sdk::{testutils::Address as _, Address};
+use soroban_sdk::testutils::Address as _;
 
 fn setup(env: &Env) -> (CredentialRegistryClient, Address, Address, Address) {
     let issuer = Address::generate(env);
@@ -74,15 +74,30 @@ fn set_root_requires_issuer_auth() {
 
 use soroban_sdk::address_payload::AddressPayload;
 
-/// Test helper: produce the 32-byte payload the contract expects for `addr`.
-/// For account addresses this is the ed25519 key; for contract addresses it is
-/// the contract hash. This keeps the helper in sync with `checks::address_to_key32`.
+/// Test helper: produce the field-packed 32-byte payload the contract expects
+/// for `addr`. Mirrors the JS `encodeAddressToField` reduction: raw 32-byte
+/// address key reduced mod BN254_P.
 fn bound_bytes(env: &Env, addr: &Address) -> BytesN<32> {
-    match addr.to_payload() {
+    let key: BytesN<32> = match addr.to_payload() {
         Some(AddressPayload::AccountIdPublicKeyEd25519(key)) => key,
         Some(AddressPayload::ContractIdHash(hash)) => hash,
         None => BytesN::from_array(env, &[0u8; 32]),
-    }
+    };
+    let key_bytes: Bytes = key.into();
+    let n = U256::from_be_bytes(env, &key_bytes);
+    let modulus = U256::from_be_bytes(
+        env,
+        &Bytes::from_array(
+            env,
+            &[
+                0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29, 0xb8, 0x50, 0x45, 0xb6, 0x81,
+                0x81, 0x58, 0x5d, 0x28, 0x33, 0xe8, 0x48, 0x79, 0xb9, 0x70, 0x91, 0x43, 0xe1,
+                0xf5, 0x93, 0xf0, 0x00, 0x00, 0x01,
+            ],
+        ),
+    );
+    let reduced = n.rem_euclid(&modulus);
+    BytesN::try_from(reduced.to_be_bytes()).unwrap_or_else(|_| BytesN::from_array(env, &[0u8; 32]))
 }
 
 fn pi_for(env: &Env, root: &BytesN<32>, addr: &Address, nullifier_seed: u8) -> PublicInputsXdr {

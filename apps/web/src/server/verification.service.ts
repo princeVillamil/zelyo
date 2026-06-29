@@ -67,7 +67,14 @@ async function mirror(
   });
 }
 
-export async function verifyAndRegister(bundle: ProofBundle): Promise<VerifyResult> {
+export interface VerifyAndRegisterInput extends ProofBundle {
+  boundStellarAddress: string;
+}
+
+export async function verifyAndRegister({
+  boundStellarAddress,
+  ...bundle
+}: VerifyAndRegisterInput): Promise<VerifyResult> {
   const { root, nullifier } = bundle.publicInputs;
   const log = logger.child({ op: "verifyAndRegister" });
 
@@ -91,7 +98,7 @@ export async function verifyAndRegister(bundle: ProofBundle): Promise<VerifyResu
           await mirror(bundle, "INVALID_PROOF");
           return { ok: false, result: "INVALID_PROOF" };
         }
-        ({ txHash } = await submitRegister(bundle.publicInputs));
+        ({ txHash } = await submitRegister(bundle.publicInputs, boundStellarAddress));
       } else {
         // Path A: contract verifies the proof on-chain then enforces the checks.
         ({ txHash } = await submitVerifyAndRegister(bundle));

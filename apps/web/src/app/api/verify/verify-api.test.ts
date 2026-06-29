@@ -17,12 +17,14 @@ import { consumeOrThrow } from "@/lib/ratelimit";
 import { db } from "@/lib/db";
 
 const hex = (n: string) => "0x" + n.repeat(32);
+const boundStellarAddress = "GASTINUANRYSHXSWZNAGDKYNISWSP4ZCDC534OVIA7IE272OIWSSQZGJ";
 const validBody = {
   proof: [1, 2, 3],
   publicInputs: {
     root: hex("ab"), scope: hex("cd"), boundAddress: hex("ef"),
     nullifier: hex("12"), disclosed: hex("34"),
   },
+  boundStellarAddress,
 };
 const post = (body: unknown) =>
   new Request("http://x/api/verify", { method: "POST", headers: { "x-forwarded-for": "1.1.1.1" }, body: JSON.stringify(body) });
@@ -39,6 +41,7 @@ describe("POST /api/verify", () => {
     // proof reconstructed as bytes before reaching the service
     const arg = vi.mocked(verifyAndRegister).mock.calls[0]![0];
     expect(arg.proof).toBeInstanceOf(Uint8Array);
+    expect(arg.boundStellarAddress).toBe(boundStellarAddress);
   });
 
   it("400 on malformed public inputs", async () => {

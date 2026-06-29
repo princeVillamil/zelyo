@@ -2,6 +2,8 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+- **Wire on-chain proof verification (Path B)** (PR) — Implements task 5.1: `lib/stellar.ts` now provides real `isRootValid`, `isNullifierUsed`, `verifyProofOffchain` (bb.js `UltraHonkVerifierBackend` against `public/circuit/vk`), and `submitRegister` (Soroban `register(pi, attestor, holder)`). The holder's Stellar address is threaded from `ProvePanel` through `/api/verify` to `verification.service.ts`. Also fixes the address-binding soundness gap in `CredentialRegistry`: raw ed25519 keys are reduced `mod BN254_P` on-chain, matching the JS `encodeAddressToField` path. `cargo test` + `pnpm --filter @zelyo/web test` green. *Deployment note:* the registry contract must be redeployed after this change; run `pnpm contracts:deploy` and update `CREDENTIAL_REGISTRY_CONTRACT_ID`.
+
 ## Phase 7 — Hardening, Tests & Deploy
 
 - **Audit sweep on verify (`api/verify`)** (#71) — `/api/verify` now writes a PII-safe `AuditLog` row (`action: "VERIFY"`, ip, `target` = nullifier hash, `meta` = result code + txHash) so mint/revoke/verify are all audited with actor + ip. `tests/unit/audit.test.ts` asserts the `audit()` writer forwards only whitelisted columns and never a PII field name or value.

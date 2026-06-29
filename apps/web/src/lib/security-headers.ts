@@ -1,20 +1,27 @@
-// Single source of truth for the security-header chain. Imported by next.config.ts
-// and by the header test. No secrets here — pure config.
+// Single source of truth for the security-header chain. The CSP is emitted by
+// middleware (it carries a per-request nonce); the remaining hardening headers
+// are emitted by next.config for every response. No secrets here — pure config.
 
-export function cspValue(isProd: boolean): string {
+export function cspValue(isProd: boolean, nonce?: string): string {
   // Fonts are self-hosted (BRAND.md §10), so the only origin we trust is 'self'.
   // 'wasm-unsafe-eval' is required for bb.js / noir_wasm to instantiate WASM.
-  // style-src allows 'self'; Next injects nonce'd styles, never inline scripts.
+  //
+  // In prod the inline scripts Next emits for hydration/RSC streaming are
+  // authorized by a per-request nonce (set in middleware), and 'strict-dynamic'
+  // lets those trusted scripts pull in the chunked bundles. Without the nonce the
+  // strict CSP blocks every inline script, hydration never runs, and no client
+  // component (login/register forms, the home CTA) ever renders.
+  const scriptSrc = ["'self'", "'wasm-unsafe-eval'"];
+  if (isProd) {
+    if (nonce) scriptSrc.push(`'nonce-${nonce}'`, "'strict-dynamic'");
+  } else {
+    // Dev (Turbopack/Fast Refresh) injects inline scripts and uses eval().
+    scriptSrc.push("'unsafe-inline'", "'unsafe-eval'");
+  }
+
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    // Next.js dev + browser extensions inject inline scripts/styles, and the
-    // Turbopack dev runtime / Fast Refresh use eval(). Keep prod strict; relax
-    // only in development so the app is usable locally.
-    "script-src": [
-      "'self'",
-      "'wasm-unsafe-eval'",
-      ...(isProd ? [] : ["'unsafe-inline'", "'unsafe-eval'"]),
-    ],
+    "script-src": scriptSrc,
     "style-src": ["'self'", ...(isProd ? [] : ["'unsafe-inline'"])],
     "img-src": ["'self'", "data:"],
     "font-src": ["'self'"],
@@ -41,9 +48,10 @@ export function cspValue(isProd: boolean): string {
     .join("; ");
 }
 
-export function securityHeaders(isProd: boolean): { key: string; value: string }[] {
+// Hardening headers emitted for every response by next.config. The CSP is NOT
+// here — it is set per-request in middleware so it can carry a nonce.
+export function hardeningHeaders(isProd: boolean): { key: string; value: string }[] {
   const headers = [
-    { key: "Content-Security-Policy", value: cspValue(isProd) },
     { key: "X-Frame-Options", value: "DENY" },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { securityHeaders } from "./src/lib/security-headers";
+import { hardeningHeaders } from "./src/lib/security-headers";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -10,9 +10,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Every route, including the app shell, the prover page, and /circuit/* artifacts.
+        // Every route, including the app shell, the prover page, and /circuit/*
+        // artifacts. CSP is set per-request in middleware (it needs a nonce).
         source: "/:path*",
-        headers: securityHeaders(isProd),
+        headers: hardeningHeaders(isProd),
       },
     ];
   },

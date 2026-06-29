@@ -10,9 +10,13 @@ vi.mock("next/server", () => ({
 const { config } = await import("../middleware");
 
 describe("middleware matcher", () => {
-  it("guards the protected route trees and skips static/api", () => {
-    expect(config.matcher).toContain("/issuer/:path*");
-    expect(config.matcher).toContain("/admin/:path*");
-    expect(config.matcher).toContain("/wallet/:path*");
+  it("runs on every document route so the CSP nonce is always set, but skips api/static", () => {
+    // The middleware now also emits the per-request CSP nonce, so it must run on
+    // all document routes (role guards live in the handler, not the matcher).
+    const pattern = (config.matcher as string[])[0];
+    expect(pattern).toContain("(?!");
+    for (const skip of ["api", "_next/static", "_next/image", "favicon.ico", "circuit"]) {
+      expect(pattern).toContain(skip);
+    }
   });
 });

@@ -7,7 +7,7 @@ test("visible keyboard focus + hit targets ≥40px on the primary CTA", async ({
   const cta = page
     .getByRole("button")
     .or(page.getByRole("link"))
-    .filter({ hasText: /verify|prove|explore|begin|enter/i })
+    .filter({ hasText: /verify|prove|explore|begin|enter|reveals/i })
     .first();
   await cta.focus();
   const focusStyle = await cta.evaluate((el) => {

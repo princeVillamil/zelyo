@@ -46,13 +46,17 @@ export function hexToBytes32(hex: FieldHex): Buffer {
 /** Build an ScVal map matching the contract's `PublicInputsXdr` struct. */
 function publicInputsToScVal(pi: PublicInputs): xdr.ScVal {
   const b32 = (hex: FieldHex) => xdr.ScVal.scvBytes(Buffer.from(hex.slice(2), "hex"));
-  return xdr.ScVal.scvMap([
-    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("root"), val: b32(pi.root) }),
-    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("scope"), val: b32(pi.scope) }),
-    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("bound_address"), val: b32(pi.boundAddress) }),
-    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("nullifier"), val: b32(pi.nullifier) }),
-    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("disclosed"), val: b32(pi.disclosed) }),
-  ]);
+  // ScMap keys must be sorted lexicographically by symbol name.
+  const entries = [
+    { key: "bound_address", val: b32(pi.boundAddress) },
+    { key: "disclosed", val: b32(pi.disclosed) },
+    { key: "nullifier", val: b32(pi.nullifier) },
+    { key: "root", val: b32(pi.root) },
+    { key: "scope", val: b32(pi.scope) },
+  ].sort((a, b) => a.key.localeCompare(b.key));
+  return xdr.ScVal.scvMap(
+    entries.map(({ key, val }) => new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(key), val })),
+  );
 }
 
 /** Simulate a read-only view function that returns bool. */
@@ -105,14 +109,21 @@ export async function verifyProofOffchain(bundle: ProofBundle): Promise<boolean>
   const { root, scope, boundAddress, nullifier, disclosed } = bundle.publicInputs;
   const publicInputs = [root, scope, boundAddress, nullifier, disclosed];
 
-  const { Barretenberg, UltraHonkVerifierBackend } = await import("@aztec/bb.js");
-  const api = await Barretenberg.new({ threads: 1 });
+
+
+  const { Barretenberg, UltraHonkBackend } = await import("@aztec/bb.js");
+  // Load WASM from public/circuit/wasm/ instead of node_modules (avoids pnpm symlink issues).
+  const wasmPath = join(process.cwd(), "public", "circuit", "wasm", "barretenberg-threads.wasm.gz");
+  const acirPath = join(process.cwd(), "public", "circuit", "zelyo_credential.json");
+  const acir = JSON.parse(await readFile(acirPath, "utf8"));
+  const api = await Barretenberg.new({ threads: 1, wasmPath });
   try {
-    const verifier = new UltraHonkVerifierBackend(api);
-    return await verifier.verifyProof(
-      { proof: bundle.proof, publicInputs, verificationKey: vk },
-      { verifierTarget: "evm-no-zk" },
-    );
+    const backend = new UltraHonkBackend(acir.bytecode, api);
+    const result = await backend.verifyProof({
+      proof: bundle.proof as Uint8Array,
+      publicInputs: publicInputs as unknown as string[],
+    });
+    return result;
   } finally {
     await api.destroy();
   }

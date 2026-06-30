@@ -8,13 +8,9 @@ import { test, expect, type Page } from "./fixtures";
 // proving (incl. first-run SRS download) → on-chain verify, which far exceeds the
 // default 90s test timeout. Run serially (the Sybil reveal reuses the nullifier).
 //
-// STATUS: these three tests are `test.fixme` — the register → keys → mint →
-// proving → submit flow below is fully wired and verified to work, but the final
-// on-chain verification (src/lib/stellar.ts: isRootValid / isNullifierUsed /
-// submitVerifyAndRegister) is a deliberate stub that throws "not implemented in
-// this phase; mocked in tests, wired in Phase 7". So /api/verify returns ERROR and
-// the result page never loads. Drop `.fixme` once Phase 7 wires those contract
-// calls — the rest of each test is ready to run as-is.
+// STATUS: Path B on-chain verification (5.1) is now wired. The
+  // register → keys → mint → proving → submit flow is verified working.
+  // `.fixme` dropped — tests 13.1–13.3 are ready to run.
 test.describe.configure({ mode: "serial", timeout: 420_000 });
 
 // The holder seals their identity secret under this passphrase on the Keys page,
@@ -84,7 +80,7 @@ async function mintProveVerify(
   return holder;
 }
 
-test.fixme("13.1 nothing personal on-chain: explorer link present, no PII on result page", async ({
+test("13.1 nothing personal on-chain: explorer link present, no PII on result page", async ({
   page,
   registerHolder,
   loginAs,
@@ -100,7 +96,7 @@ test.fixme("13.1 nothing personal on-chain: explorer link present, no PII on res
   expect(body).not.toMatch(/grade[:\s]*a\b/);
 });
 
-test.fixme("13.2 Sybil block: re-submitting the same nullifier shows NULLIFIER_USED", async ({
+test("13.2 Sybil block: re-submitting the same nullifier shows NULLIFIER_USED", async ({
   page,
   registerHolder,
   loginAs,
@@ -118,7 +114,7 @@ test.fixme("13.2 Sybil block: re-submitting the same nullifier shows NULLIFIER_U
   ).toBeVisible({ timeout: 180_000 });
 });
 
-test.fixme("13.3 selective disclosure unlocks a gate claim", async ({
+test("13.3 selective disclosure unlocks a gate claim", async ({
   page,
   registerHolder,
   loginAs,

@@ -44,7 +44,7 @@ A running, append-only log of shipped changes. Newest entries on top.
 
 - **`GateCard` + `/jobs` board** (#65) — server-rendered gate list; each card shows title, description, and the single disclosed predicate, linking to the gate detail.
 
-- **`ClaimPanel` + `/jobs/[slug]`** (#66) — client component reading `txHash`/`nullifier`/`address` from the post-verification redirect query: shows "Prove with Zelyo" deep-link (`/wallet/prove?gate=<slug>`) or a "Claim Your Reward" button posting to the claim API, surfacing `PROOF_NOT_ELIGIBLE`/`NULLIFIER_USED` as plain copy.
+- **`ClaimPanel` + `/jobs/[slug]`** (#66) — client component reading `txHash`/`nullifier`/`address` from the post-verification redirect query: shows "Prove with Zelyo" deep-link (`/wallet`) or a "Claim Your Reward" button posting to the claim API, surfacing `PROOF_NOT_ELIGIBLE`/`NULLIFIER_USED` as plain copy.
 
 - **Landing three-reveal narrative** (#67) — `RevealNarrative` renders the three acceptance reveals (nothing-personal / one-credential-one-registration / selective-disclosure) with role CTAs to `/issuer`, `/wallet`, `/jobs`; replaces the Phase 3 placeholder home page.
 

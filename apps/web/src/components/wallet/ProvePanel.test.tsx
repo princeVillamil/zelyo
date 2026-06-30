@@ -44,7 +44,7 @@ describe("ProvePanel", () => {
       publicInputs: {
         root: credential.root, scope: ("0x" + "cd".repeat(32)) as FieldHex,
         boundAddress: ("0x" + "ef".repeat(32)) as FieldHex,
-        nullifier: ("0x" + "12".repeat(32)) as FieldHex, disclosed: ("0x" + "34".repeat(32)) as FieldHex,
+        nullifier: ("0x" + "12".repeat(32)) as FieldHex, disclosed: { value: ("0x" + "34".repeat(32)) as FieldHex, raw: { track: "Data Engineering" } },
       },
     });
     vi.mocked(global.fetch).mockResolvedValue(
@@ -68,7 +68,7 @@ describe("ProvePanel", () => {
     vi.mocked(loadHolderSecret).mockResolvedValue(("0x" + "11".repeat(32)) as FieldHex);
     vi.mocked(proveCredential).mockResolvedValue({
       proof: new Uint8Array(),
-      publicInputs: { root: credential.root, scope: "0x0" as FieldHex, boundAddress: "0x0" as FieldHex, nullifier: "0x0" as FieldHex, disclosed: "0x0" as FieldHex },
+      publicInputs: { root: credential.root, scope: "0x0" as FieldHex, boundAddress: "0x0" as FieldHex, nullifier: "0x0" as FieldHex, disclosed: { value: "0x0" as FieldHex, raw: { track: "Data Engineering" } } },
     });
     vi.mocked(global.fetch).mockResolvedValue(
       new Response(JSON.stringify({ ok: false, result: "NULLIFIER_USED" }), { status: 200 }),

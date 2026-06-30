@@ -41,7 +41,7 @@ async function mintProveVerify(
   await loginAs("admin");
   await page.goto("/issuer/mint");
   await page.getByLabel(/holder username/i).fill(holder.username);
-  await page.getByLabel(/track/i).fill("data-engineering");
+  await page.getByLabel(/track/i).fill("Data Engineering");
   await page.getByLabel(/grade/i).fill("A");
   await page.getByLabel(/course/i).fill("Distributed Systems");
   await page.getByLabel(/learner/i).fill("Ada Lovelace");

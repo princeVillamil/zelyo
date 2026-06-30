@@ -31,7 +31,7 @@ const bundle = {
     scope: ("0x" + "cd".repeat(32)) as FieldHex,
     boundAddress: ("0x" + "ef".repeat(32)) as FieldHex,
     nullifier: ("0x" + "12".repeat(32)) as FieldHex,
-    disclosed: ("0x" + "34".repeat(32)) as FieldHex,
+    disclosed: { value: ("0x" + "34".repeat(32)) as FieldHex, raw: { track: "Data Engineering" } },
   },
 };
 const boundStellarAddress = "GASTINUANRYSHXSWZNAGDKYNISWSP4ZCDC534OVIA7IE272OIWSSQZGJ";

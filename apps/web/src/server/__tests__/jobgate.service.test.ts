@@ -43,7 +43,7 @@ const verified = {
   txHash: "tx1",
   nullifierHex: "0xnull",
   boundAddress: "GHOLDER",
-  disclosed: { track: "Data Engineering" },
+  disclosed: { value: "0x" + "ab".repeat(32), raw: { track: "Data Engineering" } },
 };
 
 beforeEach(() => {

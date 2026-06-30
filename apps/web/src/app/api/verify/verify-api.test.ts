@@ -22,7 +22,7 @@ const validBody = {
   proof: [1, 2, 3],
   publicInputs: {
     root: hex("ab"), scope: hex("cd"), boundAddress: hex("ef"),
-    nullifier: hex("12"), disclosed: hex("34"),
+    nullifier: hex("12"), disclosed: { value: hex("34"), raw: { track: "Data Engineering" } },
   },
   boundStellarAddress,
 };
@@ -66,7 +66,7 @@ describe("POST /api/verify", () => {
 describe("GET /api/verify/[txHash]", () => {
   it("returns the mirrored verification", async () => {
     vi.mocked(db.verification.findFirst).mockResolvedValue({
-      result: "VERIFIED", nullifierHex: hex("12"), disclosed: { value: hex("34") },
+      result: "VERIFIED", nullifierHex: hex("12"), disclosed: { value: hex("34"), raw: { track: "Data Engineering" } },
       boundAddress: hex("ef"), txHash: "TX", explorerUrl: "u",
     } as never);
     const res = await getVerify(new Request("http://x"), { params: Promise.resolve({ txHash: "TX" }) });

@@ -49,7 +49,7 @@ function publicInputsToScVal(pi: PublicInputs): xdr.ScVal {
   // ScMap keys must be sorted lexicographically by symbol name.
   const entries = [
     { key: "bound_address", val: b32(pi.boundAddress) },
-    { key: "disclosed", val: b32(pi.disclosed) },
+    { key: "disclosed", val: b32(pi.disclosed.value) },
     { key: "nullifier", val: b32(pi.nullifier) },
     { key: "root", val: b32(pi.root) },
     { key: "scope", val: b32(pi.scope) },
@@ -107,7 +107,7 @@ export async function verifyProofOffchain(bundle: ProofBundle): Promise<boolean>
 
   // Public inputs must be in the exact circuit order: root | scope | bound_address | nullifier | disclosed.
   const { root, scope, boundAddress, nullifier, disclosed } = bundle.publicInputs;
-  const publicInputs = [root, scope, boundAddress, nullifier, disclosed];
+  const publicInputs = [root, scope, boundAddress, nullifier, disclosed.value];
 
 
 

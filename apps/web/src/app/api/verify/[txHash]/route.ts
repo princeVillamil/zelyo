@@ -19,6 +19,7 @@ export async function GET(
       nullifierHex: row.nullifierHex,
       disclosed: row.disclosed,
       boundAddress: row.boundAddress,
+      boundStellarAddress: row.boundStellarAddress,
       txHash: row.txHash,
       explorerUrl: row.explorerUrl,
     });

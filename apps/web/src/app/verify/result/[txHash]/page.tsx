@@ -26,6 +26,16 @@ export default async function VerifyResultPage({
       <div className="mt-stack-lg">
         <ExplorerRevealPanel view={view} />
       </div>
+      {view.result === "VERIFIED" && view.boundStellarAddress && (
+        <div className="mt-stack-md">
+          <a
+            href={`/jobs/data-engineering?txHash=${view.txHash}&nullifier=${view.nullifierHex}&address=${view.boundStellarAddress}`}
+            className="foil-stamp inline-flex items-center rounded px-stack-md py-3 font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform"
+          >
+            Claim Your Reward
+          </a>
+        </div>
+      )}
     </main>
   );
 }

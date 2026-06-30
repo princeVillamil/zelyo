@@ -21,7 +21,10 @@ const bodySchema = z
         scope: fieldHex,
         boundAddress: fieldHex,
         nullifier: fieldHex,
-        disclosed: fieldHex,
+        disclosed: z.object({
+          value: fieldHex,
+          raw: z.object({ track: z.string() }),
+        }),
       })
       .strict(),
     boundStellarAddress: stellarAddress,

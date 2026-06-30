@@ -17,7 +17,10 @@ export interface PublicInputs {
   scope: FieldHex;
   boundAddress: FieldHex; // Stellar ed25519 pubkey, field-packed
   nullifier: FieldHex;
-  disclosed: FieldHex; // hash/encoding of the revealed attribute (track)
+  disclosed: {
+    value: FieldHex; // Poseidon hash of the revealed attribute (track)
+    raw: { track: string }; // plaintext — used for gate predicate checking only, never sent off-device
+  };
 }
 
 export interface ProofBundle {

@@ -8,6 +8,7 @@ export type VerificationView = {
   result: VerificationResult;
   nullifierHex: string;
   boundAddress: string;
+  boundStellarAddress: string | null;
   disclosed: unknown;
   explorerUrl: string;
   createdAt: Date;
@@ -26,6 +27,7 @@ export async function getVerificationByTxHash(
       result: true,
       nullifierHex: true,
       boundAddress: true,
+      boundStellarAddress: true,
       disclosed: true,
       createdAt: true,
       jobGate: { select: { slug: true } },
@@ -37,6 +39,7 @@ export async function getVerificationByTxHash(
     result: row.result,
     nullifierHex: row.nullifierHex,
     boundAddress: row.boundAddress,
+    boundStellarAddress: row.boundStellarAddress,
     disclosed: row.disclosed,
     explorerUrl: explorerTxUrl(row.txHash),
     createdAt: row.createdAt,

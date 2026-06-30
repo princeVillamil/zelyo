@@ -7,14 +7,17 @@ export const dynamic = "force-dynamic";
 
 export default async function GateDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ txHash?: string; nullifier?: string; address?: string }>;
 }) {
   const { slug } = await params;
+  const { txHash, nullifier: nullifierHex, address: boundAddress } = await searchParams;
   const gate = await getGate(slug);
   if (!gate) notFound();
 
-  const proveHref = `/wallet/prove?gate=${gate.slug}`;
+  const proveHref = "/wallet";
 
   return (
     <main className="mx-auto max-w-[1120px] px-margin-mobile py-stack-lg md:px-margin-page">
@@ -28,7 +31,13 @@ export default async function GateDetailPage({
         &ldquo;{gate.requiredPredicate.equals}&rdquo;. All other credential data stays private.
       </p>
       <div className="mt-stack-lg">
-        <ClaimPanel gate={gate} proveHref={proveHref} />
+        <ClaimPanel
+          gate={gate}
+          proveHref={proveHref}
+          initialTxHash={txHash ?? null}
+          initialNullifierHex={nullifierHex ?? null}
+          initialBoundAddress={boundAddress ?? null}
+        />
       </div>
     </main>
   );

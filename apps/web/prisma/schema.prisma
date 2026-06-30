@@ -107,9 +107,10 @@ model Nullifier {
 
 model Verification {
   id           String             @id @default(cuid())
-  nullifierHex String
-  disclosed    Json
-  boundAddress String
+  nullifierHex       String
+  disclosed          Json
+  boundAddress       String  @db.VarChar(68) // field-packed hex
+  boundStellarAddress String? @db.VarChar(56) // original Stellar StrKey (G...), used for claims
   result       VerificationResult
   txHash       String?
   explorerUrl  String?

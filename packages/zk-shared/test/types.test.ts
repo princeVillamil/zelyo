@@ -20,7 +20,7 @@ describe("zk-shared types", () => {
       scope: "0x00" as FieldHex,
       boundAddress: "0x00" as FieldHex,
       nullifier: "0x00" as FieldHex,
-      disclosed: "0x00" as FieldHex,
+      disclosed: { value: "0x00" as FieldHex, raw: { track: "Data Engineering" } },
     };
     const bundle: ProofBundle = { proof: new Uint8Array([1]), publicInputs: pi };
     expect(attrs.track).toBe("Data Engineering");

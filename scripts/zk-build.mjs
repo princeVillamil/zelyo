@@ -50,8 +50,7 @@ const manifest = {
   scopeAppId: process.env.ZK_SCOPE_APP_ID ?? "zelyo-v1",
   merkleDepth: 20,
   publicInputOrder: [
-    "root", "scope", "bound_address", "nullifier",
-    "disclosed", "predicate_mode", "predicate_lo", "predicate_hi",
+    "root", "scope", "bound_address", "nullifier", "disclosed",
   ],
 };
 writeFileSync(join(OUT_DIR, "manifest.json"), JSON.stringify(manifest, null, 2));

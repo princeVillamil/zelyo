@@ -8,7 +8,6 @@ import { AppError } from "../lib/errors";
 const predicateSchema = z.object({ attribute: z.string(), equals: z.string() });
 const assetSchema = z.object({ code: z.string(), issuer: z.string(), amount: z.string() });
 const rewardConfigSchema = z.object({ asset: assetSchema }).partial({ asset: true });
-const disclosedSchema = z.object({ track: z.string() }).passthrough();
 
 export type GateSummary = {
   slug: string;
@@ -56,14 +55,14 @@ export async function claimGate(
   const predicate = predicateSchema.parse(gate.requiredPredicate);
 
   const verification = await db.verification.findFirst({
-    where: { txHash, nullifierHex, boundAddress, result: "VERIFIED" },
+    where: { txHash, nullifierHex, boundStellarAddress: boundAddress, result: "VERIFIED" },
     orderBy: { createdAt: "desc" },
   });
   if (!verification) {
     throw new AppError("PROOF_NOT_ELIGIBLE", 422, "No eligible verified proof for this gate.");
   }
-  const disclosed = disclosedSchema.safeParse(verification.disclosed);
-  if (!disclosed.success || disclosed.data[predicate.attribute] !== predicate.equals) {
+  const disclosedRaw = (verification.disclosed as { raw?: Record<string, string> }).raw;
+  if (!disclosedRaw || disclosedRaw[predicate.attribute] !== predicate.equals) {
     throw new AppError("PROOF_NOT_ELIGIBLE", 422, "The proof does not satisfy this gate.");
   }
 

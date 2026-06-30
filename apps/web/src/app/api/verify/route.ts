@@ -8,6 +8,8 @@ import { audit } from "@/lib/audit";
 
 const fieldHex = z.string().regex(/^0x[0-9a-f]{64}$/);
 
+const stellarAddress = z.string().regex(/^G[A-Z2-7]{55}$/);
+
 // `.strict()` everywhere so a payload carrying `s` (or any extra key) is rejected — the secret
 // must never reach the server.
 const bodySchema = z
@@ -19,9 +21,13 @@ const bodySchema = z
         scope: fieldHex,
         boundAddress: fieldHex,
         nullifier: fieldHex,
-        disclosed: fieldHex,
+        disclosed: z.object({
+          value: fieldHex,
+          raw: z.object({ track: z.string() }),
+        }),
       })
       .strict(),
+    boundStellarAddress: stellarAddress,
   })
   .strict();
 
@@ -38,6 +44,7 @@ export async function POST(req: Request): Promise<Response> {
     const result = await verifyAndRegister({
       proof: Uint8Array.from(parsed.data.proof),
       publicInputs: parsed.data.publicInputs as never,
+      boundStellarAddress: parsed.data.boundStellarAddress,
     });
 
     // Audit the verify attempt — actor is anonymous (public route), ip + non-PII

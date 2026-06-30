@@ -12,19 +12,11 @@ const gate: GateDetail = {
   rewardType: "CLAIMABLE_BALANCE",
 };
 
-function setSearch(qs: string) {
-  Object.defineProperty(window, "location", {
-    writable: true,
-    value: new URL(`http://localhost/jobs/data-engineering${qs}`),
-  });
-}
-
 afterEach(() => vi.restoreAllMocks());
 
 describe("ClaimPanel", () => {
-  it("shows the prove link when no verification is in the URL", () => {
-    setSearch("");
-    render(<ClaimPanel gate={gate} proveHref="/wallet/prove?gate=data-engineering" />);
+  it("shows the prove link when no verification params are provided", () => {
+    render(<ClaimPanel gate={gate} proveHref="/wallet/prove?gate=data-engineering" initialTxHash={null} initialNullifierHex={null} initialBoundAddress={null} />);
     expect(screen.getByRole("link", { name: /prove with zelyo/i })).toHaveAttribute(
       "href",
       "/wallet/prove?gate=data-engineering",
@@ -32,23 +24,21 @@ describe("ClaimPanel", () => {
   });
 
   it("claims when verification params are present and shows the reward tx", async () => {
-    setSearch("?txHash=tx1&nullifier=0xnull&address=GHOLDER");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({ ok: true, json: async () => ({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" }) })),
     );
-    render(<ClaimPanel gate={gate} proveHref="/wallet/prove?gate=data-engineering" />);
+    render(<ClaimPanel gate={gate} proveHref="/wallet/prove?gate=data-engineering" initialTxHash="tx1" initialNullifierHex="0xnull" initialBoundAddress="GHOLDER" />);
     fireEvent.click(screen.getByRole("button", { name: /claim your reward/i }));
     await waitFor(() => expect(screen.getByText(/CBTX/)).toBeInTheDocument());
   });
 
   it("surfaces a NULLIFIER_USED rejection as plain copy", async () => {
-    setSearch("?txHash=tx1&nullifier=0xnull&address=GHOLDER");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({ ok: false, json: async () => ({ error: { code: "PROOF_NOT_ELIGIBLE", message: "The proof does not satisfy this gate." } }) })),
     );
-    render(<ClaimPanel gate={gate} proveHref="/wallet/prove?gate=data-engineering" />);
+    render(<ClaimPanel gate={gate} proveHref="/wallet/prove?gate=data-engineering" initialTxHash="tx1" initialNullifierHex="0xnull" initialBoundAddress="GHOLDER" />);
     fireEvent.click(screen.getByRole("button", { name: /claim your reward/i }));
     await waitFor(() => expect(screen.getByText(/does not satisfy this gate/i)).toBeInTheDocument());
   });

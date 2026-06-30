@@ -87,8 +87,10 @@ export function buildPublicInputs(input: ProveInput, scope: FieldHex): PublicInp
     scope,
     boundAddress: encodeAddressToField(input.boundStellarAddress),
     nullifier: computeNullifier(input.s, scope),
-    // disclosed = Poseidon(trackField) — must equal the circuit's hash_one(track).
-    disclosed: poseidon([track]),
+    disclosed: {
+      value: poseidon([track]),
+      raw: { track: input.attributes.track },
+    },
   };
 }
 
@@ -163,7 +165,7 @@ export async function proveCredential(
       scope: publicInputs.scope,
       bound_address: publicInputs.boundAddress,
       nullifier: publicInputs.nullifier,
-      disclosed: publicInputs.disclosed,
+      disclosed: publicInputs.disclosed.value,
     });
     witness = result.witness;
   } catch (err) {

@@ -2,6 +2,8 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+- **Wire on-chain proof verification (Path B)** (PR) — Implements task 5.1: `lib/stellar.ts` now provides real `isRootValid`, `isNullifierUsed`, `verifyProofOffchain` (bb.js `UltraHonkVerifierBackend` against `public/circuit/vk`), and `submitRegister` (Soroban `register(pi, attestor, holder)`). The holder's Stellar address is threaded from `ProvePanel` through `/api/verify` to `verification.service.ts`. Also fixes the address-binding soundness gap in `CredentialRegistry`: raw ed25519 keys are reduced `mod BN254_P` on-chain, matching the JS `encodeAddressToField` path. `cargo test` + `pnpm --filter @zelyo/web test` green. *Deployment note:* the registry contract must be redeployed after this change; run `pnpm contracts:deploy` and update `CREDENTIAL_REGISTRY_CONTRACT_ID`.
+
 ## Phase 7 — Hardening, Tests & Deploy
 
 - **Audit sweep on verify (`api/verify`)** (#71) — `/api/verify` now writes a PII-safe `AuditLog` row (`action: "VERIFY"`, ip, `target` = nullifier hash, `meta` = result code + txHash) so mint/revoke/verify are all audited with actor + ip. `tests/unit/audit.test.ts` asserts the `audit()` writer forwards only whitelisted columns and never a PII field name or value.
@@ -42,7 +44,7 @@ A running, append-only log of shipped changes. Newest entries on top.
 
 - **`GateCard` + `/jobs` board** (#65) — server-rendered gate list; each card shows title, description, and the single disclosed predicate, linking to the gate detail.
 
-- **`ClaimPanel` + `/jobs/[slug]`** (#66) — client component reading `txHash`/`nullifier`/`address` from the post-verification redirect query: shows "Prove with Zelyo" deep-link (`/wallet/prove?gate=<slug>`) or a "Claim Your Reward" button posting to the claim API, surfacing `PROOF_NOT_ELIGIBLE`/`NULLIFIER_USED` as plain copy.
+- **`ClaimPanel` + `/jobs/[slug]`** (#66) — client component reading `txHash`/`nullifier`/`address` from the post-verification redirect query: shows "Prove with Zelyo" deep-link (`/wallet`) or a "Claim Your Reward" button posting to the claim API, surfacing `PROOF_NOT_ELIGIBLE`/`NULLIFIER_USED` as plain copy.
 
 - **Landing three-reveal narrative** (#67) — `RevealNarrative` renders the three acceptance reveals (nothing-personal / one-credential-one-registration / selective-disclosure) with role CTAs to `/issuer`, `/wallet`, `/jobs`; replaces the Phase 3 placeholder home page.
 

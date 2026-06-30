@@ -78,6 +78,7 @@ export function ProvePanel({ credential }: { credential: ProvePanelCredential })
         body: JSON.stringify({
           proof: Array.from(bundle.proof),
           publicInputs: bundle.publicInputs,
+          boundStellarAddress: address,
         }),
       });
       const result = (await res.json()) as { ok: boolean; result: string; txHash?: string };

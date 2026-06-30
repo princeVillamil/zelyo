@@ -50,7 +50,8 @@ describe("prover.client", () => {
     expect(pi.scope).toBe(SCOPE);
     expect(pi.nullifier).toBe(computeNullifier(input.s, SCOPE));
     expect(pi.boundAddress).toBe(encodeAddressToField(ADDR));
-    expect(pi.disclosed).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(pi.disclosed.value).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(pi.disclosed.raw.track).toBe("Data Engineering");
   });
 
   it("throws NOT_ISOLATED when cross-origin isolation is off", () => {

@@ -52,7 +52,7 @@ export async function seed(): Promise<void> {
         "Prove, in zero knowledge, that you hold a credential whose track is Data Engineering — without revealing name or grade.",
       requiredPredicate: { attribute: "track", equals: "Data Engineering" },
       rewardType: "CLAIMABLE_BALANCE",
-      rewardConfig: { asset: "native", amount: "10" },
+      rewardConfig: { asset: { code: "XLM", issuer: "", amount: "10" } },
     },
   });
 }

@@ -5,11 +5,24 @@ import type { GateDetail } from "../../../server/jobgate.service";
 
 type ClaimResult = { txHash?: string; rewardType: string };
 
-export function ClaimPanel({ gate, proveHref }: { gate: GateDetail; proveHref: string }) {
-  const params = new URL(window.location.href).searchParams;
-  const txHash = params.get("txHash");
-  const nullifierHex = params.get("nullifier");
-  const boundAddress = params.get("address");
+type Props = {
+  gate: GateDetail;
+  proveHref: string;
+  initialTxHash: string | null;
+  initialNullifierHex: string | null;
+  initialBoundAddress: string | null;
+};
+
+export function ClaimPanel({
+  gate,
+  proveHref,
+  initialTxHash,
+  initialNullifierHex,
+  initialBoundAddress,
+}: Props) {
+  const [txHash, setTxHash] = useState<string | null>(initialTxHash);
+  const [nullifierHex, setNullifierHex] = useState<string | null>(initialNullifierHex);
+  const [boundAddress, setBoundAddress] = useState<string | null>(initialBoundAddress);
   const hasVerification = Boolean(txHash && nullifierHex && boundAddress);
 
   const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error">("idle");

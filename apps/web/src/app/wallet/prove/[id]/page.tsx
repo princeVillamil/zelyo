@@ -6,12 +6,15 @@ import { ProvePanel } from "@/components/wallet/ProvePanel";
 
 export default async function ProvePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ gate?: string }>;
 }) {
   const session = await auth();
   if (!session || session.user.role !== "HOLDER") redirect("/login");
   const { id } = await params;
+  const { gate } = await searchParams;
 
   const holderKey = await db.holderKey.findUnique({ where: { userId: session.user.id } });
   const cred = holderKey
@@ -36,6 +39,7 @@ export default async function ProvePage({
             merklePath: { siblings: proof.siblings, pathIndices: proof.pathIndices },
             root: proof.rootHex,
           }}
+          gate={gate}
         />
       </div>
     </main>

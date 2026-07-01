@@ -10,9 +10,18 @@ export function GateCard({ gate }: { gate: GateSummary }) {
       <p className="font-label text-label-md uppercase text-secondary">Registry Gate</p>
       <h3 className="font-headline text-headline-md text-on-background mt-stack-sm">{gate.title}</h3>
       <p className="font-body text-body-md text-on-surface-variant mt-stack-sm">{gate.description}</p>
-      <p className="font-mono text-caption text-on-surface-variant mt-stack-md">
-        Requires: {gate.requiredPredicate.attribute} == &ldquo;{gate.requiredPredicate.equals}&rdquo;
-      </p>
+      <div className="mt-stack-sm space-y-1">
+        {gate.requiredPredicates.map((pred, i) => (
+          <p key={i} className="font-mono text-caption text-on-surface-variant">
+            {pred.attribute} == &ldquo;{pred.equals}&rdquo;{i < gate.requiredPredicates.length - 1 ? " AND" : ""}
+          </p>
+        ))}
+      </div>
+      {gate.expiresAt && (
+        <p className="font-mono text-caption text-on-surface-variant mt-stack-sm">
+          Expires: {new Date(gate.expiresAt).toLocaleDateString()}
+        </p>
+      )}
     </Link>
   );
 }

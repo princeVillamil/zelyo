@@ -10,9 +10,11 @@ const base: VerificationView = {
   boundAddress: "0xcafebabe",
   boundStellarAddress: "GASTINUANRYSHXSWZNAGDKYNISWSP4ZCDC534OVIA7IE272OIWSSQZGJ",
   disclosed: { track: "Data Engineering" },
+  disclosedRaw: { track: "Data Engineering" },
   explorerUrl: "https://explorer.test/tx/tx1",
   createdAt: new Date("2026-06-23T00:00:00Z"),
   jobGateSlug: null,
+  credentialId: null,
 };
 
 describe("ExplorerRevealPanel", () => {

@@ -25,6 +25,9 @@ vi.mock("@stellar/stellar-sdk", () => {
     rpc: { Server: RpcServer },
     Asset: class {
       constructor(public code: string, public issuer: string) {}
+      static native() {
+        return { __native: true };
+      }
     },
     Claimant: class {
       static predicateUnconditional() {
@@ -92,5 +95,15 @@ describe("issueClaimableBalance", () => {
     });
     expect(createClaimableBalance).toHaveBeenCalledTimes(1);
     expect(res).toEqual({ txHash: "TXHASH123" });
+  });
+
+  it("uses the native asset when the reward has no issuer (XLM)", async () => {
+    loadAccount.mockResolvedValue({ accountId: () => "GISSUER" });
+    submitTransaction.mockResolvedValue({ hash: "NATIVETX" });
+    const res = await issueClaimableBalance("GHOLDER", { code: "XLM", issuer: "", amount: "10" });
+    // Native XLM must go through Asset.native(), not `new Asset("XLM", "")`.
+    const calls = createClaimableBalance.mock.calls as unknown as Array<[{ asset: unknown }]>;
+    expect(calls[0]?.[0]?.asset).toEqual({ __native: true });
+    expect(res).toEqual({ txHash: "NATIVETX" });
   });
 });

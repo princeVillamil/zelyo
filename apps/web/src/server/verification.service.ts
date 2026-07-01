@@ -49,6 +49,7 @@ async function mirror(
   txHash?: string,
   explorerUrl?: string,
   boundStellarAddress?: string,
+  credentialId?: string,
 ): Promise<void> {
   const { nullifier, scope, boundAddress, disclosed } = bundle.publicInputs;
   if (result === "VERIFIED" && txHash) {
@@ -65,16 +66,19 @@ async function mirror(
       result,
       txHash: txHash ?? null,
       explorerUrl: explorerUrl ?? null,
+      credentialId: credentialId ?? null,
     },
   });
 }
 
 export interface VerifyAndRegisterInput extends ProofBundle {
   boundStellarAddress: string;
+  credentialId?: string;
 }
 
 export async function verifyAndRegister({
   boundStellarAddress,
+  credentialId,
   ...bundle
 }: VerifyAndRegisterInput): Promise<VerifyResult> {
   const { root, nullifier } = bundle.publicInputs;
@@ -84,11 +88,11 @@ export async function verifyAndRegister({
     // Fast fail: root must be in the valid set; nullifier must be unused (chain is authoritative,
     // but a cheap mirror/contract pre-check avoids a doomed submission).
     if (!(await isRootValid(root))) {
-      await mirror(bundle, "UNKNOWN_ROOT", undefined, undefined, boundStellarAddress);
+      await mirror(bundle, "UNKNOWN_ROOT", undefined, undefined, boundStellarAddress, credentialId);
       return { ok: false, result: "UNKNOWN_ROOT" };
     }
     if (await isNullifierUsed(nullifier)) {
-      await mirror(bundle, "NULLIFIER_USED", undefined, undefined, boundStellarAddress);
+      await mirror(bundle, "NULLIFIER_USED", undefined, undefined, boundStellarAddress, credentialId);
       return { ok: false, result: "NULLIFIER_USED" };
     }
 
@@ -97,7 +101,7 @@ export async function verifyAndRegister({
       if (env.ZK_VERIFY_MODE === "server") {
         // Path B: verify the proof off-chain, then register the server-attested result.
         if (!(await verifyProofOffchain(bundle))) {
-          await mirror(bundle, "INVALID_PROOF", undefined, undefined, boundStellarAddress);
+          await mirror(bundle, "INVALID_PROOF", undefined, undefined, boundStellarAddress, credentialId);
           return { ok: false, result: "INVALID_PROOF" };
         }
         ({ txHash } = await submitRegister(bundle.publicInputs, boundStellarAddress));
@@ -108,14 +112,14 @@ export async function verifyAndRegister({
     } catch (err) {
       const mapped = mapContractError(err);
       if (mapped) {
-        await mirror(bundle, mapped, undefined, undefined, boundStellarAddress);
+        await mirror(bundle, mapped, undefined, undefined, boundStellarAddress, credentialId);
         return { ok: false, result: mapped };
       }
       throw err;
     }
 
     const url = explorerTxUrl(txHash);
-    await mirror(bundle, "VERIFIED", txHash, url, boundStellarAddress);
+    await mirror(bundle, "VERIFIED", txHash, url, boundStellarAddress, credentialId);
     return { ok: true, result: "VERIFIED", txHash, explorerUrl: url };
   } catch (err) {
     log.error({ err }, "verifyAndRegister failed");

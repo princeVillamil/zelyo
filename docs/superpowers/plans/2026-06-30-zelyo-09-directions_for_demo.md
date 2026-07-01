@@ -10,6 +10,20 @@
 
 ---
 
+## Implementation Status (updated 2026-07-01)
+
+**Shipped (feat/demo-gates-privacy):**
+- ✅ **Direction 1 — Issuer gate creation UI.** `POST /api/issuer/gates` (ADMIN RBAC + 20/min rate limit), `/issuer/gates` list + `GateForm` (multi-predicate, reward-type toggle, date-only expiration), 409 on duplicate slug. New gates appear on `/jobs` immediately.
+- ✅ **Direction 2 — Privacy panel.** `PrivacyPanel` on `/jobs/[slug]` and `/verify/result/[txHash]`. **Corrected after an audit:** the panel originally rendered the *plaintext values* of private attributes on unauthenticated pages (a real leak); it now lists hidden field names as `[HIDDEN]` with **no value**. The plan's Step 1/Step 2 sketch of passing `credential: Attributes` into the panel was intentionally reversed for this reason.
+- ✅ **Direction 3 — Multi-predicate gates (claim side).** `requiredPredicates: Predicate[]`, `claimGate` enforces all predicates via AND. **Caveat:** enforcement is by plaintext comparison of *disclosed* values, so every predicate attribute must be disclosed by the proof. `ProvePanel` still discloses `track` only, so demo gates should be single-predicate on `track` until the disclosure UI is generalized (see Remaining).
+- ✅ **Direction 5 — Time-limited gates.** `JobGate.expiresAt`, `GATE_EXPIRED` (410) in `claimGate`, "Gate Expired" UI in `ClaimPanel`.
+- ✅ **Claim loop closed (new).** `/jobs/[slug]` → "Prove with Zelyo" carries `?gate=<slug>` → `/wallet` → prove → `ProvePanel` redirects back to `/jobs/<slug>?txHash&nullifier&address`. Wallet cards show "Proven ✓", "View proof", and a "Use this proof to claim" CTA that reuses a qualifying existing proof.
+- ✅ **Native-XLM reward fix (new).** `issueClaimableBalance` uses `Asset.native()` for issuer-less rewards; `claimGate` surfaces `REWARD_FAILED` with Stellar result codes instead of a blank 500.
+
+**Not done (post-hackathon):** Direction 4 (marketplace). See `docs/REMAINING_TASKS.md` for the generalized-disclosure and `credentialId`-binding follow-ups.
+
+---
+
 ## Global Constraints
 
 Apply to **every task** (copied verbatim from the index):

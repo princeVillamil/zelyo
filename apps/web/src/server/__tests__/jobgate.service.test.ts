@@ -34,8 +34,9 @@ const gate = (rewardType: string) => ({
   id: "g1",
   slug: "data-engineering",
   rewardType,
-  requiredPredicate: { attribute: "track", equals: "Data Engineering" },
+  requiredPredicates: [{ attribute: "track", equals: "Data Engineering" }],
   rewardConfig: { asset: { code: "ZELYO", issuer: "GISSUER", amount: "1" } },
+  expiresAt: null,
 });
 
 const verified = {

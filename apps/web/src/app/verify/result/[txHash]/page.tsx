@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ExplorerRevealPanel } from "../../../../components/ExplorerRevealPanel";
 import { getVerificationByTxHash } from "../../../../server/verification-read.service";
+import { PrivacyPanel } from "../../../jobs/[slug]/PrivacyPanel";
 
 // Reads a live verification mirror row — render on-demand, never prerender at build.
 export const dynamic = "force-dynamic";
@@ -26,13 +27,22 @@ export default async function VerifyResultPage({
       <div className="mt-stack-lg">
         <ExplorerRevealPanel view={view} />
       </div>
-      {view.result === "VERIFIED" && view.boundStellarAddress && (
+      {view.result === "VERIFIED" && Object.keys(view.disclosedRaw).length > 0 && (
+        <div className="mt-stack-lg">
+          <PrivacyPanel
+            disclosed={view.disclosedRaw}
+            boundAddress={view.boundAddress}
+            nullifier={view.nullifierHex}
+          />
+        </div>
+      )}
+      {view.result === "VERIFIED" && (
         <div className="mt-stack-md">
           <a
-            href={`/jobs/data-engineering?txHash=${view.txHash}&nullifier=${view.nullifierHex}&address=${view.boundStellarAddress}`}
+            href="/jobs"
             className="foil-stamp inline-flex items-center rounded px-stack-md py-3 font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform"
           >
-            Claim Your Reward
+            Browse Reward Gates
           </a>
         </div>
       )}

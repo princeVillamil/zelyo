@@ -233,13 +233,16 @@ export async function issueClaimableBalance(
   const server = new Horizon.Server(env.HORIZON_URL);
   const source = await server.loadAccount(issuerKeypair.publicKey());
   const claimant = new Claimant(boundAddress, Claimant.predicateUnconditional());
+  // Native XLM has no issuer — `new Asset("XLM", "")` would be encoded as a credit asset
+  // with an empty issuer and fail XDR serialization. Use Asset.native() when no issuer.
+  const stellarAsset = asset.issuer ? new Asset(asset.code, asset.issuer) : Asset.native();
   const tx = new TransactionBuilder(source, {
     fee: BASE_FEE,
     networkPassphrase: env.NETWORK_PASSPHRASE,
   })
     .addOperation(
       Operation.createClaimableBalance({
-        asset: new Asset(asset.code, asset.issuer),
+        asset: stellarAsset,
         amount: asset.amount,
         claimants: [claimant],
       }),

@@ -109,9 +109,13 @@ test("13.2 Sybil block: re-submitting the same nullifier shows NULLIFIER_USED", 
   await page.getByLabel(/stellar address/i).fill(BOUND_ADDRESS);
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate zk-proof/i }).click();
-  await expect(
-    page.getByText(/NULLIFIER_USED|already (been )?used|sybil/i),
-  ).toBeVisible({ timeout: 180_000 });
+  // The panel surfaces the rejection as a user-visible alert (role="alert")
+  // and also logs the raw result code in the ledger. Target the alert paragraph
+  // to avoid a strict-mode violation from matching multiple elements.
+  await expect(page.locator('p[role="alert"]')).toContainText(
+    /NULLIFIER_USED|already (been )?used|sybil/i,
+    { timeout: 180_000 },
+  );
 });
 
 test("13.3 selective disclosure unlocks a gate claim", async ({

@@ -10,13 +10,22 @@ const predicateSchema = z.object({
   equals: z.string().min(1, "Value is required"),
 });
 
-const assetSchema = z.object({
-  code: z.string().min(1, "Asset code is required"),
-  // Empty issuer = native asset (e.g. native XLM). The API/service already treat
-  // an empty issuer as native; the form only needed to stop requiring one.
-  issuer: z.string().optional(),
-  amount: z.string().min(1, "Amount is required"),
-});
+const assetSchema = z
+  .object({
+    code: z.string().min(1, "Asset code is required"),
+    // Empty issuer = native asset (e.g. native XLM). The API/service already treat
+    // an empty issuer as native; the form only needed to stop requiring one.
+    issuer: z.string().optional(),
+    amount: z.string().min(1, "Amount is required"),
+  })
+  .refine(
+    (data) =>
+      !(data.code.toUpperCase() === "XLM" && data.issuer && data.issuer.trim().length > 0),
+    {
+      message: "XLM is native and cannot have an issuer. Leave issuer empty for native XLM.",
+      path: ["issuer"],
+    },
+  );
 
 const rewardConfigSchema = z.object({
   asset: assetSchema,

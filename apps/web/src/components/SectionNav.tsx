@@ -46,40 +46,35 @@ function linkActive(pathname: string, link: SubLink): boolean {
 /**
  * Section sub-navigation, right-aligned to read as part of the page header (title on
  * the left, this on the far right). Shows the pages within the current section for the
- * current role; renders nothing on pages with no section (home, verify, auth).
+ * current role. The section name is intentionally omitted — every page's eyebrow already
+ * names its section, so repeating it here is redundant. Renders nothing on pages with no
+ * section (home, verify, auth) or sections with no sub-pages (the Public Board).
  */
 export function SectionNav({ role }: { role: SectionRole }) {
   const pathname = usePathname();
   const section = sectionFor(pathname, role);
-  if (!section) return null;
+  if (!section || section.links.length === 0) return null;
 
   return (
     <nav
       aria-label={section.label}
-      className="relative z-10 mb-stack-md flex flex-wrap items-baseline justify-end gap-x-gutter gap-y-unit md:absolute md:right-margin-page md:top-stack-lg md:mb-0"
+      className="relative z-10 mb-stack-md flex flex-wrap items-baseline justify-end gap-x-stack-md gap-y-unit md:absolute md:right-margin-page md:top-stack-lg md:mb-0"
     >
-      <span className="font-label text-caption uppercase tracking-[0.08em] text-secondary">
-        {section.label}
-      </span>
-      {section.links.length > 0 && (
-        <span className="flex flex-wrap items-baseline justify-end gap-x-stack-md gap-y-unit">
-          {section.links.map((link) => {
-            const active = linkActive(pathname, link);
-            return (
-              <Link
-                key={`${link.href}-${link.label}`}
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-                className={`font-label text-label-md uppercase tracking-[0.05em] transition-colors ${
-                  active ? "text-primary" : "text-on-surface-variant hover:text-on-background"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </span>
-      )}
+      {section.links.map((link) => {
+        const active = linkActive(pathname, link);
+        return (
+          <Link
+            key={`${link.href}-${link.label}`}
+            href={link.href}
+            aria-current={active ? "page" : undefined}
+            className={`font-label text-label-md uppercase tracking-[0.05em] transition-colors ${
+              active ? "text-primary" : "text-on-surface-variant hover:text-on-background"
+            }`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

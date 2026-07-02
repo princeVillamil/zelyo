@@ -15,6 +15,9 @@ export default async function VerifyResultPage({
   const view = await getVerificationByTxHash(txHash);
   if (!view) notFound();
 
+  const showPrivacy =
+    view.result === "VERIFIED" && Object.keys(view.disclosedRaw).length > 0;
+
   return (
     <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">Verification Record</p>
@@ -24,28 +27,22 @@ export default async function VerifyResultPage({
       <p className="font-body text-body-md italic text-on-surface-variant mt-stack-sm">
         Cryptographically sealed via the Zelyo Protocol.
       </p>
-      <div className="mt-stack-lg">
+      {/* Verified record leads (70%); the privacy summary is a slim companion (30%). When
+          nothing is disclosed there's no summary, so the record spans the full width. */}
+      <div
+        className={`mt-stack-lg grid items-start gap-gutter ${
+          showPrivacy ? "md:grid-cols-[7fr_3fr]" : ""
+        }`}
+      >
         <ExplorerRevealPanel view={view} />
-      </div>
-      {view.result === "VERIFIED" && Object.keys(view.disclosedRaw).length > 0 && (
-        <div className="mt-stack-lg">
+        {showPrivacy && (
           <PrivacyPanel
             disclosed={view.disclosedRaw}
             boundAddress={view.boundAddress}
             nullifier={view.nullifierHex}
           />
-        </div>
-      )}
-      {view.result === "VERIFIED" && (
-        <div className="mt-stack-md">
-          <a
-            href="/jobs"
-            className="foil-stamp inline-flex items-center rounded px-stack-md py-3 font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform"
-          >
-            Browse Reward Gates
-          </a>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { VerificationView } from "../server/verification-read.service";
 
 const PERSONAL_FIELDS = ["learner name", "name", "grade", "email", "course"];
@@ -50,14 +51,22 @@ export function ExplorerRevealPanel({ view }: { view: VerificationView }) {
         </div>
       </dl>
 
-      <a
-        href={view.explorerUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="foil-stamp inline-flex items-center mt-stack-lg rounded px-stack-md py-3 font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform"
-      >
-        View on the Stellar Explorer
-      </a>
+      <div className="mt-stack-lg flex flex-wrap items-center gap-stack-md">
+        <a
+          href={view.explorerUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="foil-stamp inline-flex items-center rounded px-stack-md py-3 font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform"
+        >
+          View on the Stellar Explorer
+        </a>
+        <Link
+          href="/jobs"
+          className="inline-flex items-center rounded border border-outline-variant px-stack-md py-3 font-label text-label-md uppercase text-on-background hover:border-outline hover:-translate-y-px transition-transform"
+        >
+          Browse Reward Gates
+        </Link>
+      </div>
 
       <p className="sr-only">
         On-chain payload excludes: {PERSONAL_FIELDS.join(", ")}.

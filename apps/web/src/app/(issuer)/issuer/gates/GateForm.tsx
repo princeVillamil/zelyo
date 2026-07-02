@@ -12,7 +12,9 @@ const predicateSchema = z.object({
 
 const assetSchema = z.object({
   code: z.string().min(1, "Asset code is required"),
-  issuer: z.string().min(1, "Asset issuer is required"),
+  // Empty issuer = native asset (e.g. native XLM). The API/service already treat
+  // an empty issuer as native; the form only needed to stop requiring one.
+  issuer: z.string().optional(),
   amount: z.string().min(1, "Amount is required"),
 });
 
@@ -49,7 +51,9 @@ export function GateForm() {
     defaultValues: {
       predicates: [{ attribute: "track", equals: "" }],
       rewardType: "CLAIMABLE_BALANCE",
-      rewardConfig: {},
+      rewardConfig: {
+        asset: { code: "XLM", issuer: "", amount: "" },
+      },
       expiresAt: null,
     },
   });
@@ -231,6 +235,7 @@ export function GateForm() {
                   aria-label="Asset issuer"
                   className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
                 />
+                <span className="font-caption italic text-on-surface-variant">Leave empty for native XLM</span>
               </Field>
               <Field label="Amount" error={errors.rewardConfig?.asset?.amount?.message}>
                 <input

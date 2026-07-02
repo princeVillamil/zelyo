@@ -13,9 +13,9 @@ export default async function IssuerGatesPage() {
   const gates = await listGates();
 
   return (
-    <main className="mx-auto max-w-[1120px] px-margin-mobile py-stack-lg md:px-margin-page">
+    <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">Gate Management</p>
-      <h1 className="font-display text-display-lg text-primary mt-stack-sm">Gate Registry</h1>
+      <h1 className="font-display text-display-lg text-on-background mt-stack-sm">Gate Registry</h1>
       <p className="font-body text-body-md italic text-on-surface-variant mt-stack-sm max-w-2xl">
         Create and manage reward gates for the public board. Each gate opens to a specific proven fact.
       </p>

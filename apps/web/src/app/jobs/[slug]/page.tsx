@@ -38,7 +38,7 @@ export default async function GateDetailPage({
   const isExpired = gate.expiresAt ? new Date() > new Date(gate.expiresAt) : false;
 
   return (
-    <main className="mx-auto max-w-[1120px] px-margin-mobile py-stack-lg md:px-margin-page">
+    <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">Registry Gate</p>
       <h1 className="font-display text-display-lg text-on-background mt-stack-sm">{gate.title}</h1>
       <p className="font-body text-body-md text-on-surface-variant mt-stack-md max-w-2xl">

@@ -16,7 +16,7 @@ export default async function VerifyResultPage({
   if (!view) notFound();
 
   return (
-    <main className="mx-auto max-w-[1120px] px-margin-mobile py-stack-lg md:px-margin-page">
+    <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">Verification Record</p>
       <h1 className="font-display text-display-lg text-on-background mt-stack-sm">
         Sealed &amp; Attested

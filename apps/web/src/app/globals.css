@@ -139,6 +139,10 @@
   inset: -50%;
   width: 200%;
   height: 200%;
+  /* Decorative glare only — never intercept clicks, and paint below interactive
+     content so it can't block the buttons it sweeps over. */
+  pointer-events: none;
+  z-index: 0;
   background: linear-gradient(
     45deg,
     transparent 45%,

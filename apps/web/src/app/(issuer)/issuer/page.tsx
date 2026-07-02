@@ -17,9 +17,9 @@ export default async function IssuerDashboard() {
   ]);
 
   return (
-    <main className="mx-auto max-w-[1120px] px-margin-mobile md:px-margin-page py-stack-lg">
+    <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">Issuer Portal</p>
-      <h1 className="font-display text-display-lg text-primary mb-stack-md">The Archivist&rsquo;s Desk</h1>
+      <h1 className="font-display text-display-lg text-on-background mb-stack-md">The Archivist&rsquo;s Desk</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
         <Stat label="Credentials Issued" value={String(issued)} />
         <Stat label="Current Root" value={rootHex.slice(0, 10) + "…" + rootHex.slice(-6)} mono />

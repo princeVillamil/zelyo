@@ -3,7 +3,7 @@ import { RevealNarrative } from "../components/RevealNarrative";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-[1120px] px-margin-mobile py-stack-lg md:px-margin-page">
+    <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">The Zelyo Protocol</p>
       <h1 className="font-display text-display-lg text-on-background mt-stack-sm max-w-3xl">
         Verifiable credentials, sealed with the gravity of a printed record.

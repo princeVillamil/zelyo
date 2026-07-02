@@ -1,8 +1,8 @@
 # Zelyo — Hackathon Pitch Deck
 
-> ZK-backed verifiable credentials on Stellar. Prove one fact without revealing who you are.
+> Prove one fact about a credential without revealing who you are.
 >
-> This deck is grounded in `SPEC.md`, the shipped codebase (`apps/web`, `circuits`, `contracts`, `packages/zk-shared`), `docs/features.md`, and `docs/REMAINING_TASKS.md`. Claims confirmed from code/spec are unmarked; anything inferred is tagged `[inferred]`. Target talk length: 3–5 minutes.
+> This deck is grounded in `SPEC.md` and the shipped codebase (`apps/web`, `circuits`, `contracts`, `packages/zk-shared`), `docs/features.md`, and `docs/REMAINING_TASKS.md`. It is written for a mixed audience, including non-technical judges, so it leads with outcomes and the privacy property rather than the implementation. Anything not confirmable from code/spec is tagged `[inferred]`. Target talk length: 3–5 minutes.
 
 ---
 
@@ -12,16 +12,15 @@
 
 **Seal a credential. Prove one fact. Reveal nothing else.**
 
-*ZK-backed verifiable credentials on Stellar — the chain records only a nullifier, never who you are.*
+*Prove you're qualified without handing over your whole identity.*
 
 - **Team:** Team Zelyo — `[team name placeholder]`
-- **Stack:** Noir · UltraHonk · Stellar Soroban · Next.js 16
 - **Repo:** `[repo URL placeholder]` · **Live demo:** `[demo URL placeholder]` [inferred]
 
 ![Placeholder: hero cover — Zelyo wordmark on warm-paper background with the foil-stamp seal and the tagline "Seal a credential. Prove one fact. Reveal nothing else."](placeholder-image.png)
 
 **Speaker notes:**
-Hi, we're Team Zelyo, and we're building a privacy layer for credentials on Stellar. The one-line pitch is right there on the slide: seal a credential, prove one fact, reveal nothing else. Today, proving you're qualified means handing over your whole identity — a diploma PDF, a passport scan, a transcript — and trusting whoever you sent it to. Zelyo replaces that with a zero-knowledge proof of exactly one fact, sealed to your wallet, and the only thing that ever touches the chain is an anonymous nullifier. Over the next few minutes I'll show you the problem, a live demo, how it actually works under the hood, and where we go next.
+Hi, we're Team Zelyo. Our one-line pitch is right on the slide: seal a credential, prove one fact, reveal nothing else. Today, proving you're qualified means handing over your whole identity — a diploma, a transcript, an ID — and trusting whoever you sent it to. Zelyo lets you prove a single fact about a credential, sealed to your wallet, so the only thing ever recorded anywhere public is an anonymous, one-time stamp — never who you are. Over the next few minutes I'll walk you through the problem, a live demo, how it works in plain terms, and what's next.
 
 ---
 
@@ -30,77 +29,66 @@ Hi, we're Team Zelyo, and we're building a privacy layer for credentials on Stel
 **Proving you're qualified today costs you your privacy.**
 
 - **Over-disclosure** — every job application, KYC check, or badge forces you to hand over *full* documents, resumes, or IDs to prove a single fact.
-- **Centralized honeypots** — platforms stockpile PII that becomes a breach target; one leak and your identity is gone.
+- **Centralized honeypots** — platforms stockpile personal data that becomes a breach target; one leak and your identity is gone.
 - **Slow, expensive trust** — verifying a credential means calling a third party, waiting on an email, or trusting a screenshot.
 - **No user control** — once you share a PDF diploma or passport scan, you lose control over who sees it, forever.
 
 ![Placeholder: side-by-side contrast — left: "today" a pile of exposed documents (diploma, ID, transcript) with redaction lines; right: "with Zelyo" a single sealed envelope showing only "track = Data Engineering ✓"](placeholder-image.png)
 
 **Speaker notes:**
-The problem is simple and personal. If you've ever applied for a job, you've emailed a full transcript to a stranger just to prove you took one course. That's over-disclosure — you reveal everything to prove one thing. Every platform that collects that data is a centralized honeypot waiting to be breached, and the moment you share a scan, you lose control of it forever. Verification itself is slow and manual: someone calls a registrar, waits for an email, or just trusts a screenshot. For freelancers, remote workers, anyone crossing borders, the cost of proving you're qualified is privacy itself. Zelyo exists to make that cost zero.
+The problem is simple and personal. If you've ever applied for a job, you've emailed a full transcript to a stranger just to prove you took one course. That's over-disclosure — you reveal everything to prove one thing. Every platform that collects that data is a honeypot waiting to be breached, and the moment you share a scan, you lose control of it forever. Verification itself is slow and manual: someone calls a registrar, waits for an email, or just trusts a screenshot. For freelancers, remote workers, anyone crossing borders, the cost of proving you're qualified is privacy itself. Zelyo exists to make that cost zero.
 
 ---
 
 ## Slide 3: Solution
 
-**Zelyo lets an issuer mint a credential and a holder prove one fact about it in zero-knowledge — the chain records only a nullifier, never who you are.**
+**Zelyo lets an issuer seal a credential and a holder prove one fact about it — without revealing anything else.**
 
-- **In-browser ZK proving** — the holder generates an UltraHonk proof on their own device; their secret `s` never leaves the browser.
-- **On-chain Sybil resistance** — a Soroban registry stores the Merkle root and enforces nullifier uniqueness, so one credential can only register once per app.
-- **Selective disclosure + money-rails** — reveal only `track`; a valid proof unlocks a Stellar-native reward (a claimable XLM balance or a verified flag) at a gated job board.
+- **Your secret never leaves your device** — the proof is made in your own browser; no server ever sees your identity key.
+- **Fraud-proof and reuse-proof** — a public, tamper-proof registry refuses the same credential twice, so it can't be faked or spent again.
+- **Reveal only what's needed** — show one attribute (e.g. your track) while your name, grade, and dates stay private — and unlock the reward that comes with it.
 
-![Placeholder: three-pillar diagram — "Prove in browser" (laptop icon) → "Nullifier on-chain" (Soroban contract icon) → "Unlock reward" (Stellar coin icon)](placeholder-image.png)
+![Placeholder: three-pillar diagram — "Prove in your browser" (laptop) → "Reuse-proof registry" (ledger/stamp) → "Reveal one fact, unlock the reward" (sealed envelope + coin)](placeholder-image.png)
 
 **Speaker notes:**
-Here's the solution in one sentence: an issuer mints a credential, the holder proves one fact about it in zero-knowledge, and the chain records only a nullifier — never who they are. Three things make that real. First, the proof is generated entirely in the holder's browser with Noir and Barretenberg's UltraHonk prover; their identity secret never leaves the device. Second, a Soroban smart contract is the source of truth for the Merkle root and for nullifier uniqueness, which gives us on-chain Sybil resistance — you can't reuse the same credential twice. Third, selective disclosure is wired to real money-rails: reveal just your track, and a valid proof unlocks a Stellar-native reward at a gated job board. One fact proven, nothing else leaked, a real reward delivered.
+Here's the solution in one sentence: an issuer seals a credential, the holder proves one fact about it, and nothing else is ever revealed. Three things make that real. First, the proof is generated entirely in the holder's browser — their identity secret never leaves the device, so no server ever sees it. Second, a public, tamper-proof registry refuses the same credential twice, which gives us real fraud resistance — you can't fake or reuse a credential. Third, selective disclosure is wired to a real reward: reveal just your track, and a valid proof unlocks a spendable reward at a gated job board. One fact proven, nothing else leaked, a real reward delivered.
 
 ---
 
 ## Slide 4: Demo
 
-**The core flow: mint → prove → reveal → claim.**
+**The core flow: seal → prove → reveal → claim.**
 
-1. **Mint (issuer/admin)** — `/issuer/mint`: enter learner name, track, grade, issue date → leaf inserted into a depth-20 Merkle tree → root published on-chain via `set_root` → Verifiable Credential sealed to S3. A typewriter log streams each step: `RESOLVE_HOLDER → BUILD_LEAF → INSERT_LEAF → PUBLISH_ROOT → WRITE_VC → SEALED`.
-2. **Keys + wallet (holder)** — `/wallet/keys`: WebCrypto generates the secret `s` locally, persists it AES-GCM encrypted in IndexedDB, and publishes only `idCommitment = Poseidon(s)`. `s` is never sent to the server.
-3. **Prove (holder)** — `/wallet/prove/[id]`: toggle disclosure (default: `track` only), enter your Stellar address + vault passphrase, press the foil-stamp **Generate ZK-Proof** button → UltraHonk proof built in-browser → `POST /api/verify`.
-4. **Reveal** — `/verify/result/[txHash]`: the "nothing personal on-chain" panel — nullifier + bound address + a Stellar Expert explorer link. **Zero PII.** Re-proving the same credential returns `NULLIFIER_USED` (the live Sybil block).
-5. **Claim (anyone → holder)** — `/jobs/data-engineering`: **Prove with Zelyo** carries the gate through the prove flow and loops back → **Claim Your Reward** → `claimGate` checks the disclosed `track` matches the gate predicate → issues a native-XLM claimable balance.
+1. **Seal (issuer)** — the issuer enters the learner's details (name, track, grade, date). The credential is sealed into a public, tamper-proof registry — only a fingerprint of the data is published, never the data itself. A live log narrates each step.
+2. **Keys (holder)** — the holder creates their identity key in their browser. The secret is encrypted on their device and never sent to any server; only a public commitment is shared.
+3. **Prove (holder)** — the holder picks the one fact to reveal (default: their track), binds it to their wallet, and presses the seal button. A zero-knowledge proof is generated in the browser and submitted.
+4. **Reveal** — the result page shows an anonymous, one-time stamp and a link to the public record. **No name, no grade, no dates — nothing personal, anywhere.** Proving the same credential a second time is rejected (the live Sybil block).
+5. **Claim (anyone → holder)** — a gated job board checks the proof and unlocks a real, spendable reward to the holder's wallet.
 
-![Placeholder: 5-frame storyboard screenshot strip — /issuer/mint mint form with typewriter log, /wallet/keys foil-stamp seal, /wallet/prove selective-disclosure checkboxes + Generate ZK-Proof button, /verify/result ExplorerRevealPanel showing nullifier + explorer link, /jobs/[slug] ClaimPanel "Reward Unlocked"](placeholder-image.png)
+![Placeholder: 5-frame storyboard screenshot strip — the issuer sealing form with the live log, the holder's key/seal page, the prove page with one disclosure checked + the seal button, the reveal page showing only the anonymous stamp + public-record link, the job-gate "Reward Unlocked" panel](placeholder-image.png)
 
-[PLACEHOLDER: Demo video — ~90-second screen recording of the full spine: admin mints a "Data Engineering" credential → holder generates keys → holder toggles only `track`, binds their Stellar address, generates the proof in-browser (show the typewriter prove log) → reveal page shows the nullifier and the explorer link with no PII → second attempt shows NULLIFIER_USED → holder claims the gate reward. Target length 75–105s.]
+[PLACEHOLDER: Demo video — ~90-second screen recording of the full spine: issuer seals a "Data Engineering" credential → holder creates their key → holder reveals only their track, binds their wallet, and generates the proof in-browser (show the live log) → reveal page shows the anonymous stamp and the public-record link, with no personal data → a second attempt is rejected → holder claims the gate reward. Target length 75–105s.]
 
 **Speaker notes:**
-This is the spine of the product, and it's the actual acceptance criteria from our spec. An admin mints a credential — name, track, grade, date — and a typewriter log narrates each cryptographic step as the leaf is built, inserted into the Merkle tree, the root published on-chain, and the VC sealed. The holder generates their identity key in-browser — the secret `s` is encrypted in IndexedDB and never touches a server. Then the magic: on the prove page they toggle to reveal only their track, bind their Stellar address, and hit the foil-stamp button. The UltraHonk proof is generated right there in the browser and submitted. The result page shows the on-chain transaction — just a nullifier and a bound address, with a link to the explorer — and zero personal data. Try to prove the same credential again and the chain rejects it with NULLIFIER_USED, our live Sybil block. Finally, the holder claims the job-gate reward, and a real native-XLM claimable balance is issued to their wallet.
+This is the spine of the product, and it's the actual acceptance criteria from our spec. An issuer seals a credential — name, track, grade, date — and a live log narrates each step as the fingerprint is built and published to the registry; the personal data itself never goes in. The holder then creates their identity key in-browser — the secret is encrypted on the device and never touches a server. Then the moment that makes it work: on the prove page, they choose to reveal only their track, bind their wallet, and press the seal button. The proof is generated right there in the browser and submitted. The result page shows what was recorded — an anonymous, one-time stamp and a link to the public record — and zero personal data. Try the same credential again and it's rejected; you can't reuse it. Finally, the holder claims the job-gate reward, and a real, spendable reward lands for their wallet.
 
 ---
 
 ## Slide 5: How it works
 
-**Three trust roles, one Soroban registry, proving on the holder's device.**
+**Think of it like a notary that never reads your document.**
 
-```
-ISSUER (admin)              HOLDER (browser + wallet)        VERIFIER (job board)
- Next.js issuer portal       Next.js wallet UI                Next.js public gate
- └ build leaf, insert         ├ holds secret s (local only)   └ posts reward gates
-   into server Merkle tree     ├ Noir + bb.js prover (WASM)      → holder claims reward
- └ publish root on-chain ──┐  └ generate proof, submit ──┐
-                            ▼                              ▼
-                  STELLAR · SOROBAN — CredentialRegistry
-                    ├ set_root (issuer-only)        ├ register (Path B): attestor signs,
-                    ├ is_root_valid                  │  enforces root-valid + address-binding
-                    ├ nullifier set (Sybil block)    │  + nullifier-uniqueness on-chain
-                    └ revoke_root (Could)            └ verify_and_register (Path A, stubbed)
-```
+- **The issuer** seals credentials and publishes only a fingerprint of them to a public, tamper-proof registry — not the data itself.
+- **The holder** holds the only key. To prove a fact, they produce a sealed proof — *"I'm in that registry, and my track is X"* — without ever opening the document.
+- **The registry** is the source of truth: it won't accept a credential that isn't valid, it won't accept the same credential twice, and it never stores anything personal.
+- **The verifier** posts reward gates; a valid proof checks out and the reward is released to the holder's wallet.
 
-- **Stack (confirmed in `package.json`):** Next.js 16.2 · React 19.2 · TypeScript 6.0.3 · Tailwind v4 · Prisma 7.8 + PostgreSQL 16 · Auth.js v5 (argon2id) · Redis + rate-limiter-flexible · S3-compatible storage · Noir 1.0.0-beta.22 · `@aztec/bb.js` 5.0.0-nightly (UltraHonk) · `@zk-kit/imt` Merkle · `@zkpassport/poseidon2` · Stellar `@stellar/stellar-sdk` 16.0.1 · Soroban (Rust `soroban-sdk` 26.1, protocol 27) · Vitest 4 + Playwright + axe.
-- **The circuit** (`circuits/zelyo_credential/src/main.nr`): depth-20 Merkle inclusion + `nullifier == Poseidon(s, scope)` + `disclosed == Poseidon(track)` + non-zero `bound_address`. Poseidon2 throughout; JS builders in `@zelyo/zk-shared` are proven bit-identical to the circuit via a frozen parity-vector fixture.
-- **Verification — honest reality (Path B):** proofs are generated and verified off-chain with `bb.js` `UltraHonkVerifierBackend`; a server attestor then calls `register()` on Soroban, which **on-chain** enforces root validity, address binding, and nullifier uniqueness. Pure on-chain ZK verification (Path A) is stubbed — Stellar protocol 27 lacks the BN254 pairing/Poseidon host functions required, per our Phase 0 decision doc.
+> Three roles, one rule: the only thing that ever enters the public record is an anonymous, one-time stamp. Everything personal stays on the holder's device.
 
-![Placeholder: architecture diagram — the ASCII flow above rendered as a clean line-art schematic with the "DATA → HASH → PROOF / ROOT" ledger-line motif from BRAND.md](placeholder-image.png)
+![Placeholder: simple line-art diagram — Issuer (seal) → public registry (fingerprint only) ← Holder (key + proof) → Verifier (gate + reward), with "no personal data" called out on the registry](placeholder-image.png)
 
 **Speaker notes:**
-The architecture has three trust roles connected through one Soroban registry. The issuer is an admin in our Next.js portal who builds a Merkle leaf and publishes the root on-chain. The holder keeps their secret `s` only in their browser and generates the proof in-browser with Noir and bb.js — no trusted server ever sees the witness. The verifier posts reward gates. Under the hood we're on a fully modern stack: Next.js 16, React 19, TypeScript 6, Prisma and Postgres, Noir and UltraHonk for ZK, and Soroban on Stellar. The Noir circuit proves Merkle inclusion, a scope-bound nullifier, selective disclosure of track, and address binding — and our shared Poseidon2 library is verified bit-for-bit identical to the circuit. One honest caveat, because we won't hide it: on-chain ZK proof verification isn't possible on Stellar testnet yet — protocol 27 lacks the BN254 host functions — so we verify the proof off-chain with bb.js and the contract still enforces the load-bearing guarantees on-chain: root validity, address binding, and nullifier uniqueness. That's a documented decision, not a shortcut.
+For a non-technical framing, think of Zelyo like a notary that never actually reads your document. The issuer seals credentials and publishes only a fingerprint to a public, tamper-proof registry — never the data itself, so there's nothing personal to leak or breach. The holder holds the only key; to prove a fact, they produce a sealed proof that says "I'm in that registry, and my track is X" — without ever opening the document. The registry is the source of truth: it won't accept an invalid credential, it won't accept the same one twice, and it never stores anything personal. And the verifier just posts reward gates; a valid proof checks out and the reward is released to the holder's wallet. The one rule that makes all of this work: the only thing that ever enters the public record is an anonymous, one-time stamp.
 
 ---
 
@@ -108,34 +96,34 @@ The architecture has three trust roles connected through one Soroban registry. T
 
 **Who needs this, and why.**
 
-- **Issuers** (universities, bootcamps, certifiers) — mint fraud-resistant credentials and publish roots to a public registry *without* running a PII database. No honeypot to breach.
-- **Holders** (freelancers, remote workers, professionals crossing borders) — carry proof of skills in a wallet; reveal only what each opportunity requires. Self-sovereign: they hold the secret.
-- **Verifiers** (employers, marketplaces, DAOs) — confirm a claim cryptographically with **no PII liability** and no manual checks; pay rewards directly to a bound wallet.
-- **Developers** — a full-stack, working scaffold (Noir circuit + Soroban contracts + Next.js app + shared ZK lib) to extend with new gates, credentials, and reward types.
+- **Issuers** (universities, bootcamps, certifiers) — issue fraud-proof credentials and publish them to a public registry *without* running a database of personal details. No honeypot to breach.
+- **Holders** (freelancers, remote workers, professionals crossing borders) — carry proof of skills in a wallet; reveal only what each opportunity requires. Self-sovereign: they hold the only key.
+- **Verifiers** (employers, marketplaces, DAOs) — confirm a claim cryptographically with **no personal-data liability** and no manual checks; pay a reward straight to the wallet.
+- **Builders** — a working, end-to-end scaffold to extend with new credential types, gates, and rewards.
 
-> A credential today is a liability: a file you can't un-share. Zelyo turns it into a portable, provable, private asset. `[inferred]` market sizing and go-to-market figures are intentionally omitted — we'd rather show a working system than a fabricated TAM.
+> A credential today is a liability: a file you can't un-share. Zelyo turns it into a portable, private, provable asset. `[inferred]` market sizing is intentionally omitted — a working system is more honest than a fabricated market number.
 
-![Placeholder: four-quadrant audience map — Issuers / Holders / Verifiers / Developers with one-line value props each](placeholder-image.png)
+![Placeholder: four-quadrant audience map — Issuers / Holders / Verifiers / Builders with one-line value props each](placeholder-image.png)
 
 **Speaker notes:**
-Four groups need this. Issuers — a university or bootcamp — can mint tamper-proof credentials and publish roots to a public registry without keeping a database of personal details, which means there's no honeypot to breach. Holders — freelancers, remote workers, anyone crossing borders — get to carry proof of their skills and reveal only what a specific opportunity requires, and they hold their own secret, so it's genuinely self-sovereign. Verifiers — employers, marketplaces, DAOs — confirm claims cryptographically with zero PII liability and can pay a reward straight to the bound wallet. And developers get a real, working scaffold — circuit, contracts, app, and shared ZK library — to build new gates and credential types on top. The deeper shift: today a credential is a liability, a file you can't un-share. Zelyo turns it into a portable, private, provable asset. We've left market-size numbers off the slide on purpose — a working system is more honest than a fabricated TAM.
+Four groups need this. Issuers — a university or bootcamp — can issue fraud-proof credentials and publish them to a public registry without keeping a database of personal details, which means there's no honeypot to breach. Holders — freelancers, remote workers, anyone crossing borders — get to carry proof of their skills and reveal only what a specific opportunity requires, and they hold their own key, so it's genuinely self-sovereign. Verifiers — employers, marketplaces, DAOs — confirm claims cryptographically with zero personal-data liability and can pay a reward straight to the wallet. And builders get a working, end-to-end scaffold to extend with new credential types, gates, and rewards. The deeper shift: today a credential is a liability, a file you can't un-share. Zelyo turns it into a portable, private, provable asset. We've left market-size numbers off the slide on purpose — a working system is more honest than a fabricated number.
 
 ---
 
 ## Slide 7: What's next
 
-**Honest gaps between the spec and the shipped implementation** (from `docs/REMAINING_TASKS.md`).
+**Honest gaps between the spec and what's shipped today** (from `docs/REMAINING_TASKS.md`).
 
-- **Selective disclosure is `track`-only (BLOCKER).** The circuit binds a single `disclosed = Poseidon(track)`; the 5 prove checkboxes and the gate-form dropdown over-promise. Generalizing to Track / Grade / Issue Date needs a circuit recompile with a disclosure-mask input + `@zelyo/zk-shared` + `ProvePanel` updates. Until then, demo gates stay single-predicate on `track`.
-- **Reward isn't actually spendable yet.** `createClaimableBalance` only *locks* funds; the holder has no in-app `claimClaimableBalance` step, and `ClaimPanel` prints "Reward Unlocked" without confirming final status. Need a claim step or a direct `payment` op.
-- **Native XLM unreachable via the form.** `GateForm` forces an issuer, so it can only ever produce a credit asset; native XLM works via the API but not the UI. Need an "XLM (native)" option aligned with the API/service schema.
-- **Path A on-chain verification** — the `Verifier` contract returns `true`; wire the real host-fn call when Stellar adds BN254 pairing/Poseidon primitives.
-- **Could-scope items still open:** range/date predicate, verifier-chosen trusted issuers, binding `credentialId` and the claim-to-its-gate server-side, plus mint-log SSE race (switch to Redis Streams) and a Railway prod smoke test.
+- **Prove one fact — but only one specific fact today.** The proof currently reveals a single attribute (your track). We're building it so you can choose *any* single attribute to reveal; until then, the UI says so rather than over-promising.
+- **The reward is locked aside for you, but needs one more tap.** Today the reward is set aside for the holder's wallet; we'll add the in-app step that actually moves it into a spendable balance, and confirm success on screen.
+- **One small form fix** so native-asset rewards can be created from the UI (today they work through the API only).
+- **Full proof-checking inside the registry** — today we check the proof and the registry enforces the rules; we'll move the proof-check itself inside the registry once the underlying network supports it.
+- **Roadmap:** date and range checks ("I earned this after 2024"), trusted-issuer lists, tighter binding of a claim to the gate it was proven for, and a marketplace of gates.
 
-![Placeholder: roadmap timeline — Now (track-only disclosure, Path B, claimable-balance lock) → Next (multi-attribute disclosure, spendable reward, native-XLM form) → Later (on-chain Path A verify, revocation UX, gate marketplace)](placeholder-image.png)
+![Placeholder: roadmap timeline — Now (prove your track, reuse-proof registry, reward set aside) → Next (prove any one attribute, spendable reward, native-asset form) → Later (in-registry proof checks, date/range, trusted issuers, gate marketplace)](placeholder-image.png)
 
 **Speaker notes:**
-We keep a public remaining-tasks doc, and these are the honest gaps. The biggest one: selective disclosure is currently track-only — our circuit binds exactly one disclosed attribute, so the five checkboxes you'll see on the prove page are aspirational until we recompile the circuit with a disclosure mask. Until then, demo gates are single-predicate on track, and we say so in the UI rather than fake it. Second, the reward isn't truly spendable yet: we create a claimable balance that locks funds for the holder, but there's no in-app step to actually claim them, and the panel doesn't confirm final status. Third, native XLM can't be created through the form even though it works through the API — a schema mismatch we'll fix. And the on-chain ZK verification path is stubbed, awaiting Stellar protocol support for the BN254 host functions. Beyond those, the spec's "Could" items — range predicates, trusted-issuer sets, tighter claim binding — are our roadmap. We lead with what's real.
+We keep a public list of what's left, and we'll be honest about it. The biggest one: today you can prove only one specific fact — your track. We're building it so you can choose any single attribute to reveal, and until then the prove page says so plainly rather than fake it with extra checkboxes. Second, the reward is set aside for the holder's wallet, but there's no in-app step to actually make it spendable yet — we'll add that, and confirm success on screen instead of just showing a transaction id. Third, native-asset rewards work through our API but not yet through the form — a small fix. And the rest — date and range checks, trusted-issuer lists, tighter claim binding, and a marketplace of gates — is our roadmap. We lead with what's real.
 
 ---
 
@@ -145,18 +133,18 @@ We keep a public remaining-tasks doc, and these are the honest gaps. The biggest
 
 | Name | Role | Contact |
 |------|------|---------|
-| `[team member 1 — placeholder]` | `[role — e.g. ZK circuits & contracts]` | `[GitHub / email]` |
-| `[team member 2 — placeholder]` | `[role — e.g. web app & UX]` | `[GitHub / email]` |
-| `[team member 3 — placeholder]` | `[role — e.g. product & design]` | `[GitHub / email]` |
+| `[team member 1 — placeholder]` | `[role — e.g. product & ZK]` | `[GitHub / email]` |
+| `[team member 2 — placeholder]` | `[role — e.g. app & UX]` | `[GitHub / email]` |
+| `[team member 3 — placeholder]` | `[role — e.g. design & protocol]` | `[GitHub / email]` |
 
-**Thanks to** — Noir & Aztec (bb.js / UltraHonk), the Stellar / Soroban team, `@zkpassport/poseidon2`, `@zk-kit`, and the open-source privacy-infrastructure community.
+**Thanks to** — the open-source zero-knowledge and privacy-infrastructure communities whose proving and cryptographic primitives we build on.
 
 **Links:** repo `[repo URL placeholder]` · demo `[demo URL placeholder]` · docs `docs/features.md`, `docs/REMAINING_TASKS.md`, `docs/DEPLOY.md`
 
 ![Placeholder: team photo or avatar row placeholder](placeholder-image.png)
 
 **Speaker notes:**
-That's Zelyo — privacy-preserving credentials, sealed with the gravity of a printed record. We're a small team and we've left placeholders here for names and roles, but what we built is real and running: a Noir circuit with verified Poseidon parity, Soroban contracts with on-chain Sybil resistance, and a full Next.js app with in-browser proving and a live reward flow. Huge thanks to Noir and Aztec for the proving stack, the Stellar and Soroban teams, zkpassport and zk-kit for the crypto primitives, and the broader privacy-infrastructure community. We'd love to talk to issuers, verifiers, and anyone who wants to build on this. Privacy is the default — let's make it the standard. Thank you.
+That's Zelyo — privacy-preserving credentials, sealed with the gravity of a printed record. We're a small team and we've left placeholders for names and roles, but what we built is real and running: a working prove-and-reveal flow, a reuse-proof registry, in-browser proof generation, and a live reward. Thanks to the open-source zero-knowledge and privacy-infrastructure communities whose work we build on. We'd love to talk to issuers, verifiers, and anyone who wants to build on this. Privacy is the default — let's make it the standard. Thank you.
 
 ---
 
@@ -166,18 +154,22 @@ That's Zelyo — privacy-preserving credentials, sealed with the gravity of a pr
 
 ---
 
-"Hi — we're Team Zelyo, and we're here to fix something that's been quietly broken for a long time: the way you prove you're qualified.
+"Hi — we're Team Zelyo, and we want to fix something that's been quietly broken for a long time: the way you prove you're qualified.
 
-Think about the last time you applied for anything. You emailed a stranger your full transcript to prove you took one course. You uploaded a passport scan to prove you're over eighteen. Every platform that collects that information is a honeypot waiting to be breached — and the moment you hit send, you lose control of your identity forever. Verification is slow, it's manual, and it's expensive, because the only way we know to trust a credential is to see all of it. For freelancers, for remote workers, for anyone crossing a border, the cost of proving you're qualified is your privacy itself.
+Think about the last time you applied for anything. You emailed a stranger your full transcript just to prove you took one course. You uploaded a passport scan to prove you're over eighteen. Every platform that collects that information is a honeypot waiting to be breached — and the moment you hit send, you lose control of your identity forever. Verification today is slow, it's manual, and it's expensive, because the only way we know to trust a credential is to see all of it. For freelancers, for remote workers, for anyone crossing borders, the cost of proving you're qualified is your privacy itself.
 
-Zelyo is our answer. One sentence: an issuer mints a credential, the holder proves one fact about it in zero-knowledge, and the only thing the chain ever records is a nullifier — never who they are. Three pieces make that real. The proof is generated entirely in the holder's browser, with Noir and UltraHonk, so their secret never leaves the device. A Soroban smart contract is the source of truth for the Merkle root and for nullifier uniqueness, which gives us on-chain Sybil resistance — you cannot reuse the same credential twice. And selective disclosure is wired to real money-rails: reveal just your track, and a valid proof unlocks a Stellar-native reward at a gated job board.
+Zelyo is our answer, in one sentence: prove one fact about a credential in zero-knowledge, and never reveal anything else. Your secret never leaves your device. The same credential can't be used twice. And you reveal only what each opportunity actually needs.
 
-Let me walk you through it. An admin logs in and mints a credential — learner name, track, grade, issue date. A typewriter log narrates each cryptographic step as the leaf is built, inserted into a depth-twenty Merkle tree, the root published on-chain, and the Verifiable Credential sealed to storage. The holder then generates their identity key in-browser — the secret `s` is encrypted locally and never sent to a server; only a public commitment is published. Now the magic moment. On the prove page, the holder toggles to reveal only their track, enters their Stellar address, and presses the foil-stamp button. The zero-knowledge proof is generated right there in the browser and submitted. The result page shows the on-chain transaction — just a nullifier and a bound address, with a link to the explorer — and zero personal data. Try to prove the same credential a second time and the chain rejects it with NULLIFIER_USED. That's our live Sybil block. Finally, the holder claims the job-gate reward, and a real native-XLM claimable balance is issued to their wallet.
+Here's what that looks like. An issuer — say a course provider — seals a credential into a public, tamper-proof registry. But here's the key part: they only publish a fingerprint of the data, not the data itself. No names, no grades, no personal details ever go into that registry.
 
-Under the hood, it's a fully modern stack: Next.js sixteen, React nineteen, TypeScript six, Prisma and Postgres, Noir and UltraHonk for the zero-knowledge layer, and Soroban on Stellar for the registry. The Noir circuit proves Merkle inclusion, a scope-bound nullifier, selective disclosure, and address binding — and our shared Poseidon2 library is verified bit-for-bit identical to the circuit. One thing we won't hide: on-chain ZK proof verification isn't possible on Stellar testnet yet — protocol twenty-seven doesn't expose the pairing and Poseidon host functions — so we verify the proof off-chain with bb.js, and the contract still enforces the load-bearing guarantees on-chain: root validity, address binding, and nullifier uniqueness. That's a documented architectural decision, not a shortcut.
+The holder then creates their identity key right in their browser. The secret stays on their device — our server never sees it. Only a public commitment is shared.
 
-Who's this for? Issuers — a university or bootcamp — mint fraud-resistant credentials without keeping a database of personal details, so there's no honeypot to breach. Holders carry proof of their skills and reveal only what each opportunity requires, and they hold their own secret, so it's genuinely self-sovereign. Verifiers confirm claims cryptographically with zero PII liability and can pay a reward straight to a bound wallet. And developers get a real, working scaffold to build on.
+Now the moment that makes this work. The holder opens the prove page, picks the one fact they want to reveal — 'my track is Data Engineering' — binds it to their wallet, and presses the seal button. A zero-knowledge proof is generated right there in the browser and submitted. The result page shows what was recorded: an anonymous, one-time stamp, and a link to the public record. No name. No grade. No dates. Nothing personal — anywhere. Try to prove the same credential a second time and the registry rejects it. That's our live Sybil block — you can't fake or reuse a credential. Finally, the holder claims the reward at a gated job board, and a real, spendable reward lands for their wallet.
 
-We keep a public list of what's left, and we'll be honest about it. Selective disclosure is currently track-only — our circuit binds exactly one disclosed attribute, so until we recompile it with a disclosure mask, the extra checkboxes are aspirational, and we say so in the UI rather than fake it. The reward creates a claimable balance that locks funds, but there's no in-app step to actually claim them yet. Native XLM works through the API but not through the form, a schema mismatch we'll fix. And the on-chain verification path is stubbed, waiting on Stellar protocol support for the BN254 host functions. The rest — range predicates, trusted-issuer sets, a gate marketplace — is our roadmap.
+Think of it like a notary that never reads your document. Three roles: the issuer seals credentials, the holder proves facts and holds the only key, the verifier checks the proof and pays the reward. The registry is the source of truth — it won't accept a credential twice, and nothing personal is ever written to it.
 
-The deeper shift is this: today a credential is a liability — a file you can't un-share. Zelyo turns it into a portable, private, provable asset. We'd love to talk to issuers, verifiers, and anyone who wants to build on this. Privacy is the default — let's make it the standard. Thank you."
+Who's this for? Issuers — a university or bootcamp — can issue fraud-proof credentials without keeping a database of personal details, so there's no honeypot to breach. Holders carry proof of their skills and reveal only what each opportunity requires, and they hold their own key, so it's genuinely self-sovereign. Verifiers confirm a claim cryptographically with zero personal-data liability, and can pay a reward straight to the wallet.
+
+We'll be honest about where we are. Today you can only prove one specific fact — your track. We're building it so you can choose any single attribute to reveal. The reward is set aside for you, but needs one more tap to actually become spendable — we'll add that step. And the rest — date and range checks, trusted-issuer lists, a marketplace of gates — is our roadmap.
+
+Here's the shift we care about. Today a credential is a liability — a file you can't un-share. Zelyo turns it into a portable, private, provable asset. We'd love to talk to issuers, verifiers, and anyone who wants to build on this. Privacy is the default — let's make it the standard. Thank you."

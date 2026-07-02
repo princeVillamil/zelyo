@@ -124,10 +124,12 @@ test("13.3 selective disclosure unlocks a gate claim", async ({
   loginAs,
 }) => {
   await mintProveVerify(page, registerHolder, loginAs);
-  await page.goto("/jobs/data-engineering");
-  await page.getByRole("button", { name: /claim|unlock/i }).click();
-  await expect(
-    page.getByText(/claim recorded|unlocked|claimable balance|reward/i),
-  ).toBeVisible({ timeout: 60_000 });
+  // The wallet detects the existing proof that satisfies the gate and offers a
+  // one-click claim link, carrying the proof identity as query params.
+  await page.goto("/wallet?gate=data-engineering");
+  await page.getByRole("link", { name: /use this proof to claim/i }).click();
+  await page.getByRole("button", { name: /claim your reward/i }).click();
+  // "Reward Unlocked" is the status heading; avoid the description paragraph.
+  await expect(page.getByText("Reward Unlocked")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("link", { name: /explorer|transaction/i })).toBeVisible();
 });

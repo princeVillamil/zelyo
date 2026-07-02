@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { db } from "../lib/db";
 import { issueClaimableBalance, issuePayment, setVerifiedFlag } from "../lib/stellar";
+import { explorerTxUrl } from "../lib/explorer";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 
@@ -99,7 +100,7 @@ export async function claimGate(
   nullifierHex: FieldHex,
   boundAddress: string,
   txHash: string,
-): Promise<{ txHash?: string; rewardType: string }> {
+): Promise<{ txHash?: string; explorerUrl?: string; rewardType: string }> {
   const gate = await db.jobGate.findUnique({ where: { slug } });
   if (!gate) throw new AppError("GATE_NOT_FOUND", 404, "No such job gate.");
 
@@ -140,7 +141,7 @@ export async function claimGate(
   });
   if (existing) {
     return existing.txHash != null
-      ? { txHash: existing.txHash, rewardType: gate.rewardType }
+      ? { txHash: existing.txHash, explorerUrl: explorerTxUrl(existing.txHash), rewardType: gate.rewardType }
       : { rewardType: gate.rewardType };
   }
 
@@ -172,7 +173,7 @@ export async function claimGate(
   await db.gateClaim.create({
     data: { jobGateId: gate.id, nullifierHex, boundAddress, txHash: rewardTxHash },
   });
-  return { txHash: rewardTxHash, rewardType: gate.rewardType };
+  return { txHash: rewardTxHash, explorerUrl: explorerTxUrl(rewardTxHash), rewardType: gate.rewardType };
 }
 
 /** Pull a readable cause out of a Horizon/Soroban error (result codes preferred). */

@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { db } from "../lib/db";
-import { issueClaimableBalance, setVerifiedFlag } from "../lib/stellar";
+import { issueClaimableBalance, issuePayment, setVerifiedFlag } from "../lib/stellar";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 
@@ -149,7 +149,12 @@ export async function claimGate(
     if (gate.rewardType === "CLAIMABLE_BALANCE") {
       const cfg = rewardConfigSchema.parse(gate.rewardConfig);
       if (!cfg.asset) throw new AppError("GATE_MISCONFIGURED", 500, "Gate reward asset missing.");
-      ({ txHash: rewardTxHash } = await issueClaimableBalance(boundAddress, cfg.asset));
+      // Native XLM (empty issuer) lands immediately via direct payment. Custom assets
+      // still use claimable balances; a holder-signed claim step could be added later.
+      const isNativeXlm = cfg.asset.code === "XLM" && !cfg.asset.issuer;
+      ({ txHash: rewardTxHash } = isNativeXlm
+        ? await issuePayment(boundAddress, cfg.asset)
+        : await issueClaimableBalance(boundAddress, cfg.asset));
     } else if (gate.rewardType === "FLAG") {
       ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress));
     } else {

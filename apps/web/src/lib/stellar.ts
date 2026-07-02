@@ -225,6 +225,35 @@ export async function publishRoot(rootHex: FieldHex): Promise<{ txHash: string }
   return { txHash: sent.hash };
 }
 
+/** Issue a direct payment of `asset` to `boundAddress`. Signed by ISSUER_SECRET.
+ *  Used for native XLM so funds land immediately in the holder's wallet.
+ *  Claimable balances are kept for custom assets; a holder-signed claim step
+ *  could be added later for those. */
+export async function issuePayment(
+  boundAddress: string,
+  asset: { code: string; issuer: string; amount: string },
+): Promise<{ txHash: string }> {
+  const server = new Horizon.Server(env.HORIZON_URL);
+  const source = await server.loadAccount(issuerKeypair.publicKey());
+  const stellarAsset = asset.issuer ? new Asset(asset.code, asset.issuer) : Asset.native();
+  const tx = new TransactionBuilder(source, {
+    fee: BASE_FEE,
+    networkPassphrase: env.NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.payment({
+        destination: boundAddress,
+        asset: stellarAsset,
+        amount: asset.amount,
+      }),
+    )
+    .setTimeout(60)
+    .build();
+  tx.sign(issuerKeypair);
+  const res = await server.submitTransaction(tx);
+  return { txHash: res.hash };
+}
+
 /** Issue a testnet claimable balance of `asset` claimable by `boundAddress`. Signed by ISSUER_SECRET. */
 export async function issueClaimableBalance(
   boundAddress: string,

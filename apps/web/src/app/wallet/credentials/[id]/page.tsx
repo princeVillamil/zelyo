@@ -35,8 +35,9 @@ export default async function CredentialDetailPage({
   });
 
   return (
-    <main className="mx-auto max-w-[1120px] px-margin-mobile py-stack-lg md:px-margin-page">
-      <h1 className="font-display text-display-lg text-primary">{a.courseName}</h1>
+    <main className="py-stack-lg">
+      <p className="font-label text-label-md uppercase text-secondary">Holder Wallet</p>
+      <h1 className="font-display text-display-lg text-on-background mt-stack-sm">{a.courseName}</h1>
       {orphaned && (
         <p
           role="alert"

@@ -8,8 +8,9 @@ const gate: GateDetail = {
   slug: "data-engineering",
   title: "Senior Data Engineer",
   description: "Prove it.",
-  requiredPredicate: { attribute: "track", equals: "Data Engineering" },
+  requiredPredicates: [{ attribute: "track", equals: "Data Engineering" }],
   rewardType: "CLAIMABLE_BALANCE",
+  expiresAt: null,
 };
 
 afterEach(() => vi.restoreAllMocks());

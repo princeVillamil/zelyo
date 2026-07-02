@@ -28,6 +28,7 @@ describe("VerifyResultPage", () => {
       nullifierHex: "0xnull",
       boundAddress: "GABC",
       disclosed: { track: "Data Engineering" },
+      disclosedRaw: { track: "Data Engineering" },
       explorerUrl: "https://explorer.test/tx/tx1",
       createdAt: new Date("2026-06-23T00:00:00Z"),
       jobGateSlug: null,

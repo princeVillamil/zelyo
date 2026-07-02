@@ -25,6 +25,7 @@ describe("getVerificationByTxHash", () => {
       boundStellarAddress: "GASTINUANRYSHXSWZNAGDKYNISWSP4ZCDC534OVIA7IE272OIWSSQZGJ",
       disclosed: { track: "Data Engineering" },
       createdAt: new Date("2026-06-23T00:00:00Z"),
+      credentialId: null,
       jobGate: { slug: "data-engineering" },
     });
     const view = await getVerificationByTxHash("tx1");
@@ -35,9 +36,11 @@ describe("getVerificationByTxHash", () => {
       boundAddress: "0xdeadbeef",
       boundStellarAddress: "GASTINUANRYSHXSWZNAGDKYNISWSP4ZCDC534OVIA7IE272OIWSSQZGJ",
       disclosed: { track: "Data Engineering" },
+      disclosedRaw: {},
       explorerUrl: "https://explorer.test/tx/tx1",
       createdAt: new Date("2026-06-23T00:00:00Z"),
       jobGateSlug: "data-engineering",
+      credentialId: null,
     });
     // disclosed carries only the predicate target; never name/grade/email.
     expect(Object.keys(view!.disclosed as object)).toEqual(["track"]);

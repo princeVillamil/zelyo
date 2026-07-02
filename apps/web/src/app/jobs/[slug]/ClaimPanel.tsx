@@ -11,6 +11,7 @@ type Props = {
   initialTxHash: string | null;
   initialNullifierHex: string | null;
   initialBoundAddress: string | null;
+  isExpired?: boolean;
 };
 
 export function ClaimPanel({
@@ -19,6 +20,7 @@ export function ClaimPanel({
   initialTxHash,
   initialNullifierHex,
   initialBoundAddress,
+  isExpired = false,
 }: Props) {
   const [txHash, setTxHash] = useState<string | null>(initialTxHash);
   const [nullifierHex, setNullifierHex] = useState<string | null>(initialNullifierHex);
@@ -47,6 +49,17 @@ export function ClaimPanel({
     setStatus("done");
   }
 
+  if (isExpired) {
+    return (
+      <div className="border border-outline-variant bg-surface-container-lowest rounded-lg p-stack-md">
+        <p className="font-label text-label-md uppercase text-error">Gate Expired</p>
+        <p className="font-body text-body-md text-on-surface-variant mt-stack-sm">
+          This gate is no longer accepting claims.
+        </p>
+      </div>
+    );
+  }
+
   if (!hasVerification) {
     return (
       <a
@@ -65,9 +78,11 @@ export function ClaimPanel({
         <p className="font-body text-body-md text-on-surface-variant mt-stack-sm">
           Your selective-disclosure proof unlocked this gate ({result.rewardType}).
         </p>
-        <p className="font-mono text-caption text-on-surface-variant mt-stack-sm break-all">
-          {result.txHash}
-        </p>
+        {result.txHash && (
+          <p className="font-mono text-caption text-on-surface-variant mt-stack-sm break-all">
+            {result.txHash}
+          </p>
+        )}
       </div>
     );
   }

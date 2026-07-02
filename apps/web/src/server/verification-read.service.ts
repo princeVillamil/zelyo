@@ -10,9 +10,11 @@ export type VerificationView = {
   boundAddress: string;
   boundStellarAddress: string | null;
   disclosed: unknown;
+  disclosedRaw: Record<string, string>;
   explorerUrl: string;
   createdAt: Date;
   jobGateSlug: string | null;
+  credentialId: string | null;
 };
 
 /** Read-only lookup for the /verify/result/[txHash] reveal panel. Never touches the chain. */
@@ -30,10 +32,14 @@ export async function getVerificationByTxHash(
       boundStellarAddress: true,
       disclosed: true,
       createdAt: true,
+      credentialId: true,
       jobGate: { select: { slug: true } },
     },
   });
   if (!row || row.txHash === null) return null;
+
+  const disclosedRaw = (row.disclosed as { raw?: Record<string, string> }).raw ?? {};
+
   return {
     txHash: row.txHash,
     result: row.result,
@@ -41,8 +47,10 @@ export async function getVerificationByTxHash(
     boundAddress: row.boundAddress,
     boundStellarAddress: row.boundStellarAddress,
     disclosed: row.disclosed,
+    disclosedRaw,
     explorerUrl: explorerTxUrl(row.txHash),
     createdAt: row.createdAt,
     jobGateSlug: row.jobGate?.slug ?? null,
+    credentialId: row.credentialId,
   };
 }

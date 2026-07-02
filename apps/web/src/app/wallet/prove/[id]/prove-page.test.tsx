@@ -28,7 +28,7 @@ beforeEach(() => vi.clearAllMocks());
 describe("/wallet/prove/[id]", () => {
   it("redirects non-holders to login", async () => {
     vi.mocked(auth).mockResolvedValue(null as never);
-    await expect(ProvePage({ params: Promise.resolve({ id: "c1" }) })).rejects.toThrow("REDIRECT");
+    await expect(ProvePage({ params: Promise.resolve({ id: "c1" }), searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT");
     expect(redirect).toHaveBeenCalledWith("/login");
   });
 
@@ -38,7 +38,7 @@ describe("/wallet/prove/[id]", () => {
     vi.mocked(db.credential.findFirst).mockResolvedValue({
       id: "c1", attributes: { track: "Data Engineering" }, leafIndex: 3, merkleRootHex: "0xroot",
     } as never);
-    const ui = await ProvePage({ params: Promise.resolve({ id: "c1" }) });
+    const ui = await ProvePage({ params: Promise.resolve({ id: "c1" }), searchParams: Promise.resolve({}) });
     render(ui);
     expect(screen.getByText("panel:c1")).toBeInTheDocument();
   });

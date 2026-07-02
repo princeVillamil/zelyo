@@ -24,9 +24,9 @@ export default async function CredentialsPage({
   });
 
   return (
-    <main className="mx-auto max-w-[1120px] px-margin-mobile md:px-margin-page py-stack-lg">
+    <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">Issuer Portal</p>
-      <h1 className="font-display text-display-lg text-primary mb-stack-md">Folio Library</h1>
+      <h1 className="font-display text-display-lg text-on-background mb-stack-md">Folio Library</h1>
 
       <form className="mb-stack-md" action="/issuer/credentials" method="get">
         <input name="q" defaultValue={q ?? ""} placeholder="Search by folio id or root…"

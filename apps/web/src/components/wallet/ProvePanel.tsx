@@ -32,7 +32,7 @@ const RESULT_COPY: Record<string, string> = {
   ERROR: "The verification could not be completed. Please try again.",
 };
 
-export function ProvePanel({ credential }: { credential: ProvePanelCredential }) {
+export function ProvePanel({ credential, gate }: { credential: ProvePanelCredential; gate?: string | undefined }) {
   const router = useRouter();
   // Default: reveal only `track`; name/grade hidden.
   const [disclose, setDisclose] = useState<Partial<Record<keyof Attributes, boolean>>>({ track: true });
@@ -79,13 +79,24 @@ export function ProvePanel({ credential }: { credential: ProvePanelCredential })
           proof: Array.from(bundle.proof),
           publicInputs: bundle.publicInputs,
           boundStellarAddress: address,
+          credentialId: credential.id,
         }),
       });
       const result = (await res.json()) as { ok: boolean; result: string; txHash?: string };
 
       if (result.ok && result.txHash) {
         log("SEALED ON-CHAIN", result.txHash.slice(0, 10));
-        router.push(`/verify/result/${result.txHash}`);
+        if (gate) {
+          // Came from a gate — loop back with the proof identity so the holder can claim.
+          const params = new URLSearchParams({
+            txHash: result.txHash,
+            nullifier: bundle.publicInputs.nullifier,
+            address,
+          });
+          router.push(`/jobs/${gate}?${params.toString()}`);
+        } else {
+          router.push(`/verify/result/${result.txHash}`);
+        }
       } else {
         log("REGISTRY REJECTED", result.result);
         setError((RESULT_COPY[result.result] ?? RESULT_COPY.ERROR) as string | null);

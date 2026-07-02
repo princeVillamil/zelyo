@@ -23,11 +23,12 @@ const bodySchema = z
         nullifier: fieldHex,
         disclosed: z.object({
           value: fieldHex,
-          raw: z.object({ track: z.string() }),
+          raw: z.record(z.string(), z.string()),
         }),
       })
       .strict(),
     boundStellarAddress: stellarAddress,
+    credentialId: z.string().optional(),
   })
   .strict();
 
@@ -45,6 +46,7 @@ export async function POST(req: Request): Promise<Response> {
       proof: Uint8Array.from(parsed.data.proof),
       publicInputs: parsed.data.publicInputs as never,
       boundStellarAddress: parsed.data.boundStellarAddress,
+      ...(parsed.data.credentialId !== undefined && { credentialId: parsed.data.credentialId }),
     });
 
     // Audit the verify attempt — actor is anonymous (public route), ip + non-PII

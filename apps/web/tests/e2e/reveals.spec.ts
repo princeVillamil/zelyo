@@ -70,9 +70,9 @@ async function mintProveVerify(
   await page.goto("/wallet");
   await page.getByRole("link", { name: /prove|generate proof/i }).first().click();
   await page.getByRole("checkbox", { name: /track/i }).check();
-  await expect(
-    page.getByRole("checkbox", { name: /grade|name/i }).first(),
-  ).not.toBeChecked();
+  // Only `track` is disclosable in the current circuit; other attribute checkboxes
+  // are not rendered, so there is nothing to uncheck.
+  await expect(page.getByRole("checkbox", { name: /grade|name/i })).toHaveCount(0);
   await page.getByLabel(/stellar address/i).fill(BOUND_ADDRESS);
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate zk-proof/i }).click();

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zelyo — Cryptographic truth, sealed.</title>
+<meta name="description" content="Zelyo is a privacy-preserving credential protocol. Mint a credential, prove one fact in zero knowledge, and reveal nothing else. Built on Stellar." />
+<meta name="theme-color" content="#fbf9f5" />
+<link rel="icon" href="logo.jpg" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ===================== NAVBAR ===================== -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="Zelyo home">
+      <img class="brand-mark" src="logo.jpg" alt="" />
+      <span class="brand-word">ZELYO<span class="dot">.</span></span>
+    </a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#reveals">The Protocol</a>
+      <a href="#how">How it Works</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#contact">Correspondence</a>
+      <a class="btn btn-foil" href="https://app.zelyo.one">
+        Open the App
+        <span class="material-symbols-outlined">arrow_outward</span>
+      </a>
+      <button class="nav-burger" id="burger" aria-label="Toggle menu" aria-expanded="false">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+    </div>
+  </div>
+  <div class="drawer" id="drawer">
+    <nav class="nav-links" aria-label="Mobile">
+      <a href="#reveals">The Protocol</a>
+      <a href="#how">How it Works</a>
+      <a href="#contact">Contact</a>
+      <a href="https://app.zelyo.one">Open the App</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ===================== HERO ===================== -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="hero-eyebrow eyebrow">
+        <span class="ln"></span>
+        Archival Journal for Cryptographic Truth · A.D. MMXXVI
+      </span>
+
+      <h1 class="display-lg">
+        Seal a credential.<br />
+        Prove one fact.<br />
+        Reveal nothing else.
+      </h1>
+
+      <p class="lead body-lg">
+        Zelyo mints credentials as sealed attestations on a scholarly
+        ledger — then lets a holder prove a single fact in zero knowledge.
+        The chain records only an anonymous seal. The rest stays private.
+      </p>
+
+      <div class="hero-cta">
+        <a class="btn btn-foil" href="https://app.zelyo.one">
+          Open the App
+          <span class="material-symbols-outlined">arrow_outward</span>
+        </a>
+        <a class="btn btn-ghost" href="#how">
+          Read the protocol
+        </a>
+      </div>
+
+      <div class="hero-meta">
+        <div class="item">
+          <div class="k">Network</div>
+          <div class="v">Stellar · Soroban</div>
+        </div>
+        <div class="item">
+          <div class="k">Proof System</div>
+          <div class="v">Noir · UltraHonk</div>
+        </div>
+        <div class="item">
+          <div class="k">Status</div>
+          <div class="v">Sealed &amp; Live</div>
+        </div>
+      </div>
+    </div>
+
+    <figure class="hero-figure">
+      <div class="plate fig-placeholder" style="border:0;border-radius:0;">
+        <span class="watermark" aria-hidden="true">
+          <span class="material-symbols-outlined" style="font-size:96px;color:var(--color-secondary-fixed-dim);opacity:.55;">image</span>
+          <span class="label-md" style="color:var(--color-secondary);margin-top:10px;">Cover plate · awaiting engraving</span>
+        </span>
+        <!-- Image-generation placeholder (cover image) -->
+        <span class="prompt">
+          <span class="tag"><span class="material-symbols-outlined">image</span> Image prompt · Plate I</span>
+          <span class="txt">A wide editorial-archival cover illustration for “Zelyo,” a privacy-preserving credential protocol. Warm cream paper (#fbf9f5) with faint ledger rules and a subtle paper grain; deep evergreen ink (#051a17). Center: a large circular wax-foil signet seal with a raised outer rim and a minimal Merkle-tree glyph inside — three small nodes at the top converging through thin diagonal branch lines into one solid apex node, reading as a seal of authenticity. Around it, schematic line-art diagrams labelled “DATA → HASH → PROOF / ROOT” in thin engraved linework, like a scholarly plate from a cryptographic journal. Latin-numeral date “A.D. MMXXVI” in the corner. Letterpress/engraved feel, generous negative space, restrained and scholarly — no neon, no 3D, no cyberpunk, no people. Flat vector with one subtle diagonal foil gradient (#051a17 → #1a2f2b) on the seal only.</span>
+        </span>
+      </div>
+      <figcaption class="figcaption">
+        <span class="cap">Fig. 1 — The Zelyo seal: many private leaves converge to one sealed, anonymous root.</span>
+        <span class="fig">Plate I · cover</span>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- rule ornament -->
+<div class="wrap"><div class="rule-ornament"><span class="lozenge">◆</span></div></div>
+
+<!-- ===================== FEATURES / THE THREE REVEALS ===================== -->
+<section class="section" id="reveals">
+  <div class="wrap">
+    <div class="center" style="max-width:680px;margin:0 auto 56px;">
+      <div class="eyebrow" style="margin-bottom:18px;">§ I · The Three Reveals</div>
+      <h2 class="headline-md">What the chain sees, and what it never does.</h2>
+      <p class="text-variant" style="margin-top:18px;">
+        Three properties that make a credential worth sealing — each verifiable
+        on-chain, without exposing the person behind it.
+      </p>
+    </div>
+
+    <div class="reveals">
+      <article class="reveal-card">
+        <span class="num">01</span>
+        <div class="icon"><span class="material-symbols-outlined">visibility_off</span></div>
+        <h3>Nothing personal on-chain</h3>
+        <p>The ledger records only a nullifier and a bound address — no name, no grade, no course. The proof is the receipt; the data never leaves the holder.</p>
+        <div class="stamp"><span class="dot"></span>Reveal · On-chain</div>
+      </article>
+
+      <article class="reveal-card">
+        <span class="num">02</span>
+        <div class="icon"><span class="material-symbols-outlined">fingerprint</span></div>
+        <h3>One credential, one registration</h3>
+        <p>A nullifier ties a single proof to a single identity. Reusing it across Sybil attempts is rejected — one seal, one claim, no duplicates.</p>
+        <div class="stamp"><span class="dot"></span>Reveal · Anti-Sybil</div>
+      </article>
+
+      <article class="reveal-card">
+        <span class="num">03</span>
+        <div class="icon"><span class="material-symbols-outlined">verified_user</span></div>
+        <h3>Selective disclosure</h3>
+        <p>Prove you satisfy a predicate — “track matches,” “grade in range,” “issued before date” — while every other attribute stays strictly private.</p>
+        <div class="stamp"><span class="dot"></span>Reveal · By request</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== HOW IT WORKS ===================== -->
+<section class="section" id="how" style="background:var(--color-surface-low);">
+  <div class="wrap">
+    <div style="max-width:680px;margin-bottom:56px;">
+      <div class="eyebrow" style="margin-bottom:18px;">§ II · The Distillation</div>
+      <h2 class="headline-md">From private attributes to a sealed proof.</h2>
+      <p class="text-variant" style="margin-top:18px;">
+        Credentials enter as leaves in a Merkle tree; the issuer publishes a
+        single root. A holder distills one fact into a proof, sealed and
+        recorded — and the original data is never transmitted.
+      </p>
+    </div>
+
+    <div class="how-grid">
+      <!-- Schematic -->
+      <div class="page-card schematic" style="padding:0;position:relative;overflow:hidden;">
+        <div class="ledger ledger-line" aria-hidden="true"></div>
+        <span class="figcap">Fig 1.1 · Distillation</span>
+        <div class="flow">
+          <div class="node">
+            <div class="t">Data</div>
+            <div class="v">attributes</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="node">
+            <div class="t">Hash fn</div>
+            <div class="v">poseidon2</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="node root">
+            <div class="t">Proof / Root</div>
+            <div class="v">sealed ✓</div>
+          </div>
+        </div>
+        <p class="flow-caption">Fig 1.1 — Private attributes converge through a hash function into one sealed, verifiable root.</p>
+      </div>
+
+      <!-- Typewriter log -->
+      <div class="typewriter" id="log" aria-live="polite" aria-label="Proof generation log">
+        <div class="bar">
+          <span class="ttl">Zelyo · Prove Console</span>
+          <span class="dots"><span></span><span></span><span></span></span>
+        </div>
+        <div class="lines" id="logLines"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONTACT ===================== -->
+<section class="section" id="contact" style="background:var(--color-surface-lowest);">
+  <div class="wrap">
+    <div class="rule-ornament" style="margin-bottom:48px;"><span class="lozenge">◆</span></div>
+    <div class="center" style="max-width:680px;margin:0 auto 56px;">
+      <div class="eyebrow" style="margin-bottom:18px;">§ III · Correspondence</div>
+      <h2 class="headline-md">Write to the registry.</h2>
+      <p class="text-variant" style="margin-top:18px;">
+        Questions, integrations, or institutional inquiries — address your
+        correspondence to the keeper of the ledger.
+      </p>
+    </div>
+
+    <div class="contact-grid">
+      <div class="page-card spine contact-card">
+        <div class="icon"><span class="material-symbols-outlined">mail</span></div>
+        <div class="entry-tag">Registry Entry · <span class="num">Correspondence</span></div>
+        <h3>Send us a sealed letter</h3>
+        <p>We answer inquiries about the protocol, issuance, and verification. Expect a considered reply — not an autoresponder.</p>
+        <a class="email-pill" href="mailto:zelyo@artisam.xyz">
+          <span class="material-symbols-outlined">alternate_email</span>
+          zelyo@artisam.xyz
+        </a>
+      </div>
+
+      <div class="page-card contact-card">
+        <div class="icon"><span class="material-symbols-outlined">extension</span></div>
+        <div class="entry-tag">Registry Entry · <span class="num">The Instrument</span></div>
+        <h3>Carry the seal in your browser</h3>
+        <p>Prove and hold credentials directly from the Zelyo app, or install the Chrome extension to seal and verify on the open web.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;">
+          <a class="btn btn-foil" href="https://app.zelyo.one">
+            Open the App
+            <span class="material-symbols-outlined">arrow_outward</span>
+          </a>
+          <a class="btn btn-light" href="https://app.zelyo.one">
+            Chrome Extension
+            <span class="material-symbols-outlined">open_in_new</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="wm">
+          <img class="mark" src="logo.jpg" alt="" />
+          <span class="w">ZELYO</span>
+        </div>
+        <p>An archival journal for cryptographic truth. Privacy-preserving credentials, sealed on Stellar — proven in zero knowledge.</p>
+      </div>
+
+      <div>
+        <h4>The Protocol</h4>
+        <ul>
+          <li><a href="#reveals"><span class="material-symbols-outlined">menu_book</span>The Three Reveals</a></li>
+          <li><a href="#how"><span class="material-symbols-outlined">draw</span>How it Works</a></li>
+          <li><a href="#contact"><span class="material-symbols-outlined">mail</span>Contact Us</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Open the App</h4>
+        <ul>
+          <li><a href="https://app.zelyo.one"><span class="material-symbols-outlined">arrow_outward</span>App · app.zelyo.one</a></li>
+          <li><a href="https://app.zelyo.one"><span class="material-symbols-outlined">extension</span>Chrome Extension</a></li>
+          <li><a href="https://artisam.xyz"><span class="material-symbols-outlined">science</span>Artisam Labs</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="privacy.html"><span class="material-symbols-outlined">policy</span>Privacy Policy</a></li>
+          <li><a href="terms.html"><span class="material-symbols-outlined">gavel</span>Terms of Use</a></li>
+          <li><a href="mailto:zelyo@artisam.xyz"><span class="material-symbols-outlined">alternate_email</span>zelyo@artisam.xyz</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span class="copy">© <span class="lat">A.D.</span> MMXXVI Zelyo · A protocol of Artisam Labs. Sealed on Stellar.</span>
+      <div class="legal-links">
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="mailto:zelyo@artisam.xyz">Contact</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ===================== COOKIE CONSENT ===================== -->
+<div class="cookie" id="cookie" role="dialog" aria-label="Cookie consent" aria-live="polite">
+  <div class="cookie-card">
+    <span class="ico"><span class="material-symbols-outlined">cookie</span></span>
+    <p>
+      This journal uses essential cookies to operate and optional analytics to
+      understand which plates are read. See our
+      <a href="privacy.html">Privacy Policy</a>.
+    </p>
+    <div class="cookie-actions">
+      <button class="btn btn-light" id="cookieDecline">Decline optional</button>
+      <button class="btn btn-foil" id="cookieAccept">Accept all</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- Mobile nav ----
+  (function () {
+    var burger = document.getElementById("burger");
+    var drawer = document.getElementById("drawer");
+    if (!burger || !drawer) return;
+    function close() { drawer.classList.remove("open"); burger.setAttribute("aria-expanded", "false"); }
+    burger.addEventListener("click", function () {
+      var open = drawer.classList.toggle("open");
+      burger.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    drawer.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", close); });
+  })();
+
+  // ---- Cookie consent ----
+  (function () {
+    var banner = document.getElementById("cookie");
+    if (!banner) return;
+    var KEY = "zelyo_cookie_consent";
+    try {
+      if (!localStorage.getItem(KEY)) banner.classList.add("show");
+    } catch (e) { banner.classList.add("show"); }
+    function set(v) {
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      banner.classList.remove("show");
+    }
+    document.getElementById("cookieAccept").addEventListener("click", function () { set("accepted"); });
+    document.getElementById("cookieDecline").addEventListener("click", function () { set("declined"); });
+  })();
+
+  // ---- Typewriter proof log ----
+  (function () {
+    var host = document.getElementById("logLines");
+    if (!host) return;
+    var lines = [
+      ["[09:14:02] ", "init   ", "holder key loaded · commitment 0x7f3a…b91e", "ok"],
+      ["[09:14:03] ", "load   ", "credential leaf · depth 20 merkle path", ""],
+      ["[09:14:04] ", "disc   ", "reveal: track  · keep: name, grade, date", "ok"],
+      ["[09:14:05] ", "prove  ", "UltraHonk witness → proof (bb.js)", ""],
+      ["[09:14:09] ", "verify ", "result=VERIFIED · nullifier 0x2c0d…", "ok"],
+      ["[09:14:10] ", "submit ", "registry.register(pi, attestor, holder)", ""],
+      ["[09:14:11] ", "seal   ", "on-chain: only nullifier + bound address", "ok"],
+      ["[09:14:12] ", "done   ", "private attributes never transmitted  ", "ok"],
+    ];
+    var idx = 0;
+    function renderLine() {
+      var l = lines[idx];
+      var div = document.createElement("div");
+      div.className = "line";
+      var ts = document.createElement("span"); ts.className = "ts"; ts.textContent = l[0];
+      var tag = document.createElement("span"); tag.className = "tag"; tag.style.color = "var(--color-secondary)"; tag.textContent = l[1];
+      var body = document.createElement("span"); body.textContent = l[2];
+      if (l[3] === "ok") body.style.color = "var(--color-primary)";
+      div.appendChild(ts); div.appendChild(tag); div.appendChild(body);
+      host.appendChild(div);
+      idx++;
+    }
+    function addCursor() {
+      var c = document.createElement("span"); c.className = "cursor"; host.appendChild(c);
+    }
+    // Respect reduced motion: render all at once; otherwise stream line by line.
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { while (idx < lines.length) renderLine(); addCursor(); }
+    else {
+      (function step() {
+        if (idx < lines.length) { renderLine(); setTimeout(step, 850); }
+        else addCursor();
+      })();
+    }
+  })();
+</script>
+</body>
+</html>

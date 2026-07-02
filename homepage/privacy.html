@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — Zelyo</title>
+<meta name="description" content="How Zelyo, a privacy-preserving credential protocol, handles information — and what stays strictly private by design." />
+<meta name="theme-color" content="#fbf9f5" />
+<link rel="icon" href="logo.jpg" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ===================== NAVBAR ===================== -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="index.html" aria-label="Zelyo home">
+      <img class="brand-mark" src="logo.jpg" alt="" />
+      <span class="brand-word">ZELYO<span class="dot">.</span></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html#reveals">The Protocol</a>
+      <a href="index.html#how">How it Works</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-foil" href="https://app.zelyo.one">
+        Open the App
+        <span class="material-symbols-outlined">arrow_outward</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ===================== LEGAL HERO ===================== -->
+<section class="legal-hero">
+  <div class="wrap">
+    <div class="eyebrow" style="margin-bottom:18px;">Folio · Privacy Policy</div>
+    <h1 class="display-lg">Privacy Policy</h1>
+    <p class="text-variant body-lg" style="margin-top:18px;max-width:62ch;">
+      How Zelyo handles information — and, by design, what stays strictly
+      private. This policy explains what we collect, what we never see, and
+      the rights you hold over your own data.
+    </p>
+  </div>
+</section>
+
+<!-- ===================== LEGAL BODY ===================== -->
+<section class="legal-body">
+  <div class="wrap">
+
+    <!-- TOC -->
+    <aside class="legal-toc" aria-label="Table of contents">
+      <h4>Contents</h4>
+      <ul>
+        <li><a href="#intro">1 · Introduction</a></li>
+        <li><a href="#collect">2 · Information We Handle</a></li>
+        <li><a href="#private">3 · What Stays Private</a></li>
+        <li><a href="#use">4 · How We Use Information</a></li>
+        <li><a href="#share">5 · Sharing</a></li>
+        <li><a href="#retain">6 · Data Retention</a></li>
+        <li><a href="#security">7 · Data Security</a></li>
+        <li><a href="#cookies">8 · Cookies</a></li>
+        <li><a href="#rights">9 · Your Rights</a></li>
+        <li><a href="#third">10 · Third-Party Links</a></li>
+        <li><a href="#changes">11 · Changes to This Policy</a></li>
+        <li><a href="#contact">12 · Contact Us</a></li>
+      </ul>
+    </aside>
+
+    <!-- Prose -->
+    <div class="legal-prose">
+      <div class="updated"><span class="material-symbols-outlined" style="font-size:14px;">event</span> Effective date · March 18, 2026</div>
+
+      <h2 id="intro">1. Introduction</h2>
+      <p>
+        Zelyo (“we,” “us,” “our”) is a privacy-preserving credential protocol
+        built on the Stellar network. We issue, hold, and verify cryptographic
+        credentials in zero knowledge. This Privacy Policy describes how the
+        Zelyo website at <strong>zelyo.one</strong> and the application at
+        <strong>app.zelyo.one</strong> (together, the “Service”) handle
+        information, and — uniquely — what we <em>never</em> receive.
+      </p>
+      <p>
+        Zelyo is operated by <strong>Artisam Labs</strong>. By accessing or
+        using the Service, you agree to the practices described here. If you
+        do not agree, please do not use the Service.
+      </p>
+
+      <div class="callout">
+        <div class="lbl">In one line</div>
+        <p>The chain records only an anonymous seal. Your private attributes stay with you.</p>
+      </div>
+
+      <h2 id="collect">2. Information We Handle</h2>
+      <p>We handle the following categories of information:</p>
+      <ul>
+        <li><strong>Account information.</strong> The email address and Stellar
+        address you provide when you register as an issuer or holder.</li>
+        <li><strong>Credential metadata.</strong> The public identifiers
+        associated with a credential — issuer, scope, Merkle root, and leaf
+        index — but <em>not</em> the private attribute values themselves.</li>
+        <li><strong>On-chain records.</strong> Nullifiers, bound addresses, and
+        verification results written to the Stellar ledger. These are public
+        by nature of a public blockchain.</li>
+        <li><strong>Usage data.</strong> Pages visited, browser type, device
+        information, and IP address, collected in server logs for security and
+        abuse prevention.</li>
+        <li><strong>Cookies.</strong> Essential and optional cookies, described
+        in Section 8.</li>
+      </ul>
+
+      <h2 id="private">3. What Stays Private</h2>
+      <p>
+        Zelyo is built so that the most sensitive data never reaches us. When
+        you generate a zero-knowledge proof, the proving happens
+        <strong>in your browser</strong>. Your private attributes — name,
+        grade, course, issue date, and any predicate inputs — are transformed
+        locally into a proof and a nullifier.
+      </p>
+      <p>
+        We do not transmit, store, or log your private credential attributes.
+        We cannot read what we never receive. Verification confirms a fact
+        about you without revealing the underlying data.
+      </p>
+
+      <h2 id="use">4. How We Use Information</h2>
+      <ul>
+        <li>To operate the Service — issuing credentials, publishing roots, and
+        recording sealed attestations on-chain.</li>
+        <li>To process and verify zero-knowledge proofs, and to return
+        verification results.</li>
+        <li>To prevent fraud, Sybil attacks, and abuse, including nullifier
+        reuse detection.</li>
+        <li>To provide support and respond to your inquiries.</li>
+        <li>To improve the Service and maintain security and audit logs.</li>
+        <li>To comply with legal obligations where required.</li>
+      </ul>
+
+      <h2 id="share">5. Sharing Your Information</h2>
+      <p>
+        We do <strong>not</strong> sell or rent personal data. We share
+        information only:
+      </p>
+      <ul>
+        <li>With infrastructure providers (hosting, database, and blockchain
+        RPC services) under confidentiality and data-processing terms;</li>
+        <li>When required by law or valid legal process, to the minimum extent
+        necessary;</li>
+        <li>To protect our rights, investigate fraud, or defend against claims.</li>
+      </ul>
+      <p>
+        On-chain nullifiers and bound addresses are, by design, publicly
+        readable on the Stellar ledger. This is a feature of the protocol, not
+        a disclosure by us.
+      </p>
+
+      <h2 id="retain">6. Data Retention</h2>
+      <p>
+        We retain account and audit-log information only as long as needed for
+        the purposes described here or as required by law. Server logs are
+        retained for a limited period for security and abuse analysis.
+        On-chain records — nullifiers, roots, and attestations — are
+        permanent and cannot be deleted by us; this is an inherent property of
+        a public blockchain.
+      </p>
+
+      <h2 id="security">7. Data Security</h2>
+      <p>
+        We use technical and organizational safeguards appropriate to the
+        sensitivity of the information we hold. The strongest protection,
+        however, is architectural: your private attributes are processed
+        client-side and are never transmitted to our servers. No method of
+        transmission over the internet is fully secure, but zero-knowledge
+        proofs are designed so that the data itself never leaves your device.
+      </p>
+
+      <h2 id="cookies">8. Cookies</h2>
+      <p>The Service uses three types of cookies:</p>
+      <ul>
+        <li><strong>Essential cookies</strong> — required for the Service to
+        function, including your cookie consent choice.</li>
+        <li><strong>Analytics cookies</strong> — help us understand which
+        pages are read, so we can improve them. Optional and only set if you
+        accept them.</li>
+        <li><strong>Preference cookies</strong> — remember display choices
+        such as reduced-motion preferences. Optional.</li>
+      </ul>
+      <p>
+        You can manage or disable cookies through your browser controls. The
+        cookie consent prompt lets you accept or decline optional cookies at
+        any time.
+      </p>
+
+      <h2 id="rights">9. Your Rights</h2>
+      <p>Depending on your jurisdiction, you may have the right to:</p>
+      <ul>
+        <li>Access the personal data we hold about you;</li>
+        <li>Correct inaccurate data;</li>
+        <li>Request deletion of your personal data, subject to legal
+        retention obligations;</li>
+        <li>Withdraw consent for optional cookies or marketing;</li>
+        <li>Opt out of analytics at any time.</li>
+      </ul>
+      <p>
+        To exercise any of these rights, write to
+        <a href="mailto:zelyo@artisam.xyz">zelyo@artisam.xyz</a>. Note that we
+        cannot alter or delete public on-chain records, as they are not under
+        our control.
+      </p>
+
+      <h2 id="third">10. Third-Party Links</h2>
+      <p>
+        The Service may link to external sites — including the Stellar
+        explorer, wallet providers, and the Chrome Web Store. We are not
+        responsible for the privacy practices or content of those sites. Please
+        review their policies separately.
+      </p>
+
+      <h2 id="changes">11. Changes to This Policy</h2>
+      <p>
+        We may update this Privacy Policy from time to time. We will post the
+        revised policy on this page with an updated effective date. Continued
+        use of the Service after changes signifies acceptance of the revised
+        policy.
+      </p>
+
+      <h2 id="contact">12. Contact Us</h2>
+      <p>
+        Questions about this policy or your data? Address your correspondence
+        to the keeper of the ledger:
+      </p>
+      <div class="callout">
+        <div class="lbl">Correspondence</div>
+        <p>
+          <a href="mailto:zelyo@artisam.xyz">zelyo@artisam.xyz</a><br />
+          Zelyo · A protocol of <a href="https://artisam.xyz">Artisam Labs</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-bottom" style="margin-top:0;padding-top:0;border-top:none;">
+      <span class="copy">© <span class="lat">A.D.</span> MMXXVI Zelyo · A protocol of Artisam Labs.</span>
+      <div class="legal-links">
+        <a href="index.html">Home</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="mailto:zelyo@artisam.xyz">Contact</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

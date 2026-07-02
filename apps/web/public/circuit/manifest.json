@@ -1,0 +1,14 @@
+{
+  "artifact": "/circuit/zelyo_credential.json",
+  "vk": "/circuit/vk",
+  "abiHash": "20bfbd4da2a4a8fc4aae980610c63a580b3fa82bdbb5fc86d8d3d21d65b9c106",
+  "scopeAppId": "zelyo-v1",
+  "merkleDepth": 20,
+  "publicInputOrder": [
+    "root",
+    "scope",
+    "bound_address",
+    "nullifier",
+    "disclosed"
+  ]
+}

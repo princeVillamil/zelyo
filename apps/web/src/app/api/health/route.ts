@@ -21,9 +21,10 @@ export async function GET() {
     check(() => rpcServer.getHealth()),
   ]);
   const checks = { db: dbOk, redis: redisOk, rpc: rpcOk };
-  const allOk = dbOk && redisOk && rpcOk;
-  return NextResponse.json(
-    { status: allOk ? "ok" : "degraded", checks },
-    { status: allOk ? 200 : 503 },
-  );
+  // Railway uses this endpoint as a deployment healthcheck. DB + Redis are
+  // required for the app to function; an external Soroban RPC outage should
+  // not restart the container.
+  const coreOk = dbOk && redisOk;
+  const status = coreOk && rpcOk ? "ok" : "degraded";
+  return NextResponse.json({ status, checks }, { status: coreOk ? 200 : 503 });
 }

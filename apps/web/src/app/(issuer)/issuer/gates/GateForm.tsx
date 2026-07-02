@@ -22,7 +22,9 @@ const rewardConfigSchema = z.object({
   asset: assetSchema,
 }).partial();
 
-const ATTRIBUTES = ["track", "grade", "learnerName", "courseName", "issueDate"] as const;
+// The current circuit only proves/discloses `track`. Restrict gate predicates to
+// `track` so admins cannot create gates on attributes that can never be satisfied.
+const ATTRIBUTES = ["track"] as const;
 
 const gateFormSchema = z.object({
   slug: z.string()

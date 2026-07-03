@@ -4,10 +4,12 @@ const {
   submitTransaction,
   loadAccount,
   createClaimableBalance,
+  payment,
 } = vi.hoisted(() => ({
   submitTransaction: vi.fn(),
   loadAccount: vi.fn(),
   createClaimableBalance: vi.fn(() => ({ __op: "cb" })),
+  payment: vi.fn(() => ({ __op: "payment" })),
 }));
 
 vi.mock("@stellar/stellar-sdk", () => {
@@ -48,7 +50,7 @@ vi.mock("@stellar/stellar-sdk", () => {
       }
     },
     nativeToScVal: (v: unknown) => ({ __scval: v }),
-    Operation: { createClaimableBalance },
+    Operation: { createClaimableBalance, payment },
     Keypair: { fromSecret: () => ({ publicKey: () => "GISSUER" }) },
     TransactionBuilder: class {
       addOperation() {
@@ -76,12 +78,13 @@ vi.mock("../env", () => ({
   },
 }));
 
-import { issueClaimableBalance } from "../stellar";
+import { issueClaimableBalance, issuePayment } from "../stellar";
 
 beforeEach(() => {
   submitTransaction.mockReset();
   loadAccount.mockReset();
   createClaimableBalance.mockClear();
+  payment.mockClear();
 });
 
 describe("issueClaimableBalance", () => {
@@ -105,5 +108,19 @@ describe("issueClaimableBalance", () => {
     const calls = createClaimableBalance.mock.calls as unknown as Array<[{ asset: unknown }]>;
     expect(calls[0]?.[0]?.asset).toEqual({ __native: true });
     expect(res).toEqual({ txHash: "NATIVETX" });
+  });
+});
+
+describe("issuePayment", () => {
+  it("builds a payment op to boundAddress and returns the tx hash", async () => {
+    loadAccount.mockResolvedValue({ accountId: () => "GISSUER" });
+    submitTransaction.mockResolvedValue({ hash: "PAYTX" });
+    const res = await issuePayment("GHOLDER", { code: "XLM", issuer: "", amount: "10" });
+    expect(payment).toHaveBeenCalledTimes(1);
+    const calls = payment.mock.calls as unknown as Array<[{ destination: string; amount: string; asset: unknown }]>;
+    expect(calls[0]?.[0]?.destination).toBe("GHOLDER");
+    expect(calls[0]?.[0]?.amount).toBe("10");
+    expect(calls[0]?.[0]?.asset).toEqual({ __native: true });
+    expect(res).toEqual({ txHash: "PAYTX" });
   });
 });

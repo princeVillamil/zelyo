@@ -30,11 +30,12 @@ beforeEach(() => {
 });
 
 describe("ProvePanel", () => {
-  it("defaults to disclosing only track; name and grade hidden by default", () => {
+  it("defaults to disclosing only track; no other disclosure checkboxes are rendered", () => {
     render(<ProvePanel credential={credential} />);
     expect((screen.getByLabelText(/track/i) as HTMLInputElement).checked).toBe(true);
-    expect((screen.getByLabelText(/learner name/i) as HTMLInputElement).checked).toBe(false);
-    expect((screen.getByLabelText(/grade/i) as HTMLInputElement).checked).toBe(false);
+    // The circuit currently only supports disclosing `track`.
+    expect(screen.queryByLabelText(/learner name/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/grade/i)).not.toBeInTheDocument();
   });
 
   it("proves in-browser then POSTs /api/verify and routes to the result", async () => {

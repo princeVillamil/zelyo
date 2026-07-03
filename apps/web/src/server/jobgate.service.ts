@@ -2,7 +2,8 @@ import "server-only";
 import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { db } from "../lib/db";
-import { issueClaimableBalance, setVerifiedFlag } from "../lib/stellar";
+import { issueClaimableBalance, issuePayment, setVerifiedFlag } from "../lib/stellar";
+import { explorerTxUrl } from "../lib/explorer";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 
@@ -99,7 +100,7 @@ export async function claimGate(
   nullifierHex: FieldHex,
   boundAddress: string,
   txHash: string,
-): Promise<{ txHash?: string; rewardType: string }> {
+): Promise<{ txHash?: string; explorerUrl?: string; rewardType: string }> {
   const gate = await db.jobGate.findUnique({ where: { slug } });
   if (!gate) throw new AppError("GATE_NOT_FOUND", 404, "No such job gate.");
 
@@ -140,7 +141,7 @@ export async function claimGate(
   });
   if (existing) {
     return existing.txHash != null
-      ? { txHash: existing.txHash, rewardType: gate.rewardType }
+      ? { txHash: existing.txHash, explorerUrl: explorerTxUrl(existing.txHash), rewardType: gate.rewardType }
       : { rewardType: gate.rewardType };
   }
 
@@ -149,7 +150,12 @@ export async function claimGate(
     if (gate.rewardType === "CLAIMABLE_BALANCE") {
       const cfg = rewardConfigSchema.parse(gate.rewardConfig);
       if (!cfg.asset) throw new AppError("GATE_MISCONFIGURED", 500, "Gate reward asset missing.");
-      ({ txHash: rewardTxHash } = await issueClaimableBalance(boundAddress, cfg.asset));
+      // Native XLM (empty issuer) lands immediately via direct payment. Custom assets
+      // still use claimable balances; a holder-signed claim step could be added later.
+      const isNativeXlm = cfg.asset.code === "XLM" && !cfg.asset.issuer;
+      ({ txHash: rewardTxHash } = isNativeXlm
+        ? await issuePayment(boundAddress, cfg.asset)
+        : await issueClaimableBalance(boundAddress, cfg.asset));
     } else if (gate.rewardType === "FLAG") {
       ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress));
     } else {
@@ -167,7 +173,7 @@ export async function claimGate(
   await db.gateClaim.create({
     data: { jobGateId: gate.id, nullifierHex, boundAddress, txHash: rewardTxHash },
   });
-  return { txHash: rewardTxHash, rewardType: gate.rewardType };
+  return { txHash: rewardTxHash, explorerUrl: explorerTxUrl(rewardTxHash), rewardType: gate.rewardType };
 }
 
 /** Pull a readable cause out of a Horizon/Soroban error (result codes preferred). */

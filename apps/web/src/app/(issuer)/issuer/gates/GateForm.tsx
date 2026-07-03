@@ -10,17 +10,30 @@ const predicateSchema = z.object({
   equals: z.string().min(1, "Value is required"),
 });
 
-const assetSchema = z.object({
-  code: z.string().min(1, "Asset code is required"),
-  issuer: z.string().min(1, "Asset issuer is required"),
-  amount: z.string().min(1, "Amount is required"),
-});
+const assetSchema = z
+  .object({
+    code: z.string().min(1, "Asset code is required"),
+    // Empty issuer = native asset (e.g. native XLM). The API/service already treat
+    // an empty issuer as native; the form only needed to stop requiring one.
+    issuer: z.string().optional(),
+    amount: z.string().min(1, "Amount is required"),
+  })
+  .refine(
+    (data) =>
+      !(data.code.toUpperCase() === "XLM" && data.issuer && data.issuer.trim().length > 0),
+    {
+      message: "XLM is native and cannot have an issuer. Leave issuer empty for native XLM.",
+      path: ["issuer"],
+    },
+  );
 
 const rewardConfigSchema = z.object({
   asset: assetSchema,
 }).partial();
 
-const ATTRIBUTES = ["track", "grade", "learnerName", "courseName", "issueDate"] as const;
+// The current circuit only proves/discloses `track`. Restrict gate predicates to
+// `track` so admins cannot create gates on attributes that can never be satisfied.
+const ATTRIBUTES = ["track"] as const;
 
 const gateFormSchema = z.object({
   slug: z.string()
@@ -49,7 +62,9 @@ export function GateForm() {
     defaultValues: {
       predicates: [{ attribute: "track", equals: "" }],
       rewardType: "CLAIMABLE_BALANCE",
-      rewardConfig: {},
+      rewardConfig: {
+        asset: { code: "XLM", issuer: "", amount: "" },
+      },
       expiresAt: null,
     },
   });
@@ -231,6 +246,7 @@ export function GateForm() {
                   aria-label="Asset issuer"
                   className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
                 />
+                <span className="font-caption italic text-on-surface-variant">Leave empty for native XLM</span>
               </Field>
               <Field label="Amount" error={errors.rewardConfig?.asset?.amount?.message}>
                 <input

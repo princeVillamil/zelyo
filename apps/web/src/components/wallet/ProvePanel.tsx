@@ -17,12 +17,10 @@ export interface ProvePanelCredential {
   root: FieldHex;
 }
 
+// The current circuit only supports disclosing `track`. Keep the array single-item
+// so the UI does not over-promise attributes that cannot be proven/claimed.
 const DISCLOSABLE: { key: keyof Attributes; label: string }[] = [
   { key: "track", label: "Track" },
-  { key: "courseName", label: "Course Name" },
-  { key: "issueDate", label: "Issue Date" },
-  { key: "grade", label: "Grade" },
-  { key: "learnerName", label: "Learner Name" },
 ];
 
 const RESULT_COPY: Record<string, string> = {

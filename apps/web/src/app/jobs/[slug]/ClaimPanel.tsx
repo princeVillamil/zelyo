@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { GateDetail } from "../../../server/jobgate.service";
 
-type ClaimResult = { txHash?: string; rewardType: string };
+type ClaimResult = { txHash?: string; explorerUrl?: string; rewardType: string };
 
 type Props = {
   gate: GateDetail;
@@ -79,9 +79,21 @@ export function ClaimPanel({
           Your selective-disclosure proof unlocked this gate ({result.rewardType}).
         </p>
         {result.txHash && (
-          <p className="font-mono text-caption text-on-surface-variant mt-stack-sm break-all">
-            {result.txHash}
-          </p>
+          <>
+            <p className="font-mono text-caption text-on-surface-variant mt-stack-sm break-all">
+              {result.txHash}
+            </p>
+            {result.explorerUrl && (
+              <a
+                href={result.explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-stack-sm inline-block font-label text-label-md uppercase text-primary underline"
+              >
+                View on explorer
+              </a>
+            )}
+          </>
         )}
       </div>
     );

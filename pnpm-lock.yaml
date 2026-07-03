@@ -83,6 +83,9 @@ importers:
       next-auth:
         specifier: 5.0.0-beta.25
         version: 5.0.0-beta.25(next@16.2.0(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
       pino:
         specifier: 10.0.0
         version: 10.0.0

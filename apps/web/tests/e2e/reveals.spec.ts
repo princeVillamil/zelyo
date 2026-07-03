@@ -70,9 +70,9 @@ async function mintProveVerify(
   await page.goto("/wallet");
   await page.getByRole("link", { name: /prove|generate proof/i }).first().click();
   await page.getByRole("checkbox", { name: /track/i }).check();
-  await expect(
-    page.getByRole("checkbox", { name: /grade|name/i }).first(),
-  ).not.toBeChecked();
+  // Only `track` is disclosable in the current circuit; other attribute checkboxes
+  // are not rendered, so there is nothing to uncheck.
+  await expect(page.getByRole("checkbox", { name: /grade|name/i })).toHaveCount(0);
   await page.getByLabel(/stellar address/i).fill(BOUND_ADDRESS);
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate zk-proof/i }).click();
@@ -109,9 +109,13 @@ test("13.2 Sybil block: re-submitting the same nullifier shows NULLIFIER_USED", 
   await page.getByLabel(/stellar address/i).fill(BOUND_ADDRESS);
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate zk-proof/i }).click();
-  await expect(
-    page.getByText(/NULLIFIER_USED|already (been )?used|sybil/i),
-  ).toBeVisible({ timeout: 180_000 });
+  // The panel surfaces the rejection as a user-visible alert (role="alert")
+  // and also logs the raw result code in the ledger. Target the alert paragraph
+  // to avoid a strict-mode violation from matching multiple elements.
+  await expect(page.locator('p[role="alert"]')).toContainText(
+    /NULLIFIER_USED|already (been )?used|sybil/i,
+    { timeout: 180_000 },
+  );
 });
 
 test("13.3 selective disclosure unlocks a gate claim", async ({
@@ -120,10 +124,12 @@ test("13.3 selective disclosure unlocks a gate claim", async ({
   loginAs,
 }) => {
   await mintProveVerify(page, registerHolder, loginAs);
-  await page.goto("/jobs/data-engineering");
-  await page.getByRole("button", { name: /claim|unlock/i }).click();
-  await expect(
-    page.getByText(/claim recorded|unlocked|claimable balance|reward/i),
-  ).toBeVisible({ timeout: 60_000 });
+  // The wallet detects the existing proof that satisfies the gate and offers a
+  // one-click claim link, carrying the proof identity as query params.
+  await page.goto("/wallet?gate=data-engineering");
+  await page.getByRole("link", { name: /use this proof to claim/i }).click();
+  await page.getByRole("button", { name: /claim your reward/i }).click();
+  // "Reward Unlocked" is the status heading; avoid the description paragraph.
+  await expect(page.getByText("Reward Unlocked")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("link", { name: /explorer|transaction/i })).toBeVisible();
 });

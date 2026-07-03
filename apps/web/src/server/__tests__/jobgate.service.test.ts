@@ -6,6 +6,7 @@ const {
   claimFindUnique,
   claimCreate,
   issueClaimableBalance,
+  issuePayment,
   setVerifiedFlag,
 } = vi.hoisted(() => ({
   gateFindUnique: vi.fn(),
@@ -13,6 +14,7 @@ const {
   claimFindUnique: vi.fn(),
   claimCreate: vi.fn(),
   issueClaimableBalance: vi.fn(),
+  issuePayment: vi.fn(),
   setVerifiedFlag: vi.fn(),
 }));
 
@@ -23,7 +25,8 @@ vi.mock("../../lib/db", () => ({
     gateClaim: { findUnique: claimFindUnique, create: claimCreate },
   },
 }));
-vi.mock("../../lib/stellar", () => ({ issueClaimableBalance, setVerifiedFlag }));
+vi.mock("../../lib/stellar", () => ({ issueClaimableBalance, issuePayment, setVerifiedFlag }));
+vi.mock("../../lib/explorer", () => ({ explorerTxUrl: vi.fn((txHash: string) => `https://explorer.test/tx/${txHash}`) }));
 
 import { claimGate } from "../jobgate.service";
 import type { FieldHex } from "@zelyo/zk-shared";
@@ -48,7 +51,7 @@ const verified = {
 };
 
 beforeEach(() => {
-  for (const m of [gateFindUnique, verificationFindFirst, claimFindUnique, claimCreate, issueClaimableBalance, setVerifiedFlag]) m.mockReset();
+  for (const m of [gateFindUnique, verificationFindFirst, claimFindUnique, claimCreate, issueClaimableBalance, issuePayment, setVerifiedFlag]) m.mockReset();
 });
 
 describe("claimGate", () => {
@@ -66,11 +69,40 @@ describe("claimGate", () => {
       issuer: "GISSUER",
       amount: "1",
     });
+    expect(issuePayment).not.toHaveBeenCalled();
     expect(setVerifiedFlag).not.toHaveBeenCalled();
     expect(claimCreate).toHaveBeenCalledWith({
       data: { jobGateId: "g1", nullifierHex: "0xnull", boundAddress: "GHOLDER", txHash: "CBTX" },
     });
-    expect(res).toEqual({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" });
+    expect(res).toEqual({
+      txHash: "CBTX",
+      explorerUrl: "https://explorer.test/tx/CBTX",
+      rewardType: "CLAIMABLE_BALANCE",
+    });
+  });
+
+  it("issues a direct payment for a native-XLM CLAIMABLE_BALANCE gate", async () => {
+    gateFindUnique.mockResolvedValue({
+      ...gate("CLAIMABLE_BALANCE"),
+      rewardConfig: { asset: { code: "XLM", issuer: "", amount: "10" } },
+    });
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    issuePayment.mockResolvedValue({ txHash: "PAYTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+
+    expect(issuePayment).toHaveBeenCalledWith("GHOLDER", { code: "XLM", issuer: "", amount: "10" });
+    expect(issueClaimableBalance).not.toHaveBeenCalled();
+    expect(claimCreate).toHaveBeenCalledWith({
+      data: { jobGateId: "g1", nullifierHex: "0xnull", boundAddress: "GHOLDER", txHash: "PAYTX" },
+    });
+    expect(res).toEqual({
+      txHash: "PAYTX",
+      explorerUrl: "https://explorer.test/tx/PAYTX",
+      rewardType: "CLAIMABLE_BALANCE",
+    });
   });
 
   it("flips the verified flag for a FLAG gate", async () => {
@@ -84,7 +116,11 @@ describe("claimGate", () => {
 
     expect(setVerifiedFlag).toHaveBeenCalledWith("GHOLDER");
     expect(issueClaimableBalance).not.toHaveBeenCalled();
-    expect(res).toEqual({ txHash: "FLAGTX", rewardType: "FLAG" });
+    expect(res).toEqual({
+      txHash: "FLAGTX",
+      explorerUrl: "https://explorer.test/tx/FLAGTX",
+      rewardType: "FLAG",
+    });
   });
 
   it("is idempotent: returns the existing claim without re-issuing", async () => {
@@ -96,7 +132,11 @@ describe("claimGate", () => {
 
     expect(issueClaimableBalance).not.toHaveBeenCalled();
     expect(claimCreate).not.toHaveBeenCalled();
-    expect(res).toEqual({ txHash: "OLDTX", rewardType: "CLAIMABLE_BALANCE" });
+    expect(res).toEqual({
+      txHash: "OLDTX",
+      explorerUrl: "https://explorer.test/tx/OLDTX",
+      rewardType: "CLAIMABLE_BALANCE",
+    });
   });
 
   it("rejects an unknown gate", async () => {

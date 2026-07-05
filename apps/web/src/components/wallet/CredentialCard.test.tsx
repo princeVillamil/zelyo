@@ -23,6 +23,11 @@ describe("CredentialCard", () => {
     // PII is NOT rendered on the card
     expect(screen.queryByText("A")).not.toBeInTheDocument();
     expect(screen.queryByText("Ada")).not.toBeInTheDocument();
+    // card keeps the dark foil-stamp surface with manuscript glow
+    const card = screen.getByText(/Identity Folio No\. 882/).closest("article");
+    expect(card?.className).toContain("foil-stamp");
+    expect(card?.className).toContain("manuscript-glow");
+    expect(card?.className).not.toContain("rounded-full");
   });
 
   it("links to the credential detail and the prove flow", () => {

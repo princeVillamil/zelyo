@@ -44,7 +44,7 @@ export default async function GateDetailPage({
       <p className="font-body text-body-md text-on-surface-variant mt-stack-md max-w-2xl">
         {gate.description}
       </p>
-      <div className="mt-stack-sm space-y-1">
+      <div className="mt-stack-sm space-y-1 border-l-2 border-primary bg-surface-container px-stack-md py-stack-sm rounded-r">
         {gate.requiredPredicates.map((pred, i) => (
           <p key={i} className="font-mono text-caption text-on-surface-variant">
             {i > 0 ? "AND " : ""}This gate discloses only: {pred.attribute} ==

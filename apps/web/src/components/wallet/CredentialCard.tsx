@@ -29,18 +29,18 @@ export function CredentialCard({
     : `/wallet/prove/${credential.id}`;
   // Only non-PII fields are rendered: course, track, issuer, date, status, signature hash.
   return (
-    <article className="foil-stamp relative rounded-lg p-stack-lg text-primary-fixed">
+    <article className="foil-stamp relative rounded-lg p-stack-lg text-on-primary manuscript-glow">
       {/* State seal — pinned so it never pushes the body down; keeps every card's
           title on the same line across the grid. */}
       {orphaned ? (
         <span
           role="alert"
-          className="absolute right-stack-lg top-stack-lg z-10 rounded-full border border-error/60 bg-error/25 px-stack-sm py-0.5 font-label text-caption uppercase tracking-wider text-error-container"
+          className="absolute right-stack-lg top-stack-lg z-10 rounded border border-error bg-error/20 px-stack-sm py-0.5 font-label text-caption uppercase tracking-wider text-error-container"
         >
           Not provable
         </span>
       ) : proof ? (
-        <span className="absolute right-stack-lg top-stack-lg z-10 rounded-full border border-primary-fixed-dim/40 bg-white/10 px-stack-sm py-0.5 font-label text-caption uppercase tracking-wider text-primary-fixed">
+        <span className="absolute right-stack-lg top-stack-lg z-10 rounded border border-primary-fixed-dim bg-on-primary/10 px-stack-sm py-0.5 font-label text-caption uppercase tracking-wider text-primary-fixed">
           Proven ✓
         </span>
       ) : null}
@@ -50,7 +50,7 @@ export function CredentialCard({
       <h3 className="mt-unit font-headline text-headline-md text-on-primary">
         {credential.attributes.courseName}
       </h3>
-      <dl className="mt-stack-md space-y-unit font-body text-body-md text-primary-fixed">
+      <dl className="mt-stack-md space-y-unit font-body text-body-md text-on-primary">
         <div className="flex justify-between">
           <dt className="font-label text-label-md uppercase text-primary-fixed-dim">Track</dt>
           <dd>{credential.attributes.track}</dd>
@@ -102,7 +102,7 @@ export function CredentialCard({
           <span
             aria-disabled="true"
             title="This credential was issued to a previous identity. Restore that identity to prove it."
-            className="inline-flex items-center rounded px-stack-md py-3 font-label text-label-md uppercase bg-white/10 text-primary-fixed-dim line-through cursor-not-allowed opacity-60"
+            className="inline-flex items-center rounded px-stack-md py-3 font-label text-label-md uppercase bg-on-primary/10 text-primary-fixed-dim line-through cursor-not-allowed opacity-60"
           >
             Prove
           </span>

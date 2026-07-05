@@ -11,7 +11,7 @@ import { test, expect, type Page } from "./fixtures";
 // STATUS: Path B on-chain verification (5.1) is now wired. The
   // register → keys → mint → proving → submit flow is verified working.
   // `.fixme` dropped — tests 13.1–13.3 are ready to run.
-test.describe.configure({ mode: "serial", timeout: 420_000 });
+test.describe.configure({ mode: "serial", timeout: 900_000 });
 
 // The holder seals their identity secret under this passphrase on the Keys page,
 // then must re-enter the same passphrase on the Prove page to unseal it.
@@ -76,7 +76,7 @@ async function mintProveVerify(
   await page.getByLabel(/stellar address/i).fill(BOUND_ADDRESS);
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate zk-proof/i }).click();
-  await page.waitForURL(/\/verify\/result\//, { timeout: 180_000 });
+  await page.waitForURL(/\/verify\/result\//, { timeout: 300_000 });
   return holder;
 }
 
@@ -114,7 +114,7 @@ test("13.2 Sybil block: re-submitting the same nullifier shows NULLIFIER_USED", 
   // to avoid a strict-mode violation from matching multiple elements.
   await expect(page.locator('p[role="alert"]')).toContainText(
     /NULLIFIER_USED|already (been )?used|sybil/i,
-    { timeout: 180_000 },
+    { timeout: 300_000 },
   );
 });
 

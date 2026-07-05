@@ -153,4 +153,44 @@ describe("claimGate", () => {
       code: "PROOF_NOT_ELIGIBLE",
     });
   });
+
+  it("rejects when verification jobGateId does not match the gate id", async () => {
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue({
+      ...verified,
+      jobGateId: "g_wrong",
+    });
+    await expect(claimGate("data-engineering", NULL, "GHOLDER", "tx1")).rejects.toMatchObject({
+      code: "PROOF_NOT_ELIGIBLE",
+      message: "This proof was verified for a different gate.",
+    });
+  });
+
+  it("accepts when verification jobGateId matches the gate id", async () => {
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue({
+      ...verified,
+      jobGateId: "g1",
+    });
+    claimFindUnique.mockResolvedValue(null);
+    issueClaimableBalance.mockResolvedValue({ txHash: "CBTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+    expect(res.txHash).toBe("CBTX");
+  });
+
+  it("accepts when verification jobGateId is null", async () => {
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue({
+      ...verified,
+      jobGateId: null,
+    });
+    claimFindUnique.mockResolvedValue(null);
+    issueClaimableBalance.mockResolvedValue({ txHash: "CBTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+    expect(res.txHash).toBe("CBTX");
+  });
 });

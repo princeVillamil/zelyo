@@ -4,7 +4,12 @@
 
 **Goal:** Implement the strategic upgrades outlined in issue #108: on-chain verification (Path A) utilizing native Soroban host functions, reusable KYC (SEP-12), passkey smart-wallet bound addresses, and token-gated rewards (SEP-8).
 
-**Prerequisites:** Phase 0–9 complete, including the working off-chain verifier (Path B), job gates, and basic claiming logic.
+**Prerequisites:** Before implementing Phase 10's strategic integrations, the following incomplete/blocking tasks from previous phases (tracked in [REMAINING_TASKS.md](file:///Users/jeffreyvillamil/Desktop/theblokc/zelyo/docs/REMAINING_TASKS.md)) must be completed to ensure the platform is secure, stable, and testable:
+- [x] **Task 9.6 — Bind `credentialId` to the proof:** Currently, the client-supplied `credentialId` is not validated against the proof's commitment. This must be verified server-side/on-chain before launching business-critical integrations like SEP-12 KYC.
+- [x] **Task 9.7 — Bind a claim to the gate its proof targeted:** Enforce that a verification is tied to its specific `jobGateId` to prevent users from reusing a proof validated for one gate to claim rewards on another gate.
+- [x] **Task 7.7 — Resolve e2e 13.1 timeout on GitHub Actions:** Address the proving timeout bottleneck (CI runner CPU, testnet RPC latency) on branch `fix/reveals-13-1-ci-timeout` so the test suite is reliable.
+- [x] **Task 7.1 — Verify production CSP and COOP/COEP headers:** Confirm that cross-origin isolation headers are active on the live Railway deployment so that in-browser multi-threaded WASM proving doesn't fail.
+- [x] **Task 4.1 & 4.2 — Fix mint SSE confirmation race and closed controller errors:** Resolve the admin portal minting stream instabilities (e.g., SSE crashes and premature sealed status checks).
 
 **Gate:** Deployed contracts verifying Noir proofs natively on-chain on Stellar Testnet (`ZK_VERIFY_MODE = onchain`); working SEP-12 KYC credential issuance draft; passkey-kit demo; token-gated asset rule verified.
 

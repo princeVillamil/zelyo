@@ -40,6 +40,7 @@ export function ProvePanel({ credential, gate }: { credential: ProvePanelCredent
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -80,6 +81,7 @@ export function ProvePanel({ credential, gate }: { credential: ProvePanelCredent
           publicInputs: bundle.publicInputs,
           boundStellarAddress: address,
           credentialId: credential.id,
+          jobGateSlug: gate,
         }),
       });
       const result = (await res.json()) as { ok: boolean; result: string; txHash?: string };

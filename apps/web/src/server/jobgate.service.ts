@@ -117,6 +117,9 @@ export async function claimGate(
   if (!verification) {
     throw new AppError("PROOF_NOT_ELIGIBLE", 422, "No eligible verified proof for this gate.");
   }
+  if (verification.jobGateId && verification.jobGateId !== gate.id) {
+    throw new AppError("PROOF_NOT_ELIGIBLE", 422, "This proof was verified for a different gate.");
+  }
   const disclosedRaw = (verification.disclosed as { raw?: Record<string, string> }).raw ?? {};
 
   // A gate can only enforce a predicate on an attribute the proof actually disclosed —

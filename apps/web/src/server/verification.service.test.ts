@@ -17,12 +17,16 @@ vi.mock("@/lib/db", () => ({
   db: {
     nullifier: { create: vi.fn().mockResolvedValue({}) },
     verification: { create: vi.fn().mockResolvedValue({}) },
+    credential: { findUnique: vi.fn().mockResolvedValue(null) },
+    rootHistory: { findUnique: vi.fn().mockResolvedValue(null) },
+    leaf: { count: vi.fn().mockResolvedValue(0) },
   },
 }));
 
 import { verifyAndRegister } from "./verification.service";
 import * as stellar from "@/lib/stellar";
 import { env } from "@/lib/env";
+import { db } from "@/lib/db";
 
 const bundle = {
   proof: new Uint8Array([1]),
@@ -109,5 +113,83 @@ describe("verifyAndRegister", () => {
     vi.mocked(stellar.isRootValid).mockRejectedValue(new Error("rpc down"));
     const r = await verifyAndRegister(input);
     expect(r).toMatchObject({ ok: false, result: "ERROR" });
+  });
+
+  describe("with credentialId validation", () => {
+    const credInput = { ...input, credentialId: "cred123" };
+
+    it("INVALID_PROOF if credential does not exist", async () => {
+      vi.mocked(stellar.isRootValid).mockResolvedValue(true);
+      vi.mocked(stellar.isNullifierUsed).mockResolvedValue(false);
+      vi.mocked(db.credential.findUnique).mockResolvedValue(null);
+
+      const r = await verifyAndRegister(credInput);
+      expect(r).toMatchObject({ ok: false, result: "INVALID_PROOF" });
+    });
+
+    it("INVALID_PROOF if credential is not active", async () => {
+      vi.mocked(stellar.isRootValid).mockResolvedValue(true);
+      vi.mocked(stellar.isNullifierUsed).mockResolvedValue(false);
+      vi.mocked(db.credential.findUnique).mockResolvedValue({
+        id: "cred123",
+        status: "REVOKED",
+        attributes: { track: "Data Engineering" },
+        leafIndex: 0,
+      } as never);
+
+      const r = await verifyAndRegister(credInput);
+      expect(r).toMatchObject({ ok: false, result: "INVALID_PROOF" });
+    });
+
+    it("INVALID_PROOF if disclosed attributes mismatch", async () => {
+      vi.mocked(stellar.isRootValid).mockResolvedValue(true);
+      vi.mocked(stellar.isNullifierUsed).mockResolvedValue(false);
+      vi.mocked(db.credential.findUnique).mockResolvedValue({
+        id: "cred123",
+        status: "ACTIVE",
+        attributes: { track: "Python Development" },
+        leafIndex: 0,
+      } as never);
+
+      const r = await verifyAndRegister(credInput);
+      expect(r).toMatchObject({ ok: false, result: "INVALID_PROOF" });
+    });
+
+    it("INVALID_PROOF if leafIndex is greater than or equal to leaf count at root history timestamp", async () => {
+      vi.mocked(stellar.isRootValid).mockResolvedValue(true);
+      vi.mocked(stellar.isNullifierUsed).mockResolvedValue(false);
+      vi.mocked(db.credential.findUnique).mockResolvedValue({
+        id: "cred123",
+        status: "ACTIVE",
+        attributes: { track: "Data Engineering" },
+        leafIndex: 5,
+      } as never);
+      vi.mocked(db.rootHistory.findUnique).mockResolvedValue({
+        publishedAt: new Date(),
+      } as never);
+      vi.mocked(db.leaf.count).mockResolvedValue(5);
+
+      const r = await verifyAndRegister(credInput);
+      expect(r).toMatchObject({ ok: false, result: "INVALID_PROOF" });
+    });
+
+    it("VERIFIED if credential checks pass", async () => {
+      vi.mocked(stellar.isRootValid).mockResolvedValue(true);
+      vi.mocked(stellar.isNullifierUsed).mockResolvedValue(false);
+      vi.mocked(db.credential.findUnique).mockResolvedValue({
+        id: "cred123",
+        status: "ACTIVE",
+        attributes: { track: "Data Engineering" },
+        leafIndex: 3,
+      } as never);
+      vi.mocked(db.rootHistory.findUnique).mockResolvedValue({
+        publishedAt: new Date(),
+      } as never);
+      vi.mocked(db.leaf.count).mockResolvedValue(5);
+      vi.mocked(stellar.submitVerifyAndRegister).mockResolvedValue({ txHash: "TX123" });
+
+      const r = await verifyAndRegister(credInput);
+      expect(r).toEqual({ ok: true, result: "VERIFIED", txHash: "TX123", explorerUrl: "https://explorer.test/tx/TX123" });
+    });
   });
 });

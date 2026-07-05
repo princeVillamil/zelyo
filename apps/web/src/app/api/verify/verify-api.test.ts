@@ -7,7 +7,12 @@ vi.mock("@/lib/ratelimit", () => ({
   consumeOrThrow: vi.fn(),
   clientIp: (headers: Headers) => (headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "unknown",
 }));
-vi.mock("@/lib/db", () => ({ db: { verification: { findFirst: vi.fn() } } }));
+vi.mock("@/lib/db", () => ({
+  db: {
+    verification: { findFirst: vi.fn() },
+    jobGate: { findUnique: vi.fn() },
+  },
+}));
 vi.mock("@/lib/audit", () => ({ audit: vi.fn() }));
 
 import { POST as verify } from "./route";
@@ -29,7 +34,10 @@ const validBody = {
 const post = (body: unknown) =>
   new Request("http://x/api/verify", { method: "POST", headers: { "x-forwarded-for": "1.1.1.1" }, body: JSON.stringify(body) });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(consumeOrThrow).mockResolvedValue(undefined);
+});
 
 describe("POST /api/verify", () => {
   it("validates, rate-limits, and returns the VerifyResult", async () => {
@@ -60,6 +68,23 @@ describe("POST /api/verify", () => {
     vi.mocked(consumeOrThrow).mockRejectedValue(new AppError("RATE_LIMITED", 429, "Slow down."));
     const res = await verify(post(validBody));
     expect(res.status).toBe(429);
+  });
+
+  it("404 when jobGateSlug is provided but does not exist", async () => {
+    vi.mocked(db.jobGate.findUnique).mockResolvedValue(null);
+    const res = await verify(post({ ...validBody, jobGateSlug: "invalid-slug" }));
+    expect(res.status).toBe(404);
+    expect(verifyAndRegister).not.toHaveBeenCalled();
+  });
+
+  it("resolves jobGateSlug and passes jobGateId to verifyAndRegister", async () => {
+    vi.mocked(db.jobGate.findUnique).mockResolvedValue({ id: "gate_123", slug: "valid-slug" } as never);
+    vi.mocked(verifyAndRegister).mockResolvedValue({ ok: true, result: "VERIFIED", txHash: "TX" });
+    const res = await verify(post({ ...validBody, jobGateSlug: "valid-slug" }));
+    expect(res.status).toBe(200);
+    expect(db.jobGate.findUnique).toHaveBeenCalledWith({ where: { slug: "valid-slug" } });
+    const arg = vi.mocked(verifyAndRegister).mock.calls[0]![0];
+    expect(arg.jobGateId).toBe("gate_123");
   });
 });
 

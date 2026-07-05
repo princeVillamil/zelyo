@@ -8,6 +8,7 @@ import {
   formValuesToMintInput,
   type MintFormValues,
 } from "@/lib/schemas/credential";
+import { TypewriterLog } from "@/components/TypewriterLog";
 
 type LogLine = { ts: string; event: string; status: string; detail?: string };
 
@@ -55,13 +56,17 @@ export function MintForm() {
     });
   }
 
+  const consoleLines = log.length === 0
+    ? [{ time: "--:--:--", event: "SYSTEM", status: "AWAITING AUTHORIZATION" }]
+    : log.map((l) => ({
+        time: new Date(l.ts).toISOString().slice(11, 19),
+        event: l.event,
+        status: l.status + (l.detail ? ` (${l.detail})` : ""),
+      }));
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
       <form onSubmit={handleSubmit(onSubmit)} className="lg:col-span-7 space-y-stack-md ledger-line">
-        <p className="font-body text-body-md text-on-surface-variant italic">
-          Enter the details of the learner below to begin the cryptographic distillation process.
-        </p>
-
         <Field label="Learner Full Name" error={errors.learnerName?.message}>
           <input {...register("learnerName")} aria-label="Learner full name"
             className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit" />
@@ -89,7 +94,7 @@ export function MintForm() {
         </Field>
 
         <fieldset className="space-y-stack-sm">
-          <legend className="font-label text-label-md uppercase text-secondary">Target Holder</legend>
+          <legend className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Target Holder</legend>
           <label className="flex items-center gap-stack-sm font-label text-label-md">
             <input type="radio" value="username" {...register("targetMode")} /> By Username
           </label>
@@ -117,13 +122,13 @@ export function MintForm() {
           {isSubmitting ? "Sealing…" : "Seal & Authorize"}
         </button>
         {done && (
-          <p className="font-label text-label-md uppercase text-primary">Status: Sealed · Folio No. {done}</p>
+          <p className="font-label text-[11px] tracking-[0.14em] uppercase text-primary font-semibold">Status: Sealed · Folio No. {done}</p>
         )}
       </form>
 
       <aside className="lg:col-span-5 space-y-stack-md">
         <section className="border border-outline-variant rounded-lg p-stack-md surface-container-low ledger-line">
-          <h2 className="font-label text-label-md uppercase text-secondary">Commitment Preview</h2>
+          <h2 className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary mb-unit">Commitment Preview</h2>
           <p className="font-caption italic text-on-surface-variant">Fig 1.1 — Distillation schematic</p>
           <div className="mt-stack-sm grid grid-cols-3 items-center gap-stack-sm text-center">
             <Box title="DATA" body={values.learnerName || "—"} />
@@ -137,15 +142,7 @@ export function MintForm() {
           </div>
         </section>
 
-        <section className="border border-outline-variant rounded-lg surface-container-high">
-          <h2 className="px-stack-md pt-stack-sm font-label text-label-md uppercase text-secondary">Mint Log</h2>
-          <pre data-testid="mint-log" className="typewriter text-caption text-on-surface p-stack-md max-h-64 overflow-auto">
-            {log.length === 0 ? "[ awaiting authorization ]" : log.map((l) => (
-              `[${new Date(l.ts).toISOString().slice(11, 19)}] ${l.event} … ${l.status}${l.detail ? "  " + l.detail : ""}\n`
-            )).join("")}
-            <span className="animate-pulse">▍</span>
-          </pre>
-        </section>
+        <TypewriterLog data-testid="mint-log" title="Zelyo · Mint Console" lines={consoleLines} />
       </aside>
     </div>
   );
@@ -154,7 +151,7 @@ export function MintForm() {
 function Field({ label, error, children }: { label: string; error?: string | undefined; children: ReactNode }) {
   return (
     <label className="block space-y-unit">
-      <span className="font-label text-label-md uppercase text-secondary">{label}</span>
+      <span className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">{label}</span>
       {children}
       {error && <span className="block font-caption italic text-error">{error}</span>}
     </label>
@@ -164,7 +161,7 @@ function Field({ label, error, children }: { label: string; error?: string | und
 function Box({ title, body, mono }: { title: string; body: string; mono?: boolean }) {
   return (
     <div className="border border-outline-variant rounded p-stack-sm bg-surface-container-lowest">
-      <div className="font-label text-caption uppercase text-secondary">{title}</div>
+      <div className="font-label text-[10px] tracking-[0.05em] uppercase text-secondary">{title}</div>
       <div className={`text-caption text-on-surface ${mono ? "typewriter" : "font-body"} truncate`}>{body}</div>
     </div>
   );

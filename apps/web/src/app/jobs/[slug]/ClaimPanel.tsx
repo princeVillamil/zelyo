@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FoilStampButton } from "@/components/FoilStampButton";
 import type { GateDetail } from "../../../server/jobgate.service";
 
 type ClaimResult = { txHash?: string; explorerUrl?: string; rewardType: string };
@@ -101,16 +102,20 @@ export function ClaimPanel({
 
   return (
     <div>
-      <button
+      <FoilStampButton
         type="button"
         onClick={claim}
         disabled={status === "claiming"}
-        className="foil-stamp inline-flex items-center rounded px-stack-md py-3 font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform disabled:opacity-60"
       >
         {status === "claiming" ? "Claiming…" : "Claim Your Reward"}
-      </button>
+      </FoilStampButton>
       {error ? (
-        <p className="font-body text-body-md text-error mt-stack-sm">{error}</p>
+        <p
+          role="alert"
+          className="mt-stack-sm border-l-4 border-error bg-error-container/40 px-stack-md py-stack-sm font-body text-body-md text-on-error-container"
+        >
+          {error}
+        </p>
       ) : null}
     </div>
   );

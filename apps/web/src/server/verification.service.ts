@@ -50,6 +50,7 @@ async function mirror(
   explorerUrl?: string,
   boundStellarAddress?: string,
   credentialId?: string,
+  jobGateId?: string,
 ): Promise<void> {
   const { nullifier, scope, boundAddress, disclosed } = bundle.publicInputs;
   if (result === "VERIFIED" && txHash) {
@@ -67,6 +68,7 @@ async function mirror(
       txHash: txHash ?? null,
       explorerUrl: explorerUrl ?? null,
       credentialId: credentialId ?? null,
+      jobGateId: jobGateId ?? null,
     },
   });
 }
@@ -74,26 +76,70 @@ async function mirror(
 export interface VerifyAndRegisterInput extends ProofBundle {
   boundStellarAddress: string;
   credentialId?: string;
+  jobGateId?: string;
 }
 
 export async function verifyAndRegister({
   boundStellarAddress,
   credentialId,
+  jobGateId,
   ...bundle
 }: VerifyAndRegisterInput): Promise<VerifyResult> {
-  const { root, nullifier } = bundle.publicInputs;
+  const { root, nullifier, disclosed } = bundle.publicInputs;
   const log = logger.child({ op: "verifyAndRegister" });
+
+  const runMirror = (result: VerificationResult, txHash?: string, url?: string) =>
+    mirror(bundle, result, txHash, url, boundStellarAddress, credentialId, jobGateId);
 
   try {
     // Fast fail: root must be in the valid set; nullifier must be unused (chain is authoritative,
     // but a cheap mirror/contract pre-check avoids a doomed submission).
     if (!(await isRootValid(root))) {
-      await mirror(bundle, "UNKNOWN_ROOT", undefined, undefined, boundStellarAddress, credentialId);
+      await runMirror("UNKNOWN_ROOT");
       return { ok: false, result: "UNKNOWN_ROOT" };
     }
     if (await isNullifierUsed(nullifier)) {
-      await mirror(bundle, "NULLIFIER_USED", undefined, undefined, boundStellarAddress, credentialId);
+      await runMirror("NULLIFIER_USED");
       return { ok: false, result: "NULLIFIER_USED" };
+    }
+
+    if (credentialId) {
+      const credential = await db.credential.findUnique({
+        where: { id: credentialId },
+        include: { leaf: true },
+      });
+      if (!credential || credential.status !== "ACTIVE") {
+        await runMirror("INVALID_PROOF");
+        return { ok: false, result: "INVALID_PROOF" };
+      }
+
+      // Check 1: Verify disclosed attribute matches the credential's attribute.
+      const credAttr = credential.attributes as Record<string, string>;
+      if (disclosed.raw && typeof disclosed.raw === "object") {
+        for (const [key, val] of Object.entries(disclosed.raw)) {
+          if (credAttr[key] !== val) {
+            await runMirror("INVALID_PROOF");
+            return { ok: false, result: "INVALID_PROOF" };
+          }
+        }
+      }
+
+      // Check 2: Verify the credential's leaf index is within the Merkle tree at the proof's root
+      const rootHistory = await db.rootHistory.findUnique({
+        where: { rootHex: root },
+      });
+      if (!rootHistory) {
+        await runMirror("UNKNOWN_ROOT");
+        return { ok: false, result: "UNKNOWN_ROOT" };
+      }
+
+      const leafCountAtRoot = await db.leaf.count({
+        where: { createdAt: { lte: rootHistory.publishedAt } },
+      });
+      if (credential.leafIndex >= leafCountAtRoot) {
+        await runMirror("INVALID_PROOF");
+        return { ok: false, result: "INVALID_PROOF" };
+      }
     }
 
     let txHash: string;
@@ -101,7 +147,7 @@ export async function verifyAndRegister({
       if (env.ZK_VERIFY_MODE === "server") {
         // Path B: verify the proof off-chain, then register the server-attested result.
         if (!(await verifyProofOffchain(bundle))) {
-          await mirror(bundle, "INVALID_PROOF", undefined, undefined, boundStellarAddress, credentialId);
+          await runMirror("INVALID_PROOF");
           return { ok: false, result: "INVALID_PROOF" };
         }
         ({ txHash } = await submitRegister(bundle.publicInputs, boundStellarAddress));
@@ -112,14 +158,14 @@ export async function verifyAndRegister({
     } catch (err) {
       const mapped = mapContractError(err);
       if (mapped) {
-        await mirror(bundle, mapped, undefined, undefined, boundStellarAddress, credentialId);
+        await runMirror(mapped);
         return { ok: false, result: mapped };
       }
       throw err;
     }
 
     const url = explorerTxUrl(txHash);
-    await mirror(bundle, "VERIFIED", txHash, url, boundStellarAddress, credentialId);
+    await runMirror("VERIFIED", txHash, url);
     return { ok: true, result: "VERIFIED", txHash, explorerUrl: url };
   } catch (err) {
     log.error({ err }, "verifyAndRegister failed");

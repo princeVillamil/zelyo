@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             comfortable horizontal margin on both edges. */}
         <SiteRail role={role} username={username} />
         <div className="md:pl-16">
-          <div className="relative mx-auto max-w-[1400px] px-margin-mobile md:px-margin-page">
+          <div className="relative mx-auto max-w-[1120px] px-margin-mobile md:px-margin-page">
             <SectionNav role={role} />
             {children}
           </div>

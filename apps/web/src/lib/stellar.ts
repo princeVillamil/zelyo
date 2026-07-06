@@ -191,9 +191,51 @@ export async function submitRegister(
   return { txHash: sent.hash };
 }
 
-export async function submitVerifyAndRegister(_bundle: ProofBundle): Promise<{ txHash: string }> {
-  /* Path A: verify_and_register(proof, pi) signed by ISSUER_SECRET; throws ContractError on revert */
-  throw new Error("not implemented in this phase; mocked in tests, wired in Phase 7");
+/** Submit `CredentialRegistry.verify_and_register(proof, pi, holder)` signed by ISSUER_SECRET (Path A).
+ *  NOTE: Path A is disabled on the current Soroban testnet, which lacks the BN254
+ *  pairing / Poseidon host functions required to verify an UltraHonk proof on-chain.
+ *  `ZK_VERIFY_MODE` defaults to `server`; this builder is kept only so the wiring
+ *  does not bit-rot until the protocol supports real on-chain verification. */
+export async function submitVerifyAndRegister(
+  bundle: ProofBundle,
+  boundStellarAddress: string,
+): Promise<{ txHash: string }> {
+  const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
+  const source = await rpcServer.getAccount(issuerKeypair.publicKey());
+
+  const op = contract.call(
+    "verify_and_register",
+    xdr.ScVal.scvBytes(Buffer.from(bundle.proof)),
+    publicInputsToScVal(bundle.publicInputs),
+    new Address(boundStellarAddress).toScVal(),
+  );
+
+  let tx = new TransactionBuilder(source, {
+    fee: BASE_FEE,
+    networkPassphrase: env.NETWORK_PASSPHRASE,
+  })
+    .addOperation(op)
+    .setTimeout(60)
+    .build();
+
+  tx = await rpcServer.prepareTransaction(tx);
+  tx.sign(issuerKeypair);
+
+  const sent = await rpcServer.sendTransaction(tx);
+  const result = await pollTransaction(sent.hash);
+
+  if (result.status !== "SUCCESS") {
+    // Re-check chain state to map the failure reason for the UI.
+    if (!(await isRootValid(bundle.publicInputs.root))) {
+      throw new ContractError("UnknownRoot");
+    }
+    if (await isNullifierUsed(bundle.publicInputs.nullifier)) {
+      throw new ContractError("NullifierUsed");
+    }
+    throw new ContractError("InvalidProof");
+  }
+
+  return { txHash: sent.hash };
 }
 
 /**

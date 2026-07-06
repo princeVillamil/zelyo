@@ -2,6 +2,8 @@
 
 A running, append-only log of shipped changes. Newest entries on top.
 
+- **On-chain verification wiring with Path A disabled** (develop) — Audited and corrected Task 10.1. The `CredentialRegistry.verify_and_register` Path A flow and the `submitVerifyAndRegister` TypeScript builder are wired, but the Soroban verifier contract now honestly returns `false` for all proofs because the current testnet (protocol 27) lacks the BN254 pairing and Poseidon host functions required to verify an UltraHonk proof. `ZK_VERIFY_MODE` is reverted to `server` in `.env` so production continues to use the already-working Path B (bb.js off-chain verification + `CredentialRegistry.register`). See `docs/superpowers/decisions/zk-verify-mode.md` and the updated `docs/superpowers/plans/2026-07-05-zelyo-10-stellar-strategy.md`.
+
 - **Fix mint SSE confirmation race and closed controller errors** (develop) — Resolved admin portal minting stream bugs (Tasks 4.1 & 4.2). Introduced event history caching (5-minute TTL) in Redis for jobId-specific logs, enabling the `EventSource` to instantly fetch and replay all past logs even if connected after the minting process has fully executed. Added connection lifecycle state checks (`isClosed`) in the SSE route handler to safely handle client aborts/disconnects, eliminating `ERR_INVALID_STATE` exceptions and server log flooding. Updated the route unit tests accordingly.
 
 - **Verification of production CSP and COOP/COEP headers** (develop) — Audited and verified security headers in `next.config.ts` and `middleware.ts` (Task 7.1). Confirmed that strict Content Security Policy (with per-request crypto nonce), cross-origin isolation (COOP/COEP), HSTS, and referrer policies are correctly defined and enforced globally.

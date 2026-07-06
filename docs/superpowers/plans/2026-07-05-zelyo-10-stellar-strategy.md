@@ -19,7 +19,7 @@
 
 - [x] **Phase 10 Prerequisites** — Verified 2026-07-06: Tasks 9.6, 9.7, 4.1/4.2, 7.7, 7.1 are implemented and their targeted unit tests pass. See audit notes below.
 - [-] **Task 10.1 — Native On-Chain Verification (Path A)** — Partial / blocked on testnet capabilities. The wiring (`submitVerifyAndRegister`, `verify_and_register`) is in place, and the dishonest verifier stub has been corrected to return `false` for all proofs. `ZK_VERIFY_MODE` is reverted to `server` in `.env`, the Path A registry test now expects `InvalidProof`, and `docs/features.md` has been corrected. Real on-chain UltraHonk verification is not possible on the current Soroban testnet (protocol 27) per the Phase 0 decision record `docs/superpowers/decisions/zk-verify-mode.md`.
-- [ ] **Task 10.2 — Reusable-KYC for Anchors (SEP-12)**
+- [x] **Task 10.2 — Reusable-KYC for Anchors (SEP-12)** — Implemented 2026-07-06: SEP-12 customer API (`/api/sep12/customer`) with GET/PUT, `Sep12Customer` schema/migration, ZK verification binding, rate limiting, audit logging, and unit tests.
 - [ ] **Task 10.3 — Passkeys & Gasless Transactions (Launchtube)**
 - [ ] **Task 10.4 — Token-Gated Rewards & Asset Controls (SEP-8)**
 
@@ -88,11 +88,33 @@ Real native on-chain UltraHonk verification cannot be implemented until Soroban 
 **Description:**
 Expose a standardized SEP-12 KYC API. Anchors can query Zelyo's server to check if an account is verified. A third-party anchor requests verification, the user provides a ZK proof of KYC status, and Zelyo returns a compliant response.
 
-**Tasks:**
-- [ ] **Step 1: Define SEP-12 schema and types** — Define compliant fields matching SEP-9 (e.g. `id_type`, `country_code`).
-- [ ] **Step 2: Build `GET /api/sep12/customer`** — Handle anchor status queries (`NEEDS_INFO`, `ACCEPTED`).
-- [ ] **Step 3: Build `PUT /api/sep12/customer`** — Handle anchor submission of identity requests.
-- [ ] **Step 4: Build ZK proof validation for KYC** — Integrate a gate checking proof of age or residency.
+**Status:** Implemented 2026-07-06.
+
+**What was built:**
+- [x] **Step 1: SEP-12 schema and types** — Defined `Sep12Status`, `Sep12Field`, `Sep12ProvidedField`, and `Sep12CustomerResponse` in `apps/web/src/server/sep12.service.ts`. Added `Sep12Customer` model to `prisma/schema.prisma` with `stellarAccount`, `memo`/`memoType`, `status`, and `verificationId`. Created migration `20260706095912_add_sep12_customer`.
+- [x] **Step 2: `GET /api/sep12/customer`** — Built `apps/web/src/app/api/sep12/customer/route.ts` `GET` handler and `getCustomer` service. Accepts `id` or `account` (+ optional `memo`/`memo_type`) and returns `NEEDS_INFO` or `ACCEPTED` with the required/provided `verification_id` field.
+- [x] **Step 3: `PUT /api/sep12/customer`** — Built `PUT` handler and `putCustomer` service. Accepts `account`, optional `memo`/`memo_type`, and `verification_id`. Validates the referenced `Verification` is `VERIFIED` and bound to the same Stellar account, then upserts the customer as `ACCEPTED`. Without a `verification_id`, creates/returns a `NEEDS_INFO` record.
+- [x] **Step 4: ZK proof validation for KYC** — Reuses the existing `Verification` table as the proof-of-KYC. `putCustomer` checks `verification.result === "VERIFIED"` and `verification.boundStellarAddress === account`, ensuring the ZK proof was issued for the account being registered.
+
+**Additional hardening:**
+- Added `sep12` rate limiter (30 req/min per IP) in `apps/web/src/lib/ratelimit.ts`.
+- Added PII-safe `audit()` calls for both GET and PUT.
+- Added unit tests in `apps/web/src/server/__tests__/sep12.service.test.ts` and `apps/web/src/app/api/sep12/customer/route.test.ts`.
+
+**Files changed:**
+- `apps/web/src/server/sep12.service.ts` (new)
+- `apps/web/src/app/api/sep12/customer/route.ts` (new)
+- `apps/web/src/app/api/sep12/customer/route.test.ts` (new)
+- `apps/web/src/server/__tests__/sep12.service.test.ts` (new)
+- `apps/web/src/lib/ratelimit.ts`
+- `apps/web/prisma/schema.prisma`
+- `apps/web/prisma/migrations/20260706095912_add_sep12_customer/migration.sql` (new)
+- `docs/features.md`
+
+**Future extensions (out of scope):**
+- Anchor authentication (e.g., SEP-10 JWT or API keys) so only registered anchors can query customer status.
+- Support for additional SEP-12 fields if Zelyo ever needs to attest to specific attributes (currently only binary KYC status is exposed).
+- `DELETE /api/sep12/customer` for GDPR-style deletion requests.
 
 ---
 

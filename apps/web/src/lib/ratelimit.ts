@@ -19,6 +19,7 @@ export const limiters = {
   register: make("rl:register", 5),
   mint: make("rl:mint", 60),
   claim: make("rl:claim", 20),
+  sep12: make("rl:sep12", 30),
 };
 
 export class RateLimitError extends AppError {

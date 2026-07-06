@@ -12,6 +12,13 @@ vi.mock("@/lib/holder-key.client", () => ({
   restoreBackup: vi.fn(),
   deriveIdCommitment: vi.fn(),
 }));
+vi.mock("@/lib/passkey", () => ({
+  isPasskeySupported: vi.fn(() => false),
+  registerPasskey: vi.fn(),
+  connectPasskey: vi.fn(),
+  getStoredPasskey: vi.fn(() => null),
+  clearStoredPasskey: vi.fn(),
+}));
 
 import { KeysManager } from "./KeysManager";
 import * as keys from "@/lib/holder-key.client";

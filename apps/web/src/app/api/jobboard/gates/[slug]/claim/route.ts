@@ -11,6 +11,7 @@ const claimBodySchema = z.object({
   nullifierHex: z.string().regex(/^0x[0-9a-f]{1,64}$/),
   boundAddress: z.string().regex(/^G[A-Z2-7]{55}$/),
   txHash: z.string().min(1).max(128),
+  gasless: z.boolean().default(false),
 });
 
 export async function POST(
@@ -29,10 +30,11 @@ export async function POST(
     if (!parsed.success) {
       throw new AppError("INVALID_BODY", 400, "Invalid claim payload.");
     }
-    const { nullifierHex, boundAddress, txHash } = parsed.data;
+    const { nullifierHex, boundAddress, txHash, gasless } = parsed.data;
 
     try {
-      const result = await claimGate(slug, nullifierHex as FieldHex, boundAddress, txHash);
+      const mode = gasless ? "launchtube" : "direct";
+      const result = await claimGate(slug, nullifierHex as FieldHex, boundAddress, txHash, mode);
       await audit("jobgate.claim", {
         target: slug,
         ip,

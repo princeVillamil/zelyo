@@ -52,10 +52,18 @@ describe("jobboard routes", () => {
     const body = { nullifierHex: "0xdeadbeef", boundAddress: "G" + "A".repeat(55), txHash: "tx1" };
     const res = await claimRoute(claimReq(body), { params: Promise.resolve({ slug: "data-engineering" }) });
     expect(enforceRateLimit).toHaveBeenCalledWith("claim", "1.2.3.4");
-    expect(claimGate).toHaveBeenCalledWith("data-engineering", "0xdeadbeef", "G" + "A".repeat(55), "tx1");
+    expect(claimGate).toHaveBeenCalledWith("data-engineering", "0xdeadbeef", "G" + "A".repeat(55), "tx1", "direct");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" });
     expect(audit).toHaveBeenCalled();
+  });
+
+  it("POST claim passes launchtube mode when gasless is true", async () => {
+    claimGate.mockResolvedValue({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" });
+    const body = { nullifierHex: "0xdeadbeef", boundAddress: "G" + "A".repeat(55), txHash: "tx1", gasless: true };
+    const res = await claimRoute(claimReq(body), { params: Promise.resolve({ slug: "data-engineering" }) });
+    expect(claimGate).toHaveBeenCalledWith("data-engineering", "0xdeadbeef", "G" + "A".repeat(55), "tx1", "launchtube");
+    expect(res.status).toBe(200);
   });
 
   it("POST claim rejects an invalid body with 400", async () => {

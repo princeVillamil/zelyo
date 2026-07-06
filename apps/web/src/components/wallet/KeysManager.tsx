@@ -9,6 +9,14 @@ import {
   restoreBackup,
   deriveIdCommitment,
 } from "@/lib/holder-key.client";
+import {
+  isPasskeySupported,
+  registerPasskey,
+  connectPasskey,
+  getStoredPasskey,
+  clearStoredPasskey,
+  type PasskeyCredential,
+} from "@/lib/passkey";
 
 export function KeysManager() {
   const [passphrase, setPassphrase] = useState("");
@@ -17,6 +25,11 @@ export function KeysManager() {
   const [backup, setBackup] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [passkey, setPasskey] = useState<PasskeyCredential | null>(() => getStoredPasskey());
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const passkeyReady = isPasskeySupported();
 
   async function publishCommitment(c: FieldHex, force = false): Promise<Response> {
     // Only the public commitment is ever sent to the server; never `s`.
@@ -86,6 +99,38 @@ export function KeysManager() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function onRegisterPasskey() {
+    setPasskeyError(null);
+    setPasskeyBusy(true);
+    try {
+      const userLabel = commitment ?? "zelyo-holder";
+      const cred = await registerPasskey("Zelyo", userLabel);
+      setPasskey(cred);
+    } catch (err) {
+      setPasskeyError(err instanceof Error ? err.message : "Passkey registration failed.");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  }
+
+  async function onConnectPasskey() {
+    setPasskeyError(null);
+    setPasskeyBusy(true);
+    try {
+      const cred = await connectPasskey();
+      setPasskey(cred);
+    } catch (err) {
+      setPasskeyError(err instanceof Error ? err.message : "Passkey connection failed.");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  }
+
+  function onDisconnectPasskey() {
+    clearStoredPasskey();
+    setPasskey(null);
   }
 
   return (
@@ -167,6 +212,66 @@ export function KeysManager() {
               : !passphrase
                 ? "Enter the vault passphrase that sealed this backup to restore."
                 : "Paste your backup blob above to restore."}
+          </p>
+        )}
+      </div>
+
+      <hr className="border-outline-variant" />
+
+      <div>
+        <p className="font-label text-label-md uppercase text-secondary">Passkey Smart Wallet</p>
+        <p className="mt-stack-sm font-body text-body-md text-on-surface-variant">
+          Register a WebAuthn passkey to control a SEP-45 style smart wallet. This lets you claim
+          rewards without holding XLM for transaction fees.
+        </p>
+
+        {passkey && (
+          <div className="mt-stack-md space-y-stack-sm">
+            <p className="font-body text-body-md">
+              Smart wallet:{" "}
+              <span className="typewriter break-all text-primary">{passkey.contractId}</span>
+            </p>
+            <button
+              type="button"
+              onClick={onDisconnectPasskey}
+              className="border border-outline rounded font-label text-label-md uppercase text-error px-stack-md py-stack-sm hover:bg-error-container/20"
+            >
+              Disconnect Passkey
+            </button>
+          </div>
+        )}
+
+        {!passkey && (
+          <div className="mt-stack-md flex flex-wrap gap-gutter">
+            <button
+              type="button"
+              disabled={passkeyBusy || !passkeyReady}
+              onClick={onRegisterPasskey}
+              className="border border-outline rounded font-label text-label-md uppercase text-primary px-stack-md py-stack-sm hover:bg-secondary-container disabled:opacity-50"
+            >
+              {passkeyBusy ? "Registering…" : "Register Passkey"}
+            </button>
+            <button
+              type="button"
+              disabled={passkeyBusy || !passkeyReady}
+              onClick={onConnectPasskey}
+              className="border border-outline rounded font-label text-label-md uppercase text-primary px-stack-md py-stack-sm hover:bg-secondary-container disabled:opacity-50"
+            >
+              {passkeyBusy ? "Connecting…" : "Connect Passkey"}
+            </button>
+          </div>
+        )}
+
+        {!passkeyReady && (
+          <p className="mt-stack-sm font-body text-caption italic text-on-surface-variant">
+            Passkeys are not available. Make sure your browser supports WebAuthn and that
+            NEXT_PUBLIC_PASSKEY_KIT_* environment variables are configured.
+          </p>
+        )}
+
+        {passkeyError && (
+          <p role="alert" className="mt-stack-sm font-body text-body-md text-error">
+            {passkeyError}
           </p>
         )}
       </div>

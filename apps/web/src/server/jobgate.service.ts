@@ -6,6 +6,7 @@ import { issueClaimableBalance, issuePayment, setVerifiedFlag } from "../lib/ste
 import { explorerTxUrl } from "../lib/explorer";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
+import type { RewardSubmitMode } from "../lib/stellar";
 
 const predicateSchema = z.object({ attribute: z.string(), equals: z.string() });
 const assetSchema = z.object({ code: z.string(), issuer: z.string(), amount: z.string() });
@@ -100,6 +101,7 @@ export async function claimGate(
   nullifierHex: FieldHex,
   boundAddress: string,
   txHash: string,
+  mode: RewardSubmitMode = "direct",
 ): Promise<{ txHash?: string; explorerUrl?: string; rewardType: string }> {
   const gate = await db.jobGate.findUnique({ where: { slug } });
   if (!gate) throw new AppError("GATE_NOT_FOUND", 404, "No such job gate.");
@@ -157,10 +159,10 @@ export async function claimGate(
       // still use claimable balances; a holder-signed claim step could be added later.
       const isNativeXlm = cfg.asset.code === "XLM" && !cfg.asset.issuer;
       ({ txHash: rewardTxHash } = isNativeXlm
-        ? await issuePayment(boundAddress, cfg.asset)
-        : await issueClaimableBalance(boundAddress, cfg.asset));
+        ? await issuePayment(boundAddress, cfg.asset, mode)
+        : await issueClaimableBalance(boundAddress, cfg.asset, mode));
     } else if (gate.rewardType === "FLAG") {
-      ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress));
+      ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress, mode));
     } else {
       throw new AppError("GATE_MISCONFIGURED", 500, "Unknown reward type.");
     }

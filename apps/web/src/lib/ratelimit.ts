@@ -20,6 +20,7 @@ export const limiters = {
   mint: make("rl:mint", 60),
   claim: make("rl:claim", 20),
   sep12: make("rl:sep12", 30),
+  launchtube: make("rl:launchtube", 20),
 };
 
 export class RateLimitError extends AppError {

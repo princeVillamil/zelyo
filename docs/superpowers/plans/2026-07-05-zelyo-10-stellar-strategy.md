@@ -20,7 +20,7 @@
 - [x] **Phase 10 Prerequisites** — Verified 2026-07-06: Tasks 9.6, 9.7, 4.1/4.2, 7.7, 7.1 are implemented and their targeted unit tests pass. See audit notes below.
 - [-] **Task 10.1 — Native On-Chain Verification (Path A)** — Partial / blocked on testnet capabilities. The wiring (`submitVerifyAndRegister`, `verify_and_register`) is in place, and the dishonest verifier stub has been corrected to return `false` for all proofs. `ZK_VERIFY_MODE` is reverted to `server` in `.env`, the Path A registry test now expects `InvalidProof`, and `docs/features.md` has been corrected. Real on-chain UltraHonk verification is not possible on the current Soroban testnet (protocol 27) per the Phase 0 decision record `docs/superpowers/decisions/zk-verify-mode.md`.
 - [x] **Task 10.2 — Reusable-KYC for Anchors (SEP-12)** — Implemented 2026-07-06: SEP-12 customer API (`/api/sep12/customer`) with GET/PUT, `Sep12Customer` schema/migration, ZK verification binding, rate limiting, audit logging, and unit tests.
-- [ ] **Task 10.3 — Passkeys & Gasless Transactions (Launchtube)**
+- [x] **Task 10.3 — Passkeys & Gasless Transactions (Launchtube)** — Implemented 2026-07-06: passkey-kit integration in `/wallet/keys`, Launchtube client + server relay, gasless claim mode, env vars, tests.
 - [ ] **Task 10.4 — Token-Gated Rewards & Asset Controls (SEP-8)**
 
 ---
@@ -123,11 +123,45 @@ Expose a standardized SEP-12 KYC API. Anchors can query Zelyo's server to check 
 **Description:**
 Improve user onboarding and transaction execution. Use passkeys for non-custodial holder keys and fee-sponsored transactions via Launchtube so users don't need XLM to register claims.
 
-**Tasks:**
-- [ ] **Step 1: Setup Passkey registration** — Integrate `passkey-kit` client-side in the key setup page (`/wallet/keys`).
-- [ ] **Step 2: Setup SEP-45 Contract Signatures** — Allow contract wallets to sign credentials.
-- [ ] **Step 3: Configure Launchtube client** — Build transaction submission relay targeting the fee-sponsorship service.
-- [ ] **Step 4: Integrate into Claim Flow** — When claiming a gate reward, relay the transaction via Launchtube.
+**Status:** Implemented 2026-07-06 (wiring + server-side gasless submission).
+
+**What was built:**
+- [x] **Step 1: Setup Passkey registration** — Installed `passkey-kit` and created `apps/web/src/lib/passkey.ts`, a client-side wrapper around `PasskeyKit` that registers/connects a SEP-45 style smart wallet via WebAuthn and persists the credential (`keyIdBase64`, `contractId`) in `localStorage`. Added passkey registration/connect UI to `/wallet/keys` (`KeysManager`).
+- [x] **Step 2: Setup SEP-45 Contract Signatures** — `lib/passkey.ts` exposes `signWithPasskey(txn)` so a transaction can be signed by the stored passkey. The smart-wallet WASM hash and verifier address are configured via public env vars.
+- [x] **Step 3: Configure Launchtube client** — Added `apps/web/src/lib/launchtube.ts` (server-side client that POSTs signed XDR to Launchtube with JWT auth) and `apps/web/src/lib/launchtube.client.ts` (browser helper that calls the server relay). Created `POST /api/launchtube/submit` server relay so the JWT never reaches the client.
+- [x] **Step 4: Integrate into Claim Flow** — Extended `claimGate` and the claim route with a `gasless` flag. When `gasless: true` and `LAUNCHTUBE_ENABLED=true`, the server signs the reward transaction as before but submits the signed XDR via Launchtube (Launchtube pays the fee). Added a "Claim gasless (via Launchtube)" checkbox to `ClaimPanel`.
+
+**Additional hardening:**
+- Added `launchtube` rate limiter (20 req/min per IP) in `apps/web/src/lib/ratelimit.ts`.
+- Added PII-safe `audit()` calls for Launchtube submissions.
+- Added env vars to `apps/web/src/lib/env.ts` and `.env.example`:
+  - `NEXT_PUBLIC_PASSKEY_KIT_RPC_URL`
+  - `NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE`
+  - `NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH`
+  - `LAUNCHTUBE_ENABLED`
+  - `LAUNCHTUBE_URL`
+  - `LAUNCHTUBE_JWT`
+
+**Files changed:**
+- `apps/web/package.json` (added `passkey-kit` dependency)
+- `apps/web/src/lib/passkey.ts` (new)
+- `apps/web/src/lib/launchtube.ts` (new)
+- `apps/web/src/lib/launchtube.client.ts` (new)
+- `apps/web/src/lib/env.ts`
+- `apps/web/.env.example`
+- `apps/web/src/lib/ratelimit.ts`
+- `apps/web/src/lib/stellar.ts` (added `RewardSubmitMode` and Launchtube submission path)
+- `apps/web/src/server/jobgate.service.ts` (added `mode` parameter)
+- `apps/web/src/app/api/jobboard/gates/[slug]/claim/route.ts` (added `gasless` body field)
+- `apps/web/src/app/jobs/[slug]/ClaimPanel.tsx` (added gasless checkbox)
+- `apps/web/src/app/api/launchtube/submit/route.ts` (new)
+- `apps/web/src/components/wallet/KeysManager.tsx` (added passkey UI)
+- Tests: `passkey.test.ts`, `launchtube.test.ts`, `route.test.ts` (launchtube), updated `jobgate.service.test.ts`, `routes.test.ts` (jobboard), `KeysManager.test.tsx`
+- `docs/features.md` and this plan file
+
+**Notes / future work:**
+- The current gasless flow uses server-side issuer signing + Launchtube fee sponsorship. A fully non-custodial flow where the passkey smart wallet itself signs the claim transaction requires additional contract/policy work (the reward must be issuable by the smart wallet or a policy signer).
+- Passkey smart-wallet deployment requires the `NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH` to be set after deploying the passkey-kit smart-wallet WASM to the target network.
 
 ---
 

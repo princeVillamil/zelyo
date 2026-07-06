@@ -39,6 +39,16 @@ const EnvSchema = z.object({
   ZK_VERIFY_MODE: z.enum(["onchain", "server"]).default("server"),
   CIRCUIT_ARTIFACT_BASE: z.string().min(1).default("/circuit"),
 
+  // Passkey smart-wallet (SEP-45 style via passkey-kit). Optional until configured.
+  NEXT_PUBLIC_PASSKEY_KIT_RPC_URL: z.string().url().optional(),
+  NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE: z.string().min(1).optional(),
+  NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH: z.string().min(1).optional(),
+
+  // Launchtube fee sponsorship. Optional until configured.
+  LAUNCHTUBE_URL: z.string().url().optional(),
+  LAUNCHTUBE_JWT: z.string().min(1).optional(),
+  LAUNCHTUBE_ENABLED: boolish.default(false),
+
   ADMIN_USERNAME: z.string().min(1),
   ADMIN_PASSWORD: z.string().min(8),
   ISSUER_NAME: z.string().min(1),

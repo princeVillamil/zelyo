@@ -68,7 +68,7 @@ describe("claimGate", () => {
       code: "ZELYO",
       issuer: "GISSUER",
       amount: "1",
-    });
+    }, "direct");
     expect(issuePayment).not.toHaveBeenCalled();
     expect(setVerifiedFlag).not.toHaveBeenCalled();
     expect(claimCreate).toHaveBeenCalledWith({
@@ -93,7 +93,7 @@ describe("claimGate", () => {
 
     const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
 
-    expect(issuePayment).toHaveBeenCalledWith("GHOLDER", { code: "XLM", issuer: "", amount: "10" });
+    expect(issuePayment).toHaveBeenCalledWith("GHOLDER", { code: "XLM", issuer: "", amount: "10" }, "direct");
     expect(issueClaimableBalance).not.toHaveBeenCalled();
     expect(claimCreate).toHaveBeenCalledWith({
       data: { jobGateId: "g1", nullifierHex: "0xnull", boundAddress: "GHOLDER", txHash: "PAYTX" },
@@ -114,13 +114,26 @@ describe("claimGate", () => {
 
     const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
 
-    expect(setVerifiedFlag).toHaveBeenCalledWith("GHOLDER");
+    expect(setVerifiedFlag).toHaveBeenCalledWith("GHOLDER", "direct");
     expect(issueClaimableBalance).not.toHaveBeenCalled();
     expect(res).toEqual({
       txHash: "FLAGTX",
       explorerUrl: "https://explorer.test/tx/FLAGTX",
       rewardType: "FLAG",
     });
+  });
+
+  it("uses launchtube mode for gasless claims", async () => {
+    gateFindUnique.mockResolvedValue(gate("FLAG"));
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    setVerifiedFlag.mockResolvedValue({ txHash: "FLAGTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1", "launchtube");
+
+    expect(setVerifiedFlag).toHaveBeenCalledWith("GHOLDER", "launchtube");
+    expect(res).toMatchObject({ txHash: "FLAGTX", rewardType: "FLAG" });
   });
 
   it("is idempotent: returns the existing claim without re-issuing", async () => {

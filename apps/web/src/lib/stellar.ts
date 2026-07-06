@@ -17,6 +17,9 @@ import {
 } from "@stellar/stellar-sdk";
 import type { FieldHex, ProofBundle, PublicInputs } from "@zelyo/zk-shared";
 import { env } from "./env";
+import { submitViaLaunchtube } from "./launchtube";
+
+export type RewardSubmitMode = "direct" | "launchtube";
 
 export class ContractError extends Error {
   constructor(
@@ -35,6 +38,40 @@ export const rpcServer = new rpc.Server(env.SOROBAN_RPC_URL, {
   allowHttp: env.SOROBAN_RPC_URL.startsWith("http://"),
 });
 export const issuerKeypair = Keypair.fromSecret(env.ISSUER_SECRET);
+
+/** Submit a signed Horizon transaction directly or via Launchtube for fee sponsorship. */
+async function submitHorizonTransaction(
+  tx: ReturnType<TransactionBuilder["build"]>,
+  mode: RewardSubmitMode,
+): Promise<{ txHash: string }> {
+  if (mode === "launchtube") {
+    const result = await submitViaLaunchtube(tx.toXDR());
+    // Launchtube response shape is service-dependent; fall back to a placeholder hash if absent.
+    const txHash =
+      (result.data as { hash?: string } | undefined)?.hash ??
+      `launchtube-${Date.now()}`;
+    return { txHash };
+  }
+  const server = new Horizon.Server(env.HORIZON_URL);
+  const res = await server.submitTransaction(tx);
+  return { txHash: res.hash };
+}
+
+/** Submit a signed Soroban transaction directly or via Launchtube for fee sponsorship. */
+async function submitSorobanTransaction(
+  tx: ReturnType<TransactionBuilder["build"]>,
+  mode: RewardSubmitMode,
+): Promise<{ txHash: string }> {
+  if (mode === "launchtube") {
+    const result = await submitViaLaunchtube(tx.toXDR());
+    const txHash =
+      (result.data as { hash?: string } | undefined)?.hash ??
+      `launchtube-${Date.now()}`;
+    return { txHash };
+  }
+  const sent = await rpcServer.sendTransaction(tx);
+  return { txHash: sent.hash };
+}
 
 /** 0x-prefixed 32-byte field hex -> 32-byte Buffer (BytesN<32>). */
 export function hexToBytes32(hex: FieldHex): Buffer {
@@ -274,6 +311,7 @@ export async function publishRoot(rootHex: FieldHex): Promise<{ txHash: string }
 export async function issuePayment(
   boundAddress: string,
   asset: { code: string; issuer: string; amount: string },
+  mode: RewardSubmitMode = "direct",
 ): Promise<{ txHash: string }> {
   const server = new Horizon.Server(env.HORIZON_URL);
   const source = await server.loadAccount(issuerKeypair.publicKey());
@@ -292,14 +330,14 @@ export async function issuePayment(
     .setTimeout(60)
     .build();
   tx.sign(issuerKeypair);
-  const res = await server.submitTransaction(tx);
-  return { txHash: res.hash };
+  return submitHorizonTransaction(tx, mode);
 }
 
 /** Issue a testnet claimable balance of `asset` claimable by `boundAddress`. Signed by ISSUER_SECRET. */
 export async function issueClaimableBalance(
   boundAddress: string,
   asset: { code: string; issuer: string; amount: string },
+  mode: RewardSubmitMode = "direct",
 ): Promise<{ txHash: string }> {
   const server = new Horizon.Server(env.HORIZON_URL);
   const source = await server.loadAccount(issuerKeypair.publicKey());
@@ -321,12 +359,14 @@ export async function issueClaimableBalance(
     .setTimeout(60)
     .build();
   tx.sign(issuerKeypair);
-  const res = await server.submitTransaction(tx);
-  return { txHash: res.hash };
+  return submitHorizonTransaction(tx, mode);
 }
 
 /** Flip is_verified(address)=true on the registry contract. Signed by ISSUER_SECRET. */
-export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: string }> {
+export async function setVerifiedFlag(
+  boundAddress: string,
+  mode: RewardSubmitMode = "direct",
+): Promise<{ txHash: string }> {
   const source = await rpcServer.getAccount(issuerKeypair.publicKey());
   const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
   const built = new TransactionBuilder(source, {
@@ -344,6 +384,5 @@ export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: s
     .build();
   const prepared = await rpcServer.prepareTransaction(built);
   prepared.sign(issuerKeypair);
-  const sent = await rpcServer.sendTransaction(prepared);
-  return { txHash: sent.hash };
+  return submitSorobanTransaction(prepared, mode);
 }

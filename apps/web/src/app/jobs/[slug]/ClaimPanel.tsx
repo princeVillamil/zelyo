@@ -31,6 +31,7 @@ export function ClaimPanel({
   const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error">("idle");
   const [result, setResult] = useState<ClaimResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [gasless, setGasless] = useState(false);
 
   async function claim() {
     setStatus("claiming");
@@ -38,7 +39,7 @@ export function ClaimPanel({
     const res = await fetch(`/api/jobboard/gates/${gate.slug}/claim`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ nullifierHex, boundAddress, txHash }),
+      body: JSON.stringify({ nullifierHex, boundAddress, txHash, gasless }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -101,7 +102,16 @@ export function ClaimPanel({
   }
 
   return (
-    <div>
+    <div className="space-y-stack-md">
+      <label className="flex items-center gap-stack-sm font-body text-body-md text-on-surface-variant">
+        <input
+          type="checkbox"
+          checked={gasless}
+          onChange={(e) => setGasless(e.target.checked)}
+          aria-label="Claim without paying XLM fees"
+        />
+        Claim gasless (via Launchtube)
+      </label>
       <FoilStampButton
         type="button"
         onClick={claim}

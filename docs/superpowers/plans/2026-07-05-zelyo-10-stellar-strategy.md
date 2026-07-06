@@ -17,7 +17,8 @@
 
 ## Implementation Status (Initiated 2026-07-05)
 
-- [ ] **Task 10.1 — Native On-Chain Verification (Path A)**
+- [x] **Phase 10 Prerequisites** — Verified 2026-07-06: Tasks 9.6, 9.7, 4.1/4.2, 7.7, 7.1 are implemented and their targeted unit tests pass. See audit notes below.
+- [-] **Task 10.1 — Native On-Chain Verification (Path A)** — Partial / blocked on testnet capabilities. The wiring (`submitVerifyAndRegister`, `verify_and_register`) is in place, and the dishonest verifier stub has been corrected to return `false` for all proofs. `ZK_VERIFY_MODE` is reverted to `server` in `.env`, the Path A registry test now expects `InvalidProof`, and `docs/features.md` has been corrected. Real on-chain UltraHonk verification is not possible on the current Soroban testnet (protocol 27) per the Phase 0 decision record `docs/superpowers/decisions/zk-verify-mode.md`.
 - [ ] **Task 10.2 — Reusable-KYC for Anchors (SEP-12)**
 - [ ] **Task 10.3 — Passkeys & Gasless Transactions (Launchtube)**
 - [ ] **Task 10.4 — Token-Gated Rewards & Asset Controls (SEP-8)**
@@ -63,12 +64,22 @@ HOLDER (WASM Prover)                 API SERVER / GATEWAY                  SOROB
 **Description:**
 Wire the currently-stubbed Path A flow. Using Protocol 25/26's BN254 pairing and Poseidon primitives, compile the Soroban verifier contract and deploy it, replacing the off-chain mock verification logic.
 
-**Tasks:**
-- [ ] **Step 1: Update verifier contract** — Implement proof checks using native host functions (utilizing reference BN254 precompile bindings).
-- [ ] **Step 2: Rebuild & deploy contracts** — Run `pnpm contracts:build` and deploy to testnet. Update `VERIFIER_CONTRACT_ID` in `.env`.
-- [ ] **Step 3: Implement `submitVerifyAndRegister`** — In `stellar.ts`, write the method that packages the proof and public inputs as XDR and submits the transaction.
-- [ ] **Step 4: Enable `ZK_VERIFY_MODE = onchain`** — Switch env configuration and verify that verification routes through the contract.
-- [ ] **Step 5: Run tests** — Run `pnpm test` and Vitest unit suites.
+**Status:** Partial / blocked on testnet capabilities.
+
+**Audit findings (2026-07-06):**
+- The prerequisites are complete and tested.
+- The verifier contract imports `Bn254G1Affine`/`Bn254G2Affine` but never uses the proof, public inputs, or VK; it creates empty point vectors and returns `true` unconditionally for any non-empty proof.
+- This contradicts the Phase 0 decision record (`docs/superpowers/decisions/zk-verify-mode.md`), which found that Soroban testnet (protocol 27) exposes no BN254 pairing or Poseidon host primitive capable of verifying an UltraHonk proof.
+- Running `ZK_VERIFY_MODE=onchain` in production would submit real proofs to a contract that cannot validate them.
+
+**Remaining work:**
+- [x] **Revert to safe default** — Set `ZK_VERIFY_MODE=server` in `.env` so the live flow uses the already-working Path B (bb.js off-chain verify + `CredentialRegistry.register`). *Completed 2026-07-06.*
+- [x] **Honest verifier stub** — Changed `contracts/verifier/src/lib.rs` to return `false` for all proofs with a comment referencing the decision record; removed the misleading empty `pairing_check` call and BN254 type imports. *Completed 2026-07-06.*
+- [x] **Update Path A tests** — Renamed `verify_and_register_path_a_happy_path` to `verify_and_register_path_a_disabled` and changed it to expect an `InvalidProof` revert, reflecting that on-chain verification is disabled. Removed the orphaned happy-path snapshot. *Completed 2026-07-06.*
+- [x] **Correct documentation** — Updated `docs/features.md` to clarify that Task 10.1 is blocked by missing testnet host functions and that Path B remains the active mode. Added a note to `apps/web/src/lib/stellar.ts#submitVerifyAndRegister` documenting the Path A limitation. Updated this plan file with the audit results. *Completed 2026-07-06.*
+
+**Still blocked / no further code change possible:**
+Real native on-chain UltraHonk verification cannot be implemented until Soroban testnet/mainnet exposes working BN254 pairing **and** Poseidon host functions, and a `no_std` UltraHonk verifier can be compiled into the Soroban WASM. Until then, the contract API (`verify(proof, public_inputs)`) is preserved so the registry wiring does not bit-rot.
 
 ---
 

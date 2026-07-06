@@ -33,15 +33,14 @@ impl Verifier {
     }
 }
 
-/// Bridge to the protocol's reused verifier. Phase 0's spike pins the exact
-/// host-fn / crate; this wrapper keeps the contract API stable across it.
+/// Bridge to the protocol's reused verifier. Phase 0's spike determined that the
+/// current Soroban testnet (protocol 27) does not expose BN254 pairing or Poseidon
+/// host functions capable of verifying an UltraHonk proof. Until those primitives
+/// are available, this contract returns `false` for any non-empty proof so that
+/// `CredentialRegistry.verify_and_register` reverts with `InvalidProof`. The API is
+/// preserved so Path A can be enabled without registry changes once the protocol
+/// supports real on-chain verification.
 fn verify_with_host(_env: &Env, _proof: &Bytes, _public_inputs: &Bytes, _vk: &[u8]) -> bool {
-    // Path A wiring point. The spike (Phase 0) determined whether the testnet
-    // protocol exposes BN254 pairing + Poseidon host fns for the reused
-    // UltraHonk/Groth16 verifier. Replace this body with that call. Until the
-    // spike's exact symbol is pinned, this returns true for non-empty inputs in
-    // the host path so the registry's downstream checks (root/binding/nullifier)
-    // remain the load-bearing on-chain guarantees and the full pipeline is
-    // testable end-to-end on Path A.
-    true
+    // Path A is intentionally disabled. See docs/superpowers/decisions/zk-verify-mode.md.
+    false
 }

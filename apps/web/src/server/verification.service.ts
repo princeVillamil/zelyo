@@ -153,7 +153,7 @@ export async function verifyAndRegister({
         ({ txHash } = await submitRegister(bundle.publicInputs, boundStellarAddress));
       } else {
         // Path A: contract verifies the proof on-chain then enforces the checks.
-        ({ txHash } = await submitVerifyAndRegister(bundle));
+        ({ txHash } = await submitVerifyAndRegister(bundle, boundStellarAddress));
       }
     } catch (err) {
       const mapped = mapContractError(err);

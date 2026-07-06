@@ -178,7 +178,7 @@ fn register_address_mismatch_reverts() {
 }
 
 #[test]
-fn verify_and_register_path_a_happy_path() {
+fn verify_and_register_path_a_disabled() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -196,10 +196,12 @@ fn verify_and_register_path_a_happy_path() {
     let holder = Address::generate(&env);
     let pi = pi_for(&env, &root, &holder, 77);
 
-    // Non-empty proof so the verifier's host path runs and returns true.
+    // Path A is disabled on the current testnet (no BN254/Poseidon host fns),
+    // so any proof is rejected as InvalidProof and the nullifier is not stored.
     let proof = soroban_sdk::Bytes::from_array(&env, &[1u8, 2, 3, 4]);
-    client.verify_and_register(&proof, &pi, &holder);
-    assert_eq!(client.is_nullifier_used(&pi.nullifier), true);
+    let res = client.try_verify_and_register(&proof, &pi, &holder);
+    assert!(res.is_err());
+    assert_eq!(client.is_nullifier_used(&pi.nullifier), false);
 }
 
 #[test]

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_PASSKEY_KIT_RPC_URL = "https://soroban-testnet.stellar.org";
+  process.env.NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
+  process.env.NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH = "abcdef";
+});
+
 const mockCreateWallet = vi.fn();
 const mockConnectWallet = vi.fn();
 const mockSign = vi.fn();
@@ -14,14 +20,6 @@ function MockPasskeyKit() {
 
 vi.mock("passkey-kit", () => ({
   PasskeyKit: MockPasskeyKit,
-}));
-
-vi.mock("../../lib/env", () => ({
-  env: {
-    NEXT_PUBLIC_PASSKEY_KIT_RPC_URL: "https://soroban-testnet.stellar.org",
-    NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015",
-    NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH: "abcdef",
-  },
 }));
 
 import {

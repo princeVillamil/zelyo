@@ -1,9 +1,14 @@
 "use client";
 
 import { PasskeyKit } from "passkey-kit";
-import { env } from "./env";
 
 const STORAGE_KEY = "zelyo:passkey";
+
+// Read NEXT_PUBLIC env vars directly so this client module does not pull in the
+// server-side env schema (which would leak secret names into the bundle).
+const PASSKEY_KIT_RPC_URL = process.env.NEXT_PUBLIC_PASSKEY_KIT_RPC_URL;
+const PASSKEY_KIT_NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE;
+const PASSKEY_KIT_WALLET_WASM_HASH = process.env.NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH;
 
 export type PasskeyCredential = {
   keyIdBase64: string;
@@ -22,9 +27,7 @@ export class PasskeyError extends Error {
 
 function isConfigured(): boolean {
   return Boolean(
-    env.NEXT_PUBLIC_PASSKEY_KIT_RPC_URL &&
-      env.NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE &&
-      env.NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH,
+    PASSKEY_KIT_RPC_URL && PASSKEY_KIT_NETWORK_PASSPHRASE && PASSKEY_KIT_WALLET_WASM_HASH,
   );
 }
 
@@ -33,9 +36,9 @@ function getKit(): PasskeyKit {
     throw new PasskeyError("NOT_CONFIGURED", "Passkey smart-wallet is not configured in this environment.");
   }
   return new PasskeyKit({
-    rpcUrl: env.NEXT_PUBLIC_PASSKEY_KIT_RPC_URL!,
-    networkPassphrase: env.NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE!,
-    walletWasmHash: env.NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH!,
+    rpcUrl: PASSKEY_KIT_RPC_URL!,
+    networkPassphrase: PASSKEY_KIT_NETWORK_PASSPHRASE!,
+    walletWasmHash: PASSKEY_KIT_WALLET_WASM_HASH!,
     timeoutInSeconds: 30,
   });
 }

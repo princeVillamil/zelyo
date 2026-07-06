@@ -6,6 +6,8 @@ const isProd = process.env.NODE_ENV === "production";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // passkey-kit and its SDK dependencies ship TypeScript source; transpile them.
+  transpilePackages: ["passkey-kit", "passkey-kit-sdk", "sac-sdk"],
   serverExternalPackages: ["@node-rs/argon2", "pino", "@stellar/stellar-sdk"],
   async headers() {
     return [

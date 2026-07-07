@@ -21,7 +21,7 @@
 - [-] **Task 10.1 — Native On-Chain Verification (Path A)** — Partial / blocked on testnet capabilities. The wiring (`submitVerifyAndRegister`, `verify_and_register`) is in place, and the dishonest verifier stub has been corrected to return `false` for all proofs. `ZK_VERIFY_MODE` is reverted to `server` in `.env`, the Path A registry test now expects `InvalidProof`, and `docs/features.md` has been corrected. Real on-chain UltraHonk verification is not possible on the current Soroban testnet (protocol 27) per the Phase 0 decision record `docs/superpowers/decisions/zk-verify-mode.md`.
 - [x] **Task 10.2 — Reusable-KYC for Anchors (SEP-12)** — Implemented 2026-07-06: SEP-12 customer API (`/api/sep12/customer`) with GET/PUT, `Sep12Customer` schema/migration, ZK verification binding, rate limiting, audit logging, and unit tests.
 - [ ] **Task 10.3 — Passkeys & Gasless Transactions (Launchtube)**
-- [ ] **Task 10.4 — Token-Gated Rewards & Asset Controls (SEP-8)**
+- [-] **Task 10.4 — Token-Gated Rewards & Asset Controls (SEP-8)** — Analysis complete 2026-07-07. Blockers scoped; can proceed independently of Tasks 10.1 and 10.3. See detailed breakdown below.
 
 ---
 
@@ -134,9 +134,72 @@ Improve user onboarding and transaction execution. Use passkeys for non-custodia
 ### Task 10.4: Token-Gated Rewards & Asset Controls (SEP-8)
 
 **Description:**
-Integrate ZK identity gates with token supply controls. Use SEP-8 to regulate asset transfers based on on-chain nullifier/verification flags.
+Integrate ZK identity gates with token supply controls. Use SEP-8 to regulate asset transfers based on Zelyo verification status.
 
-**Tasks:**
-- [ ] **Step 1: Build SEP-8 approval server endpoint** — `POST /api/sep8/approve` checking if `boundAddress` is verified.
-- [ ] **Step 2: Integrate Regulated Asset rewards** — Add support in `GateForm` to specify SEP-8 assets.
-- [ ] **Step 3: Verify transfer rejection** — Test that transfers to non-verified addresses are blocked by the approval server.
+**Status:** Analysis complete; ready for implementation. No code changes made yet.
+
+**Dependencies and prerequisites (is it solo?):**
+- **Not blocked by Task 10.3 (passkeys / Launchtube).** Task 10.4 can proceed in parallel.
+- **Not blocked by Task 10.1 (Path A on-chain verification).** Path A is disabled because Soroban testnet lacks the required BN254/Poseidon host functions. SEP-8 can use the existing off-chain mirror (`Verification` table, Path B) as the source of truth for whether a Stellar account is verified.
+- **Blocked-ish by the existing gate/reward infrastructure from Phase 6.** Step 2 (“Regulated Asset rewards in `GateForm`”) builds directly on `JobGate`, `GateForm`, `rewardConfig`, and `claimGate`. These are implemented and tested, so this is a dependency, not a blocker.
+- **Soft dependency on Task 10.2 (SEP-12) patterns.** The SEP-12 service/route/test structure (`src/server/sep12.service.ts`, `src/app/api/sep12/customer/route.ts`, rate-limiter registration, audit logging) is the template for the new SEP-8 approval service.
+- **Pre-existing issue to resolve or explicitly work around:** `apps/web/src/lib/stellar.ts#setVerifiedFlag` calls a `set_verified` method on the `CredentialRegistry` contract, but no such method exists in `contracts/credential_registry/src/lib.rs` or `storage.rs`. This means the current `FLAG` reward type will fail on-chain. For SEP-8 we should either (a) rely on the `Verification` DB mirror instead of an on-chain verified flag, or (b) add `set_verified`/`is_verified` to the contract and redeploy. Option (a) is faster and aligns with the current Path-B reality.
+
+**Current state of relevant code:**
+- `apps/web/src/server/jobgate.service.ts` — `claimGate` issues rewards. Supports `CLAIMABLE_BALANCE` (direct payment for native XLM, claimable balance for custom assets) and `FLAG` (currently calls the missing `set_verified` contract method).
+- `apps/web/src/app/(issuer)/issuer/gates/GateForm.tsx` — form schema allows `rewardType: "CLAIMABLE_BALANCE" | "FLAG"` and an `asset: { code, issuer?, amount }` inside `rewardConfig`.
+- `apps/web/src/lib/stellar.ts` — has `issuePayment`, `issueClaimableBalance`, `setVerifiedFlag` helpers, plus contract RPC helpers. Uses `ISSUER_SECRET` for signing.
+- `apps/web/prisma/schema.prisma` — `Verification` table already stores `boundStellarAddress`, `result`, `nullifierHex`, `disclosed`, and `jobGateId`. This is the natural place to ask “has this Stellar account produced a VERIFIED proof?”
+- `apps/web/src/server/verification.service.ts` — populates `Verification` rows after server-side Path-B verification.
+- `apps/web/src/lib/ratelimit.ts` — named limiters registry; add a `sep8` limiter mirroring `sep12`.
+- `apps/web/src/lib/audit.ts` — PII-safe audit writer already in use.
+
+**SEP-8 model for Zelyo:**
+SEP-8 is Stellar’s “Regulated Assets” protocol. The issuer sets `AUTHORIZATION_REQUIRED` + `AUTHORIZATION_REVOCABLE` on the asset, and wallets must send payment transactions to an approval server before submitting them. The approval server parses the transaction envelope, checks compliance, signs with the issuer key if approved, and returns a SEP-8 response:
+
+```json
+{ "status": "approved", "tx": "base64 signed envelope" }
+// or
+{ "status": "rejected", "error": "Account is not Zelyo-verified." }
+```
+
+Zelyo’s compliance rule: the destination (or relevant participant) of a regulated-asset payment must have at least one `Verification` row with `result = "VERIFIED"` and `boundStellarAddress` matching that account.
+
+**Proposed implementation approach:**
+- [ ] **Step 1: SEP-8 approval service & route**
+  - Create `apps/web/src/server/sep8.service.ts` with:
+    - `approveTransaction(body: { tx: string })` that decodes the base64 transaction envelope with `@stellar/stellar-sdk`, identifies payment operations for the regulated asset (asset issuer must match `ISSUER_STELLAR_ACCOUNT`), extracts the destination address, and checks `db.verification.findFirst({ where: { boundStellarAddress: destination, result: "VERIFIED" } })`.
+    - If verified: re-sign the envelope with `ISSUER_SECRET` and return `{ status: "approved", tx: signedBase64 }`.
+    - If not verified: return `{ status: "rejected", error: "..." }`.
+  - Create `apps/web/src/app/api/sep8/approve/route.ts` `POST` handler: validate body, rate-limit (`limiters.sep8`), call service, audit (`SEP8_APPROVE`), return SEP-8 JSON.
+  - Add `sep8` limiter to `apps/web/src/lib/ratelimit.ts` (30 req/min per IP, same as SEP-12).
+- [ ] **Step 2: Regulated Asset reward type in `GateForm`**
+  - Extend `rewardType` enum to include `"REGULATED_ASSET"` (or add a `regulated: boolean` flag inside `rewardConfig.asset`).
+  - Update `gateFormSchema` / `rewardConfigSchema` in `GateForm.tsx` and `createGateInputSchema` in `apps/web/src/app/api/issuer/gates/route.ts`.
+  - Update `jobgate.service.ts` `CreateGateInput` / `rewardConfigSchema` and `claimGate` so that `REGULATED_ASSET` rewards can be issued (likely as a payment/claimable balance, with the actual transfer enforcement happening via the SEP-8 approval server when the holder spends the asset).
+- [ ] **Step 3: Tests**
+  - Unit tests in `apps/web/src/server/__tests__/sep8.service.test.ts`: approved for verified address, rejected for unverified address, rejected for wrong asset issuer, rejected for malformed envelope.
+  - Route tests in `apps/web/src/app/api/sep8/approve/route.test.ts`: 200 approved, 200 rejected, 400 malformed, 429 rate-limited.
+  - Update/extend `jobgate.service.test.ts` for `REGULATED_ASSET` reward type if Step 2 adds one.
+- [ ] **Step 4: Docs**
+  - Append an entry to `docs/features.md` describing SEP-8 approval server and regulated-asset reward support.
+  - Update `.env.example` and `apps/web/src/lib/env.ts` only if new env vars are needed (e.g., `SEP8_REGULATED_ASSET_CODE`). Probably not required if we derive the regulated asset from `rewardConfig`.
+
+**Files expected to change:**
+- `apps/web/src/server/sep8.service.ts` (new)
+- `apps/web/src/server/__tests__/sep8.service.test.ts` (new)
+- `apps/web/src/app/api/sep8/approve/route.ts` (new)
+- `apps/web/src/app/api/sep8/approve/route.test.ts` (new)
+- `apps/web/src/lib/ratelimit.ts`
+- `apps/web/src/app/(issuer)/issuer/gates/GateForm.tsx`
+- `apps/web/src/app/api/issuer/gates/route.ts`
+- `apps/web/src/server/jobgate.service.ts`
+- `apps/web/src/server/__tests__/jobgate.service.test.ts`
+- `docs/features.md`
+
+**Open questions / risks:**
+1. **On-chain vs off-chain source of truth.** The plan text says “on-chain nullifier/verification flags,” but the contract has no per-address verified flag. Do we add `set_verified`/`is_verified` to the contract (requires redeploy + `cargo test`) and change `setVerifiedFlag` to use it, or use the `Verification` DB mirror? Recommendation: use the DB mirror for SEP-8 v1 to avoid coupling to a contract redeploy; document the limitation that the chain enforces only nullifier uniqueness, not address verification status.
+2. **`FLAG` reward type is currently broken** because `set_verified` does not exist. If we choose to use an on-chain flag for SEP-8, we must fix `FLAG` first. If we use the DB mirror, `FLAG` remains broken and should be fixed separately.
+3. **SEP-8 transaction parsing scope.** We should initially support simple `Payment` operations to the regulated asset. More complex path payments or Soroban contract invocations can be out of scope for v1.
+4. **Issuer account flags.** For SEP-8 to be meaningful on testnet, the issuer account must issue the regulated asset with `AUTH_REQUIRED` + `AUTH_REVOCABLE`. This is a deployment/ops step outside the app code; document it in `docs/DEPLOY.md` if not already covered.
+5. **Privacy.** The approval server must never log or return PII. It only checks the existence of a `VERIFIED` row; it does not return disclosed attributes.

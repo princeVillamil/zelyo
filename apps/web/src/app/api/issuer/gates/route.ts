@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { auth } from "@/auth";
 import { rateLimit } from "@/lib/ratelimit";
+import { env } from "@/lib/env";
 import { AppError, handleApiError } from "@/lib/errors";
 import { createGate, type CreateGateInput } from "@/server/jobgate.service";
 
@@ -18,10 +19,20 @@ const createGateInputSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
   requiredPredicates: z.array(predicateSchema).min(1),
-  rewardType: z.enum(["CLAIMABLE_BALANCE", "FLAG"]),
+  rewardType: z.enum(["CLAIMABLE_BALANCE", "REGULATED_ASSET", "FLAG"]),
   rewardConfig: rewardConfigSchema,
   expiresAt: isoDatetimeOrDate.nullable(),
-});
+}).refine(
+  (data) => {
+    if (data.rewardType !== "REGULATED_ASSET") return true;
+    const asset = data.rewardConfig.asset;
+    return !!asset && asset.issuer === env.ISSUER_STELLAR_ACCOUNT;
+  },
+  {
+    message: "REGULATED_ASSET reward must specify an asset issued by the Zelyo issuer account.",
+    path: ["rewardConfig", "asset", "issuer"],
+  },
+);
 
 function clientIp(req: Request): string {
   return (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "unknown";

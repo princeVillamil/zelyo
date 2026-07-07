@@ -105,6 +105,35 @@ describe("claimGate", () => {
     });
   });
 
+  it("issues a claimable balance for a REGULATED_ASSET gate", async () => {
+    gateFindUnique.mockResolvedValue({
+      ...gate("REGULATED_ASSET"),
+      rewardConfig: { asset: { code: "ZELYO", issuer: "GISSUER", amount: "1" } },
+    });
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    issueClaimableBalance.mockResolvedValue({ txHash: "CBTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+
+    expect(issueClaimableBalance).toHaveBeenCalledWith("GHOLDER", {
+      code: "ZELYO",
+      issuer: "GISSUER",
+      amount: "1",
+    });
+    expect(issuePayment).not.toHaveBeenCalled();
+    expect(setVerifiedFlag).not.toHaveBeenCalled();
+    expect(claimCreate).toHaveBeenCalledWith({
+      data: { jobGateId: "g1", nullifierHex: "0xnull", boundAddress: "GHOLDER", txHash: "CBTX" },
+    });
+    expect(res).toEqual({
+      txHash: "CBTX",
+      explorerUrl: "https://explorer.test/tx/CBTX",
+      rewardType: "REGULATED_ASSET",
+    });
+  });
+
   it("flips the verified flag for a FLAG gate", async () => {
     gateFindUnique.mockResolvedValue(gate("FLAG"));
     verificationFindFirst.mockResolvedValue(verified);

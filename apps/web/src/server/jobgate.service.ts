@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { db } from "../lib/db";
+import { env } from "../lib/env";
 import { issueClaimableBalance, issuePayment, setVerifiedFlag } from "../lib/stellar";
 import { explorerTxUrl } from "../lib/explorer";
 import { AppError } from "../lib/errors";
@@ -54,7 +55,7 @@ export type CreateGateInput = {
   title: string;
   description: string;
   requiredPredicates: Predicate[];
-  rewardType: "CLAIMABLE_BALANCE" | "FLAG";
+  rewardType: "CLAIMABLE_BALANCE" | "REGULATED_ASSET" | "FLAG";
   rewardConfig: z.infer<typeof rewardConfigSchema>;
   expiresAt: string | null;
 };
@@ -70,6 +71,20 @@ export async function createGate(input: CreateGateInput): Promise<GateDetail> {
       parsed.setHours(23, 59, 59, 999);
     }
     expiresAt = parsed;
+  }
+
+  if (input.rewardType === "REGULATED_ASSET") {
+    const cfg = rewardConfigSchema.parse(input.rewardConfig);
+    if (!cfg.asset) {
+      throw new AppError("GATE_MISCONFIGURED", 400, "REGULATED_ASSET reward requires an asset.");
+    }
+    if (cfg.asset.issuer !== env.ISSUER_STELLAR_ACCOUNT) {
+      throw new AppError(
+        "GATE_MISCONFIGURED",
+        400,
+        "REGULATED_ASSET reward must use an asset issued by the Zelyo issuer account.",
+      );
+    }
   }
 
   const gate = await db.jobGate.create({
@@ -150,7 +165,7 @@ export async function claimGate(
 
   let rewardTxHash: string;
   try {
-    if (gate.rewardType === "CLAIMABLE_BALANCE") {
+    if (gate.rewardType === "CLAIMABLE_BALANCE" || gate.rewardType === "REGULATED_ASSET") {
       const cfg = rewardConfigSchema.parse(gate.rewardConfig);
       if (!cfg.asset) throw new AppError("GATE_MISCONFIGURED", 500, "Gate reward asset missing.");
       // Native XLM (empty issuer) lands immediately via direct payment. Custom assets

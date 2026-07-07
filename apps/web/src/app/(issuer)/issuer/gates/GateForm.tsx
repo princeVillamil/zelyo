@@ -43,12 +43,34 @@ const gateFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().min(1, "Description is required").max(2000),
   predicates: z.array(predicateSchema).min(1, "At least one predicate is required"),
-  rewardType: z.enum(["CLAIMABLE_BALANCE", "FLAG"]),
+  rewardType: z.enum(["CLAIMABLE_BALANCE", "REGULATED_ASSET", "FLAG"]),
   rewardConfig: rewardConfigSchema,
   expiresAt: z.string().optional().nullable(),
-});
+}).refine(
+  (data) => {
+    if (data.rewardType !== "REGULATED_ASSET") return true;
+    const asset = data.rewardConfig?.asset;
+    if (!asset || asset.code.toUpperCase() === "XLM") {
+      return false;
+    }
+    return !!asset.issuer?.trim();
+  },
+  {
+    message: "Regulated assets require a custom asset code (not XLM) and an issuer.",
+    path: ["rewardConfig", "asset", "code"],
+  },
+);
 
 type GateFormValues = z.infer<typeof gateFormSchema>;
+
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+}
 
 export function GateForm() {
   const {
@@ -60,6 +82,7 @@ export function GateForm() {
   } = useForm<GateFormValues>({
     resolver: zodResolver(gateFormSchema),
     defaultValues: {
+      slug: "",
       predicates: [{ attribute: "track", equals: "" }],
       rewardType: "CLAIMABLE_BALANCE",
       rewardConfig: {
@@ -75,10 +98,22 @@ export function GateForm() {
 
   const predicates = watch("predicates");
   const rewardType = watch("rewardType");
+  const title = watch("title");
+  const slug = watch("slug");
+
+  useEffect(() => {
+    if (title) {
+      setValue("slug", slugify(title), { shouldValidate: true });
+    }
+  }, [title, setValue]);
 
   useEffect(() => {
     if (rewardType === "FLAG") {
       setValue("rewardConfig", {});
+    } else if (rewardType === "REGULATED_ASSET") {
+      setValue("rewardConfig", { asset: { code: "", issuer: "", amount: "" } });
+    } else if (rewardType === "CLAIMABLE_BALANCE") {
+      setValue("rewardConfig", { asset: { code: "XLM", issuer: "", amount: "" } });
     }
   }, [rewardType, setValue]);
 
@@ -141,15 +176,6 @@ export function GateForm() {
           Define a new reward gate for the public board. Holders who satisfy the predicates can claim the reward.
         </p>
 
-        <Field label="Slug" error={errors.slug?.message}>
-          <input
-            {...register("slug")}
-            placeholder="data-engineering-2"
-            aria-label="Gate slug"
-            className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
-          />
-        </Field>
-
         <Field label="Title" error={errors.title?.message}>
           <input
             {...register("title")}
@@ -158,6 +184,12 @@ export function GateForm() {
             className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit"
           />
         </Field>
+
+        {slug && (
+          <p className="font-mono text-caption text-on-surface-variant">
+            URL slug: /jobs/{slug}
+          </p>
+        )}
 
         <Field label="Description" error={errors.description?.message}>
           <textarea
@@ -219,7 +251,11 @@ export function GateForm() {
           <legend className="font-label text-label-md uppercase text-secondary">Reward Type</legend>
           <label className="flex items-center gap-stack-sm font-label text-label-md">
             <input type="radio" value="CLAIMABLE_BALANCE" {...register("rewardType")} />
-            Claimable Balance (XLM)
+            Claimable Balance
+          </label>
+          <label className="flex items-center gap-stack-sm font-label text-label-md">
+            <input type="radio" value="REGULATED_ASSET" {...register("rewardType")} />
+            Regulated Asset (SEP-8)
           </label>
           <label className="flex items-center gap-stack-sm font-label text-label-md">
             <input type="radio" value="FLAG" {...register("rewardType")} />
@@ -227,14 +263,20 @@ export function GateForm() {
           </label>
         </fieldset>
 
-        {rewardType === "CLAIMABLE_BALANCE" && (
+        {(rewardType === "CLAIMABLE_BALANCE" || rewardType === "REGULATED_ASSET") && (
           <div key="asset-config" className="space-y-stack-sm pl-stack-md border-l-2 border-outline-variant">
             <p className="font-label text-label-md uppercase text-secondary">Asset Configuration</p>
+            {rewardType === "REGULATED_ASSET" && (
+              <p className="font-caption italic text-on-surface-variant">
+                For SEP-8 regulated assets, the issuer must be this Zelyo issuer and the asset must have
+                AUTHORIZATION_REQUIRED + AUTHORIZATION_REVOCABLE flags on Stellar.
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-stack-sm">
               <Field label="Code" error={errors.rewardConfig?.asset?.code?.message}>
                 <input
                   {...register("rewardConfig.asset.code")}
-                  placeholder="XLM"
+                  placeholder={rewardType === "REGULATED_ASSET" ? "ZELYO" : "XLM"}
                   aria-label="Asset code"
                   className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
                 />
@@ -246,7 +288,11 @@ export function GateForm() {
                   aria-label="Asset issuer"
                   className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
                 />
-                <span className="font-caption italic text-on-surface-variant">Leave empty for native XLM</span>
+                <span className="font-caption italic text-on-surface-variant">
+                  {rewardType === "REGULATED_ASSET"
+                    ? "Must be the Zelyo issuer account"
+                    : "Leave empty for native XLM"}
+                </span>
               </Field>
               <Field label="Amount" error={errors.rewardConfig?.asset?.amount?.message}>
                 <input

@@ -6,6 +6,8 @@ import {
   Keypair,
   Contract,
   TransactionBuilder,
+  Transaction,
+  FeeBumpTransaction,
   BASE_FEE,
   Address,
   nativeToScVal,
@@ -17,6 +19,7 @@ import {
 } from "@stellar/stellar-sdk";
 import type { FieldHex, ProofBundle, PublicInputs } from "@zelyo/zk-shared";
 import { env } from "./env";
+import { AppError } from "./errors";
 
 export class ContractError extends Error {
   constructor(
@@ -325,7 +328,9 @@ export async function issueClaimableBalance(
   return { txHash: res.hash };
 }
 
-/** Flip is_verified(address)=true on the registry contract. Signed by ISSUER_SECRET. */
+/** Flip is_verified(address)=true on the registry contract. Signed by ISSUER_SECRET.
+ *  NOTE: the CredentialRegistry contract currently has no `set_verified` method;
+ *  this helper is preserved for when the contract is extended. */
 export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: string }> {
   const source = await rpcServer.getAccount(issuerKeypair.publicKey());
   const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
@@ -346,4 +351,16 @@ export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: s
   prepared.sign(issuerKeypair);
   const sent = await rpcServer.sendTransaction(prepared);
   return { txHash: sent.hash };
+}
+
+/** Re-sign an existing transaction envelope (base64 XDR) with ISSUER_SECRET.
+ *  Used by the SEP-8 approval server to co-sign regulated-asset payments.
+ *  Rejects fee-bump transactions. */
+export function signTransactionEnvelope(envelopeXdr: string): string {
+  const tx = TransactionBuilder.fromXDR(envelopeXdr, env.NETWORK_PASSPHRASE);
+  if (tx instanceof FeeBumpTransaction) {
+    throw new AppError("UNSUPPORTED_TX", 400, "Fee-bump transactions are not supported for SEP-8 approval.");
+  }
+  tx.sign(issuerKeypair);
+  return tx.toEnvelope().toXDR("base64");
 }

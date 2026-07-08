@@ -29,7 +29,6 @@ function sectionFor(pathname: string, role: SectionRole): Section | null {
       links: [
         { href: "/issuer", label: "Dashboard", exact: true },
         { href: "/issuer/mint", label: "Mint" },
-        { href: "/issuer/credentials", label: "Credentials" },
         { href: "/issuer/gates", label: "Gates" },
       ],
     };

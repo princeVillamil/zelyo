@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   mintFormSchema,
@@ -56,6 +56,23 @@ export function MintForm() {
     });
   }
 
+  function onInvalidSubmit(formErrors: FieldErrors<MintFormValues>) {
+    const failedFields = Object.entries(formErrors)
+      .map(([field, err]) => {
+        const friendlyName = field.replace(/([A-Z])/g, " $1").trim();
+        return `${friendlyName} is ${err?.message?.toLowerCase() ?? "required"}`;
+      });
+
+    setLog((currentLog) => [
+      ...currentLog,
+      {
+        ts: new Date().toISOString(),
+        event: "VALIDATE",
+        status: `FAIL (${failedFields.join(", ")})`,
+      },
+    ]);
+  }
+
   const consoleLines = log.length === 0
     ? [{ time: "--:--:--", event: "SYSTEM", status: "AWAITING AUTHORIZATION" }]
     : log.map((l) => ({
@@ -65,8 +82,8 @@ export function MintForm() {
       }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
-      <form onSubmit={handleSubmit(onSubmit)} className="lg:col-span-7 space-y-stack-md ledger-line">
+    <div className="grid gap-gutter lg:grid-cols-[1fr_400px] w-full">
+      <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-stack-md">
         <Field label="Learner Full Name" error={errors.learnerName?.message}>
           <input {...register("learnerName")} aria-label="Learner full name"
             className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit" />
@@ -93,26 +110,10 @@ export function MintForm() {
             className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit" />
         </Field>
 
-        <fieldset className="space-y-stack-sm">
-          <legend className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Target Holder</legend>
-          <label className="flex items-center gap-stack-sm font-label text-label-md">
-            <input type="radio" value="username" {...register("targetMode")} /> By Username
-          </label>
-          <label className="flex items-center gap-stack-sm font-label text-label-md">
-            <input type="radio" value="idCommitment" {...register("targetMode")} /> By id_commitment
-          </label>
-          {targetMode === "username" ? (
-            <Field label="Holder Username" error={errors.username?.message}>
-              <input {...register("username")} aria-label="Holder username"
-                className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit" />
-            </Field>
-          ) : (
-            <Field label="id_commitment (0x…)" error={errors.idCommitment?.message}>
-              <input {...register("idCommitment")} aria-label="id commitment"
-                className="w-full bg-transparent border-b border-outline focus:border-primary outline-none typewriter text-body-md py-unit" />
-            </Field>
-          )}
-        </fieldset>
+        <Field label="Holder Username" error={errors.username?.message}>
+          <input {...register("username")} aria-label="Holder username"
+            className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit" />
+        </Field>
 
         <button
           type="submit"
@@ -126,23 +127,48 @@ export function MintForm() {
         )}
       </form>
 
-      <aside className="lg:col-span-5 space-y-stack-md">
-        <section className="border border-outline-variant rounded-lg p-stack-md surface-container-low ledger-line">
-          <h2 className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary mb-unit">Commitment Preview</h2>
-          <p className="font-caption italic text-on-surface-variant">Fig 1.1 — Distillation schematic</p>
-          <div className="mt-stack-sm grid grid-cols-3 items-center gap-stack-sm text-center">
-            <Box title="DATA" body={values.learnerName || "—"} />
-            <Arrow />
-            <Box title="HASH-FUNCTION" body="Poseidon" />
-          </div>
-          <div className="mt-stack-sm grid grid-cols-3 items-center gap-stack-sm text-center">
-            <Box title="LEAF" body={values.track ? "Poseidon(idc, attrs)" : "—"} mono />
-            <Arrow />
-            <Box title="PROOF / ROOT" body="Merkle depth 20" />
+      <aside className="space-y-stack-md flex flex-col justify-start">
+        <section className="border border-outline-variant bg-surface-container-lowest rounded-lg p-stack-md manuscript-glow flex flex-col relative overflow-hidden">
+          {/* Ledger line overlay like homepage */}
+          <div className="absolute inset-0 bg-repeat-y opacity-5 pointer-events-none ledger-line" />
+          
+          <h2 className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary mb-unit relative z-10">Commitment Preview</h2>
+          <p className="font-caption italic text-on-surface-variant relative z-10">Fig 1.1 — Distillation schematic</p>
+          
+          <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-0 mt-stack-md relative z-10 select-none">
+            {/* Node 1: Leaf */}
+            <div className="border border-outline-variant bg-surface-container-lowest rounded-lg p-3 text-center flex flex-col justify-between min-h-[72px]">
+              <div className="font-label text-[11px] tracking-[0.1em] uppercase text-secondary truncate">Leaf</div>
+              <div className="font-mono text-[12px] text-primary mt-1.5 truncate" title={values.track || "track"}>
+                {values.track || "track"}
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="text-outline font-mono px-1.5 text-center">→</div>
+
+            {/* Node 2: Hash fn */}
+            <div className="border border-outline-variant bg-surface-container-lowest rounded-lg p-3 text-center flex flex-col justify-between min-h-[72px]">
+              <div className="font-label text-[11px] tracking-[0.1em] uppercase text-secondary truncate">Hash fn</div>
+              <div className="font-mono text-[12px] text-primary mt-1.5 truncate">poseidon</div>
+            </div>
+
+            {/* Arrow */}
+            <div className="text-outline font-mono px-1.5 text-center">→</div>
+
+            {/* Node 3: Registry Leaf */}
+            <div className="border border-primary bg-gradient-to-br from-[#051a17] to-[#1a2f2b] text-on-primary rounded-lg p-3 text-center flex flex-col justify-between min-h-[72px]">
+              <div className="font-label text-[11px] tracking-[0.1em] uppercase text-on-primary-container truncate">
+                Registry Leaf
+              </div>
+              <div className="font-mono text-[12px] text-on-primary mt-1.5 truncate">
+                {done ? "sealed ✓" : "pending"}
+              </div>
+            </div>
           </div>
         </section>
 
-        <TypewriterLog data-testid="mint-log" title="Zelyo · Mint Console" lines={consoleLines} />
+        <TypewriterLog data-testid="mint-log" title="Zelyo · Mint Console" lines={consoleLines} className="manuscript-glow" />
       </aside>
     </div>
   );
@@ -153,20 +179,7 @@ function Field({ label, error, children }: { label: string; error?: string | und
     <label className="block space-y-unit">
       <span className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">{label}</span>
       {children}
-      {error && <span className="block font-caption italic text-error">{error}</span>}
+      {error && <span className="block font-caption italic text-error lg:hidden">{error}</span>}
     </label>
   );
-}
-
-function Box({ title, body, mono }: { title: string; body: string; mono?: boolean }) {
-  return (
-    <div className="border border-outline-variant rounded p-stack-sm bg-surface-container-lowest">
-      <div className="font-label text-[10px] tracking-[0.05em] uppercase text-secondary">{title}</div>
-      <div className={`text-caption text-on-surface ${mono ? "typewriter" : "font-body"} truncate`}>{body}</div>
-    </div>
-  );
-}
-
-function Arrow() {
-  return <div className="font-label text-on-surface-variant" aria-hidden>→</div>;
 }

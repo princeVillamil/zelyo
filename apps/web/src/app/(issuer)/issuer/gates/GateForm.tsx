@@ -170,187 +170,175 @@ export function GateForm() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
-      <form onSubmit={handleSubmit(onSubmit)} className="lg:col-span-7 space-y-stack-md ledger-line">
-        <p className="font-body text-body-md text-on-surface-variant italic">
-          Define a new reward gate for the public board. Holders who satisfy the predicates can claim the reward.
-        </p>
+    <div className="w-full">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-2 gap-gutter w-full">
+        {/* Left Column: Gate Information */}
+        <div className="space-y-stack-md">
+          <Field label="Title" error={errors.title?.message}>
+            <input
+              {...register("title")}
+              placeholder="Data Engineering Gate"
+              aria-label="Gate title"
+              className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit"
+            />
+          </Field>
 
-        <Field label="Title" error={errors.title?.message}>
-          <input
-            {...register("title")}
-            placeholder="Data Engineering Gate"
-            aria-label="Gate title"
-            className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit"
-          />
-        </Field>
-
-        {slug && (
-          <p className="font-mono text-caption text-on-surface-variant">
-            URL slug: /jobs/{slug}
-          </p>
-        )}
-
-        <Field label="Description" error={errors.description?.message}>
-          <textarea
-            {...register("description")}
-            placeholder="Prove your Data Engineering certification to unlock this reward..."
-            aria-label="Gate description"
-            rows={3}
-            className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit resize-y"
-          />
-        </Field>
-
-        <fieldset className="space-y-stack-sm">
-          <legend className="font-label text-label-md uppercase text-secondary">Required Predicates</legend>
-          {errors.predicates?.message && (
-            <p className="font-caption italic text-error">{errors.predicates.message}</p>
+          {slug && (
+            <p className="font-mono text-caption text-on-surface-variant">
+              URL slug: /jobs/{slug}
+            </p>
           )}
-          {predicates.map((_, index) => (
-            <div key={index} className="flex gap-stack-sm items-end">
-              <Field label="Attribute" error={errors.predicates?.[index]?.attribute?.message}>
-                <select
-                  {...register(`predicates.${index}.attribute`)}
-                  aria-label="Predicate attribute"
-                  className="w-full bg-surface-container-lowest border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit"
-                >
-                  {ATTRIBUTES.map((attr) => (
-                    <option key={attr} value={attr}>{attr}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Equals" error={errors.predicates?.[index]?.equals?.message}>
-                <input
-                  {...register(`predicates.${index}.equals`)}
-                  placeholder="Data Engineering"
-                  aria-label="Predicate value"
-                  className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit"
-                />
-              </Field>
-              {predicates.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removePredicate(index)}
-                  className="font-label text-label-md uppercase text-error pb-unit"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addPredicate}
-            className="font-label text-label-md uppercase text-secondary hover:text-primary transition-colors"
-          >
-            + Add Predicate (AND)
-          </button>
-        </fieldset>
 
-        <fieldset className="space-y-stack-sm">
-          <legend className="font-label text-label-md uppercase text-secondary">Reward Type</legend>
-          <label className="flex items-center gap-stack-sm font-label text-label-md">
-            <input type="radio" value="CLAIMABLE_BALANCE" {...register("rewardType")} />
-            Claimable Balance
-          </label>
-          <label className="flex items-center gap-stack-sm font-label text-label-md">
-            <input type="radio" value="REGULATED_ASSET" {...register("rewardType")} />
-            Regulated Asset (SEP-8)
-          </label>
-          <label className="flex items-center gap-stack-sm font-label text-label-md">
-            <input type="radio" value="FLAG" {...register("rewardType")} />
-            Verified Flag (on-chain)
-          </label>
-        </fieldset>
+          <Field label="Description" error={errors.description?.message}>
+            <textarea
+              {...register("description")}
+              placeholder="Prove your Data Engineering certification to unlock this reward..."
+              aria-label="Gate description"
+              rows={3}
+              className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit resize-y"
+            />
+          </Field>
 
-        {(rewardType === "CLAIMABLE_BALANCE" || rewardType === "REGULATED_ASSET") && (
-          <div key="asset-config" className="space-y-stack-sm pl-stack-md border-l-2 border-outline-variant">
-            <p className="font-label text-label-md uppercase text-secondary">Asset Configuration</p>
-            {rewardType === "REGULATED_ASSET" && (
-              <p className="font-caption italic text-on-surface-variant">
-                For SEP-8 regulated assets, the issuer must be this Zelyo issuer and the asset must have
-                AUTHORIZATION_REQUIRED + AUTHORIZATION_REVOCABLE flags on Stellar.
-              </p>
+          <fieldset className="space-y-stack-sm">
+            <legend className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Required Predicates</legend>
+            {errors.predicates?.message && (
+              <p className="font-caption italic text-error">{errors.predicates.message}</p>
             )}
-            <div className="grid grid-cols-3 gap-stack-sm">
-              <Field label="Code" error={errors.rewardConfig?.asset?.code?.message}>
-                <input
-                  {...register("rewardConfig.asset.code")}
-                  placeholder={rewardType === "REGULATED_ASSET" ? "ZELYO" : "XLM"}
-                  aria-label="Asset code"
-                  className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
-                />
-              </Field>
-              <Field label="Issuer" error={errors.rewardConfig?.asset?.issuer?.message}>
-                <input
-                  {...register("rewardConfig.asset.issuer")}
-                  placeholder="G..."
-                  aria-label="Asset issuer"
-                  className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
-                />
-                <span className="font-caption italic text-on-surface-variant">
-                  {rewardType === "REGULATED_ASSET"
-                    ? "Must be the Zelyo issuer account"
-                    : "Leave empty for native XLM"}
-                </span>
-              </Field>
-              <Field label="Amount" error={errors.rewardConfig?.asset?.amount?.message}>
-                <input
-                  {...register("rewardConfig.asset.amount")}
-                  placeholder="5"
-                  aria-label="Amount"
-                  className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
-                />
-              </Field>
-            </div>
-          </div>
-        )}
-
-        <Field label="Expiration Date (optional)" error={errors.expiresAt?.message}>
-          <input
-            type="date"
-            {...register("expiresAt")}
-            aria-label="Gate expiration date"
-            className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
-          />
-          <span className="font-caption italic text-on-surface-variant">Leave empty for no expiration; time defaults to end of day</span>
-        </Field>
-
-        <button
-          type="submit"
-          disabled={false}
-          className="foil-stamp rounded px-stack-md py-stack-sm font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform disabled:opacity-60"
-        >
-          {isSubmitting ? "Creating…" : status === "success" ? "Created!" : "Create Gate"}
-        </button>
-
-        {status === "error" && errorMessage && (
-          <p className="font-body text-body-md text-error mt-stack-sm">{errorMessage}</p>
-        )}
-        {done && (
-          <p className="font-label text-label-md uppercase text-primary">
-            Gate created: <a href={`/jobs/${done}`} className="underline">/jobs/{done}</a>
-          </p>
-        )}
-      </form>
-
-      <aside className="lg:col-span-5 space-y-stack-md">
-        <section className="border border-outline-variant rounded-lg p-stack-md surface-container-low ledger-line">
-          <h2 className="font-label text-label-md uppercase text-secondary">Gate Preview</h2>
-          <p className="font-caption italic text-on-surface-variant">Fig 1.1 — Gate schematic</p>
-          <div className="mt-stack-sm space-y-2">
-            {predicates.map((pred, i) => (
-              <div key={i} className="flex items-center gap-stack-sm font-mono text-caption">
-                <span className="text-secondary">IF</span>
-                <span className="text-primary">{pred.attribute || "?"}</span>
-                <span className="text-secondary">==</span>
-                <span className="text-primary">&ldquo;{pred.equals || "?"}&rdquo;</span>
-                {i < predicates.length - 1 && <span className="text-secondary ml-stack-sm">AND</span>}
+            {predicates.map((_, index) => (
+              <div key={index} className="flex gap-stack-sm items-end">
+                <Field label="Attribute" error={errors.predicates?.[index]?.attribute?.message}>
+                  <select
+                    {...register(`predicates.${index}.attribute`)}
+                    aria-label="Predicate attribute"
+                    className="w-full bg-surface-container-lowest border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit"
+                  >
+                    {ATTRIBUTES.map((attr) => (
+                      <option key={attr} value={attr}>{attr}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Equals" error={errors.predicates?.[index]?.equals?.message}>
+                  <input
+                    {...register(`predicates.${index}.equals`)}
+                    placeholder="Data Engineering"
+                    aria-label="Predicate value"
+                    className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-body text-body-lg py-unit"
+                  />
+                </Field>
+                {predicates.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removePredicate(index)}
+                    className="font-label text-label-md uppercase text-error pb-unit"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             ))}
+            <button
+              type="button"
+              onClick={addPredicate}
+              className="font-label text-label-md uppercase text-secondary hover:text-primary transition-colors"
+            >
+              + Add Predicate (AND)
+            </button>
+          </fieldset>
+        </div>
+
+        {/* Right Column: Reward Configuration */}
+        <div className="space-y-stack-md border-t lg:border-t-0 lg:border-l border-outline-variant pt-stack-md lg:pt-0 lg:pl-gutter flex flex-col justify-between">
+          <div className="space-y-stack-md">
+            <fieldset className="space-y-stack-sm">
+              <legend className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Reward Type</legend>
+              <label className="flex items-center gap-stack-sm font-label text-label-md">
+                <input type="radio" value="CLAIMABLE_BALANCE" {...register("rewardType")} />
+                Claimable Balance
+              </label>
+              <label className="flex items-center gap-stack-sm font-label text-label-md">
+                <input type="radio" value="REGULATED_ASSET" {...register("rewardType")} />
+                Regulated Asset (SEP-8)
+              </label>
+              <label className="flex items-center gap-stack-sm font-label text-label-md">
+                <input type="radio" value="FLAG" {...register("rewardType")} />
+                Verified Flag (on-chain)
+              </label>
+            </fieldset>
+
+            {(rewardType === "CLAIMABLE_BALANCE" || rewardType === "REGULATED_ASSET") && (
+              <div key="asset-config" className="space-y-stack-sm pl-stack-md border-l-2 border-outline-variant">
+                <p className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Asset Configuration</p>
+                {rewardType === "REGULATED_ASSET" && (
+                  <p className="font-caption italic text-on-surface-variant">
+                    For SEP-8 regulated assets, the issuer must be this Zelyo issuer and the asset must have
+                    AUTHORIZATION_REQUIRED + AUTHORIZATION_REVOCABLE flags on Stellar.
+                  </p>
+                )}
+                <div className="grid grid-cols-3 gap-stack-sm">
+                  <Field label="Code" error={errors.rewardConfig?.asset?.code?.message}>
+                    <input
+                      {...register("rewardConfig.asset.code")}
+                      placeholder={rewardType === "REGULATED_ASSET" ? "ZELYO" : "XLM"}
+                      aria-label="Asset code"
+                      className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
+                    />
+                  </Field>
+                  <Field label="Issuer" error={errors.rewardConfig?.asset?.issuer?.message}>
+                    <input
+                      {...register("rewardConfig.asset.issuer")}
+                      placeholder="G..."
+                      aria-label="Asset issuer"
+                      className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
+                    />
+                  </Field>
+                  <Field label="Amount" error={errors.rewardConfig?.asset?.amount?.message}>
+                    <input
+                      {...register("rewardConfig.asset.amount")}
+                      placeholder="5"
+                      aria-label="Amount"
+                      className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
+                    />
+                  </Field>
+                </div>
+                {rewardType !== "REGULATED_ASSET" && (
+                  <span className="block font-caption italic text-on-surface-variant">
+                    Leave empty for native XLM
+                  </span>
+                )}
+              </div>
+            )}
+
+            <Field label="Expiration Date (optional)" error={errors.expiresAt?.message}>
+              <input
+                type="date"
+                {...register("expiresAt")}
+                aria-label="Gate expiration date"
+                className="w-full bg-transparent border-b border-outline focus:border-primary outline-none font-mono text-body-lg py-unit"
+              />
+              <span className="font-caption italic text-on-surface-variant">Leave empty for no expiration</span>
+            </Field>
           </div>
-        </section>
-      </aside>
+
+          <div className="pt-stack-lg border-t border-outline-variant mt-stack-lg">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="foil-stamp w-full rounded px-stack-md py-stack-sm font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform disabled:opacity-60"
+            >
+              {isSubmitting ? "Creating…" : status === "success" ? "Created!" : "Create Gate"}
+            </button>
+
+            {status === "error" && errorMessage && (
+              <p className="font-body text-body-md text-error mt-stack-sm">{errorMessage}</p>
+            )}
+            {done && (
+              <p className="font-label text-label-md uppercase text-primary mt-stack-sm">
+                Gate created: <a href={`/jobs/${done}`} className="underline">/jobs/{done}</a>
+              </p>
+            )}
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
@@ -358,7 +346,7 @@ export function GateForm() {
 function Field({ label, error, children }: { label: string; error?: string | undefined; children: ReactNode }) {
   return (
     <label className="block space-y-unit">
-      <span className="font-label text-label-md uppercase text-secondary">{label}</span>
+      <span className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">{label}</span>
       {children}
       {error && <span className="block font-caption italic text-error">{error}</span>}
     </label>

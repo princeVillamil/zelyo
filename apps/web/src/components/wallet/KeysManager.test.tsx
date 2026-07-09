@@ -66,19 +66,22 @@ describe("KeysManager", () => {
         new Response(JSON.stringify({ error: { message: "would orphan 2 credential(s)" } }), { status: 409 }),
       )
       .mockResolvedValueOnce(new Response("{}", { status: 200 })) as never;
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     const user = userEvent.setup();
     render(<KeysManager />);
     await user.type(screen.getByLabelText(/passphrase/i), "vault");
     await user.click(screen.getByRole("button", { name: /generate identity/i }));
 
-    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    // Wait for replacement UI to appear
+    await waitFor(() => expect(screen.getByRole("button", { name: /replace anyway/i })).toBeInTheDocument());
+    
+    // Click "Replace Anyway"
+    await user.click(screen.getByRole("button", { name: /replace anyway/i }));
+
     await waitFor(() => expect(keys.persistHolderSecret).toHaveBeenCalledWith(s, "vault"));
     // Second PUT carries force: true.
     const retryBody = (vi.mocked(global.fetch).mock.calls[1]![1] as RequestInit).body as string;
     expect(JSON.parse(retryBody)).toEqual({ idCommitment: commitment, force: true });
-    confirmSpy.mockRestore();
   });
 
   it("on 409, cancelling the confirm leaves the local secret untouched", async () => {
@@ -89,16 +92,19 @@ describe("KeysManager", () => {
     global.fetch = vi
       .fn()
       .mockResolvedValue(new Response(JSON.stringify({ error: { message: "would orphan" } }), { status: 409 })) as never;
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
 
     const user = userEvent.setup();
     render(<KeysManager />);
     await user.type(screen.getByLabelText(/passphrase/i), "vault");
     await user.click(screen.getByRole("button", { name: /generate identity/i }));
 
-    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    // Wait for replacement UI to appear
+    await waitFor(() => expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument());
+
+    // Click "Cancel"
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
     expect(keys.persistHolderSecret).not.toHaveBeenCalled();
     expect(vi.mocked(global.fetch)).toHaveBeenCalledTimes(1); // no forced retry
-    confirmSpy.mockRestore();
   });
 });

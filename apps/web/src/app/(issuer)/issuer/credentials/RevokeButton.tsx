@@ -18,14 +18,14 @@ export function RevokeButton({ credentialId }: { credentialId: string }) {
     setState("error");
   }
 
-  if (state === "done") return <span className="font-label text-label-md uppercase text-error">Revoked</span>;
+  if (state === "done") return <span className="font-label text-[11px] tracking-[0.05em] uppercase text-error">Revoked</span>;
 
   return (
     <span className="inline-flex flex-col items-end gap-unit">
       <button
         onClick={revoke}
         disabled={state === "busy"}
-        className="font-label text-label-md uppercase text-error hover:opacity-80 disabled:opacity-50"
+        className="font-label text-[11px] tracking-[0.05em] uppercase text-error hover:opacity-80 disabled:opacity-50"
       >
         {state === "busy" ? "Revoking…" : "Revoke"}
       </button>

@@ -12,7 +12,7 @@ describe("TypewriterLog", () => {
     const log = screen.getByRole("log");
     expect(log.className).toContain("typewriter");
     expect(screen.getByText(/12:00:01/)).toBeInTheDocument();
-    expect(screen.getByText(/LEAF INSERTED/)).toBeInTheDocument();
+    expect(screen.getByText(/leaf inserted/i)).toBeInTheDocument();
     expect(screen.getByText(/OK/)).toBeInTheDocument();
   });
 });

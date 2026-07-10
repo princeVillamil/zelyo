@@ -30,12 +30,15 @@ export function cspValue(isProd: boolean, nonce?: string): string {
     // bytecode by fetching a `data:application/gzip;base64,…` URL. The crs.aztec
     // hosts serve the UltraHonk SRS (g1.dat trusted-setup points) that bb.js
     // downloads on first proof — see zk:srs follow-up to self-host and drop these.
+    // Soroban RPC is required for passkey-kit smart-wallet creation.
     "connect-src": [
       "'self'",
       "data:",
       "https://crs.aztec-cdn.foundation",
       "https://crs.aztec-labs.com",
-    ],
+      process.env.NEXT_PUBLIC_PASSKEY_KIT_RPC_URL,
+      process.env.SOROBAN_RPC_URL,
+    ].filter((v): v is string => typeof v === "string" && v.length > 0),
     "worker-src": ["'self'", "blob:"],
     "frame-ancestors": ["'none'"],
     "object-src": ["'none'"],

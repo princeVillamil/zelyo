@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { KeysManager } from "@/components/wallet/KeysManager";
+import { WalletLinker } from "@/components/wallet/WalletLinker";
 
 export default async function KeysPage() {
   const session = await auth();
@@ -12,16 +13,20 @@ export default async function KeysPage() {
   });
 
   return (
-    <main className="py-stack-lg">
-      <p className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Holder Wallet</p>
-      <h1 className="font-display text-display-lg text-primary mt-stack-sm">Identity Keys</h1>
-      <p className="mt-stack-sm font-body text-body-md text-on-surface-variant">
-        Your identity secret lives only in this browser. Export a backup to keep it safe — Zelyo
-        only ever learns your public commitment.
-      </p>
-      <div className="mt-stack-lg">
-        <KeysManager initialCommitment={holderKey?.idCommitment ?? null} />
-      </div>
+    <main className="py-stack-lg space-y-stack-xl">
+      <section>
+        <p className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Holder Wallet</p>
+        <h1 className="font-display text-display-lg text-primary mt-stack-sm">Identity Keys</h1>
+        <p className="mt-stack-sm font-body text-body-md text-on-surface-variant">
+          Your identity secret lives only in this browser. Export a backup to keep it safe — Zelyo
+          only ever learns your public commitment.
+        </p>
+        <div className="mt-stack-lg">
+          <KeysManager initialCommitment={holderKey?.idCommitment ?? null} />
+        </div>
+      </section>
+
+      <WalletLinker />
     </main>
   );
 }

@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 
 const fieldHex = z.string().regex(/^0x[0-9a-f]{64}$/);
 
-const stellarAddress = z.string().regex(/^G[A-Z2-7]{55}$/);
+const stellarAddress = z.string().regex(/^[GC][A-Z2-7]{55}$/);
 
 // `.strict()` everywhere so a payload carrying `s` (or any extra key) is rejected — the secret
 // must never reach the server.

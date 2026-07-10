@@ -45,8 +45,10 @@ const EnvSchema = z.object({
   ISSUER_STELLAR_ACCOUNT: z.string().min(1),
 
   // SEP-10 web authentication
+  // SEP10_SIGNER_SECRET is optional at build time; runtime guards in sep10.service throw
+  // if the feature is used without a configured signer.
   SEP10_HOME_DOMAIN: z.string().min(1).default("localhost:3000"),
-  SEP10_SIGNER_SECRET: z.string().min(1),
+  SEP10_SIGNER_SECRET: z.string().min(1).optional(),
   SEP10_CHALLENGE_TTL_SECONDS: z.coerce.number().int().min(60).default(300),
   SEP10_JWT_MAX_AGE_SECONDS: z.coerce.number().int().min(60).default(900),
   SEP10_JWT_SECRET: z.union([z.string().min(32), z.literal("")]).optional(),

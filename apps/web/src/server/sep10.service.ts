@@ -11,8 +11,23 @@ import { env } from "@/lib/env";
 import { redis } from "@/lib/redis";
 import { AppError } from "@/lib/errors";
 
-const HOME_DOMAIN_KEY = `${env.SEP10_HOME_DOMAIN} auth`;
 const WEB_AUTH_DOMAIN_KEY = "web_auth_domain";
+
+/** Lazily build the SEP-10 ManageData key from the configured home domain.
+ *  This must not run at module load time, because `env` parsing would fail
+ *  during `next build` when server secrets are not available. */
+function homeDomainKey(): string {
+  return `${env.SEP10_HOME_DOMAIN} auth`;
+}
+
+/** Load and validate the SEP-10 server signer key at runtime. */
+function getSep10Signer(): Keypair {
+  const secret = env.SEP10_SIGNER_SECRET;
+  if (!secret) {
+    throw new AppError("SEP10_NOT_CONFIGURED", 500, "SEP-10 signer secret is not configured.");
+  }
+  return Keypair.fromSecret(secret);
+}
 
 /** Read the SEP-10 JWT secret, falling back to AUTH_SECRET. */
 function jwtSecret(): ArrayBuffer {
@@ -57,10 +72,11 @@ async function buildSep10Jwt(account: string, nonce: Buffer): Promise<string> {
 
 /** Extract the 48-byte nonce from a SEP-10 challenge transaction. */
 function extractNonce(tx: Transaction): Buffer {
+  const key = homeDomainKey();
   const nonceOp = tx.operations.find((op) => {
     if (op.type !== "manageData") return false;
     const md = op as ManageDataOperation;
-    return md.name === HOME_DOMAIN_KEY;
+    return md.name === key;
   }) as ManageDataOperation | undefined;
   if (!nonceOp || !nonceOp.value || nonceOp.value.length !== 48) {
     throw new AppError("INVALID_CHALLENGE", 400, "Challenge missing valid nonce.");
@@ -89,7 +105,7 @@ export async function buildChallenge(clientAccount: string): Promise<string> {
     throw new AppError("INVALID_ACCOUNT", 400, "Account must be a Stellar public key.");
   }
 
-  const signer = Keypair.fromSecret(env.SEP10_SIGNER_SECRET);
+  const signer = getSep10Signer();
   const serverAccount = signer.publicKey();
   const nonce = crypto.getRandomValues(new Uint8Array(48));
   const now = Math.floor(Date.now() / 1000);
@@ -109,7 +125,7 @@ export async function buildChallenge(clientAccount: string): Promise<string> {
   )
     .addOperation(
       Operation.manageData({
-        name: HOME_DOMAIN_KEY,
+        name: homeDomainKey(),
         value: Buffer.from(nonce),
         source: clientAccount,
       }),
@@ -136,7 +152,7 @@ export async function verifyChallenge(signedXdr: string): Promise<{ account: str
     throw new AppError("INVALID_INPUT", 400, "Signed transaction XDR is required.");
   }
 
-  const signer = Keypair.fromSecret(env.SEP10_SIGNER_SECRET);
+  const signer = getSep10Signer();
   const serverAccount = signer.publicKey();
 
   let tx: Transaction;
@@ -167,10 +183,11 @@ export async function verifyChallenge(signedXdr: string): Promise<{ account: str
   }
 
   // 4. Validate ManageData operations.
+  const domainKey = homeDomainKey();
   const domainOp = tx.operations.find((op) => {
     if (op.type !== "manageData") return false;
     const md = op as ManageDataOperation;
-    return md.name === HOME_DOMAIN_KEY && md.source !== serverAccount;
+    return md.name === domainKey && md.source !== serverAccount;
   }) as ManageDataOperation | undefined;
   if (!domainOp) {
     throw new AppError("INVALID_CHALLENGE", 400, "Challenge missing domain auth operation.");

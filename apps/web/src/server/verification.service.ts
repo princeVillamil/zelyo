@@ -143,6 +143,8 @@ export async function verifyAndRegister({
     }
 
     let txHash: string;
+    const sponsor = env.USE_CHANNELS ? ("channels" as const) : undefined;
+    const sponsorArgs = sponsor ? [{ sponsor }] : [];
     try {
       if (env.ZK_VERIFY_MODE === "server") {
         // Path B: verify the proof off-chain, then register the server-attested result.
@@ -150,10 +152,10 @@ export async function verifyAndRegister({
           await runMirror("INVALID_PROOF");
           return { ok: false, result: "INVALID_PROOF" };
         }
-        ({ txHash } = await submitRegister(bundle.publicInputs, boundStellarAddress));
+        ({ txHash } = await submitRegister(bundle.publicInputs, boundStellarAddress, ...sponsorArgs));
       } else {
         // Path A: contract verifies the proof on-chain then enforces the checks.
-        ({ txHash } = await submitVerifyAndRegister(bundle, boundStellarAddress));
+        ({ txHash } = await submitVerifyAndRegister(bundle, boundStellarAddress, ...sponsorArgs));
       }
     } catch (err) {
       const mapped = mapContractError(err);

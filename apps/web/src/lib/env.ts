@@ -58,6 +58,11 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE: z.string().min(1).optional(),
   NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH: z.string().min(1).optional(),
 
+  // OpenZeppelin Stellar Channels fee sponsorship for gasless verify/claim transactions
+  USE_CHANNELS: boolish.default(false),
+  CHANNELS_URL: z.string().url().optional(),
+  CHANNELS_API_KEY: z.string().min(1).optional(),
+
   // Feature gates (client-readable)
   NEXT_PUBLIC_SEP45_ENABLED: boolish.default(false),
 

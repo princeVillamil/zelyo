@@ -34,10 +34,18 @@ vi.mock("../../lib/stellar", () => ({
   setVerifiedFlag,
   isContractAddress: (addr: string) => addr.startsWith("C"),
 }));
+vi.mock("../../lib/env", () => ({
+  env: {
+    USE_CHANNELS: false,
+    ISSUER_STELLAR_ACCOUNT: "GISSUER",
+    LOG_LEVEL: "silent",
+  },
+}));
 vi.mock("../../lib/explorer", () => ({ explorerTxUrl: vi.fn((txHash: string) => `https://explorer.test/tx/${txHash}`) }));
 
 import { claimGate } from "../jobgate.service";
 import type { FieldHex } from "@zelyo/zk-shared";
+import { env } from "../../lib/env";
 
 const NULL = "0xnull" as FieldHex;
 
@@ -186,6 +194,25 @@ describe("claimGate", () => {
     expect(issuePayment).not.toHaveBeenCalled();
     expect(issueClaimableBalance).not.toHaveBeenCalled();
     expect(res.txHash).toBe("SOROTX");
+  });
+
+  it("passes sponsor option when USE_CHANNELS is enabled", async () => {
+    (env as { USE_CHANNELS: boolean }).USE_CHANNELS = true;
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    issueClaimableBalance.mockResolvedValue({ txHash: "CBTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+
+    expect(issueClaimableBalance).toHaveBeenCalledWith(
+      "GHOLDER",
+      { code: "ZELYO", issuer: "GISSUER", amount: "1" },
+      { sponsor: "channels" },
+    );
+    expect(res.txHash).toBe("CBTX");
+    (env as { USE_CHANNELS: boolean }).USE_CHANNELS = false;
   });
 
   it("flips the verified flag for a FLAG gate", async () => {

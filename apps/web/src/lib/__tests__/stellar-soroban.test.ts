@@ -49,7 +49,7 @@ vi.mock("@stellar/stellar-sdk", () => {
         return this;
       }
       build() {
-        return { sign: vi.fn(), hash: () => Buffer.alloc(32) };
+        return { sign: vi.fn(), hash: () => Buffer.alloc(32), toEnvelope: () => ({ toXDR: () => "MOCKXDR" }) };
       }
     },
     BASE_FEE: "100",
@@ -57,6 +57,12 @@ vi.mock("@stellar/stellar-sdk", () => {
     nativeToScVal: (v: unknown, opts?: { type?: string }) => ({ value: v, type: opts?.type }),
   };
 });
+
+const submitSponsored = vi.fn(async () => ({ hash: "LAUNCHHASH" }));
+
+vi.mock("../channels", () => ({
+  submitSponsored,
+}));
 
 vi.mock("../env", () => ({
   env: {
@@ -88,6 +94,7 @@ describe("stellar helpers", () => {
 describe("issueSorobanAsset", () => {
   beforeEach(() => {
     sendTransaction.mockClear();
+    submitSponsored.mockClear();
     lastContractCall = null;
   });
 
@@ -112,5 +119,15 @@ describe("issueSorobanAsset", () => {
     expect(lastContractCall?.args[0]).toEqual({ address: "GISSUER" });
     expect(lastContractCall?.args[1]).toEqual({ address: cAddress });
     expect(lastContractCall?.args[2]).toEqual({ value: 100_000_000n, type: "i128" });
+  });
+
+  it("submits via OpenZeppelin Channels when sponsor option is set", async () => {
+    const { issueSorobanAsset } = await import("../stellar");
+    const cAddress = `C${"A".repeat(55)}`;
+    const res = await issueSorobanAsset(cAddress, { code: "ZELYO", issuer: "GISSUER", amount: "2.5" }, { sponsor: "channels" });
+
+    expect(submitSponsored).toHaveBeenCalledTimes(1);
+    expect(sendTransaction).not.toHaveBeenCalled();
+    expect(res.txHash).toBe("LAUNCHHASH");
   });
 });

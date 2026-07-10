@@ -5,11 +5,17 @@ const {
   loadAccount,
   createClaimableBalance,
   payment,
+  submitSponsored,
 } = vi.hoisted(() => ({
   submitTransaction: vi.fn(),
   loadAccount: vi.fn(),
   createClaimableBalance: vi.fn(() => ({ __op: "cb" })),
   payment: vi.fn(() => ({ __op: "payment" })),
+  submitSponsored: vi.fn().mockResolvedValue({ hash: "LAUNCHHASH" }),
+}));
+
+vi.mock("../channels", () => ({
+  submitSponsored,
 }));
 
 vi.mock("@stellar/stellar-sdk", () => {
@@ -60,7 +66,7 @@ vi.mock("@stellar/stellar-sdk", () => {
         return this;
       }
       build() {
-        return { sign: vi.fn(), hash: () => Buffer.from("hh") };
+        return { sign: vi.fn(), hash: () => Buffer.from("hh"), toEnvelope: () => ({ toXDR: () => "MOCKXDR" }) };
       }
     },
     BASE_FEE: "100",
@@ -82,6 +88,8 @@ import { issueClaimableBalance, issuePayment } from "../stellar";
 
 beforeEach(() => {
   submitTransaction.mockReset();
+  submitSponsored.mockClear();
+  submitSponsored.mockResolvedValue({ hash: "LAUNCHHASH" });
   loadAccount.mockReset();
   createClaimableBalance.mockClear();
   payment.mockClear();
@@ -109,6 +117,14 @@ describe("issueClaimableBalance", () => {
     expect(calls[0]?.[0]?.asset).toEqual({ __native: true });
     expect(res).toEqual({ txHash: "NATIVETX" });
   });
+
+  it("submits via OpenZeppelin Channels when sponsor option is set", async () => {
+    loadAccount.mockResolvedValue({ accountId: () => "GISSUER" });
+    const res = await issueClaimableBalance("GHOLDER", { code: "ZELYO", issuer: "GISSUER", amount: "1" }, { sponsor: "channels" });
+    expect(submitSponsored).toHaveBeenCalledTimes(1);
+    expect(submitTransaction).not.toHaveBeenCalled();
+    expect(res).toEqual({ txHash: "LAUNCHHASH" });
+  });
 });
 
 describe("issuePayment", () => {
@@ -122,5 +138,13 @@ describe("issuePayment", () => {
     expect(calls[0]?.[0]?.amount).toBe("10");
     expect(calls[0]?.[0]?.asset).toEqual({ __native: true });
     expect(res).toEqual({ txHash: "PAYTX" });
+  });
+
+  it("submits via OpenZeppelin Channels when sponsor option is set", async () => {
+    loadAccount.mockResolvedValue({ accountId: () => "GISSUER" });
+    const res = await issuePayment("GHOLDER", { code: "XLM", issuer: "", amount: "10" }, { sponsor: "channels" });
+    expect(submitSponsored).toHaveBeenCalledTimes(1);
+    expect(submitTransaction).not.toHaveBeenCalled();
+    expect(res).toEqual({ txHash: "LAUNCHHASH" });
   });
 });

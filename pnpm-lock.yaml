@@ -59,6 +59,9 @@ importers:
       '@noir-lang/noir_wasm':
         specifier: 1.0.0-beta.22
         version: 1.0.0-beta.22
+      '@openzeppelin/relayer-plugin-channels':
+        specifier: ^0.20.0
+        version: 0.20.0
       '@prisma/adapter-pg':
         specifier: 7.8.0
         version: 7.8.0
@@ -1352,6 +1355,10 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@openzeppelin/relayer-plugin-channels@0.20.0':
+    resolution: {integrity: sha512-buZ0Xcir1mPcevMBU3vzbq4v77YUsikWX+E1k31YxdE6p97GEn40RnxNzow/eLNVnS3WNwYZ1SuEZgsQE7KHAg==}
+    engines: {node: '>=22.18.0', npm: use pnpm, pnpm: '>=9', yarn: use pnpm}
 
   '@openzeppelin/relayer-plugin-channels@0.5.0':
     resolution: {integrity: sha512-mn8TklTFwwqKVVOjYQtJGGX/8IKJwg4hbwfAsz7kvb5L5EhjJzwCjgfT84TL6ZVmHb7DoQ6h2lPgNussDiHy5g==}
@@ -5739,6 +5746,16 @@ snapshots:
   '@noir-lang/types@1.0.0-beta.22': {}
 
   '@nolyfill/is-core-module@1.0.39': {}
+
+  '@openzeppelin/relayer-plugin-channels@0.20.0':
+    dependencies:
+      '@actions/exec': 1.1.1
+      '@openzeppelin/relayer-sdk': 1.10.0
+      '@stellar/stellar-sdk': 14.6.1
+      axios: 1.16.1
+    transitivePeerDependencies:
+      - debug
+      - supports-color
 
   '@openzeppelin/relayer-plugin-channels@0.5.0':
     dependencies:

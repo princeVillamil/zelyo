@@ -20,6 +20,7 @@ import {
 import type { FieldHex, ProofBundle, PublicInputs } from "@zelyo/zk-shared";
 import { env } from "./env";
 import { AppError } from "./errors";
+import { submitSponsored } from "./channels";
 
 export class ContractError extends Error {
   constructor(
@@ -60,6 +61,48 @@ export function toStroops(amount: string): bigint {
   const absWhole = whole.replace(/^-/, "") || "0";
   const frac = fraction.padEnd(7, "0").slice(0, 7);
   return BigInt(`${sign}${absWhole}${frac}`);
+}
+
+/** Option to route a transaction through a fee sponsor instead of direct RPC/Horizon. */
+export type SponsorOption = { sponsor?: "channels" };
+
+/** Submit a Soroban transaction directly or via Launchtube fee sponsorship, then poll. */
+async function submitSorobanSponsoredOrDirect(
+  tx: Transaction,
+  opts?: SponsorOption,
+): Promise<{ txHash: string }> {
+  if (opts?.sponsor === "channels") {
+    const xdr = tx.toEnvelope().toXDR("base64");
+    const result = await submitSponsored(xdr);
+    const polled = await pollTransaction(result.hash);
+    if (polled.status !== "SUCCESS") {
+      throw new Error(`Soroban transaction failed after Channels submission: ${polled.status}`);
+    }
+    return { txHash: result.hash };
+  }
+
+  const sent = await rpcServer.sendTransaction(tx);
+  const result = await pollTransaction(sent.hash);
+  if (result.status !== "SUCCESS") {
+    throw new Error(`Soroban transaction failed: ${result.status}`);
+  }
+  return { txHash: sent.hash };
+}
+
+/** Submit a classic Stellar transaction directly via Horizon or via Launchtube fee sponsorship. */
+async function submitClassicSponsoredOrDirect(
+  tx: Transaction,
+  opts?: SponsorOption,
+): Promise<{ txHash: string }> {
+  if (opts?.sponsor === "channels") {
+    const xdr = tx.toEnvelope().toXDR("base64");
+    const result = await submitSponsored(xdr);
+    return { txHash: result.hash };
+  }
+
+  const server = new Horizon.Server(env.HORIZON_URL);
+  const res = await server.submitTransaction(tx);
+  return { txHash: res.hash };
 }
 
 /** Build an ScVal map matching the contract's `PublicInputsXdr` struct. */
@@ -171,6 +214,7 @@ async function pollTransaction(
 export async function submitRegister(
   pi: PublicInputs,
   boundStellarAddress: string,
+  opts?: SponsorOption,
 ): Promise<{ txHash: string }> {
   const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
   const source = await rpcServer.getAccount(issuerKeypair.publicKey());
@@ -193,10 +237,9 @@ export async function submitRegister(
   tx = await rpcServer.prepareTransaction(tx);
   tx.sign(issuerKeypair);
 
-  const sent = await rpcServer.sendTransaction(tx);
-  const result = await pollTransaction(sent.hash);
-
-  if (result.status !== "SUCCESS") {
+  try {
+    return await submitSorobanSponsoredOrDirect(tx, opts);
+  } catch (err) {
     // Re-check chain state to map the failure reason for the UI.
     if (!(await isRootValid(pi.root))) {
       throw new ContractError("UnknownRoot");
@@ -206,8 +249,6 @@ export async function submitRegister(
     }
     throw new ContractError("InvalidProof");
   }
-
-  return { txHash: sent.hash };
 }
 
 /** Submit `CredentialRegistry.verify_and_register(proof, pi, holder)` signed by ISSUER_SECRET (Path A).
@@ -218,6 +259,7 @@ export async function submitRegister(
 export async function submitVerifyAndRegister(
   bundle: ProofBundle,
   boundStellarAddress: string,
+  opts?: SponsorOption,
 ): Promise<{ txHash: string }> {
   const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
   const source = await rpcServer.getAccount(issuerKeypair.publicKey());
@@ -240,10 +282,9 @@ export async function submitVerifyAndRegister(
   tx = await rpcServer.prepareTransaction(tx);
   tx.sign(issuerKeypair);
 
-  const sent = await rpcServer.sendTransaction(tx);
-  const result = await pollTransaction(sent.hash);
-
-  if (result.status !== "SUCCESS") {
+  try {
+    return await submitSorobanSponsoredOrDirect(tx, opts);
+  } catch (err) {
     // Re-check chain state to map the failure reason for the UI.
     if (!(await isRootValid(bundle.publicInputs.root))) {
       throw new ContractError("UnknownRoot");
@@ -253,15 +294,13 @@ export async function submitVerifyAndRegister(
     }
     throw new ContractError("InvalidProof");
   }
-
-  return { txHash: sent.hash };
 }
 
 /**
  * Publish a Merkle root on-chain via CredentialRegistry.set_root(issuer, root).
  * Signed server-side with ISSUER_SECRET. Returns the submitted tx hash.
  */
-export async function publishRoot(rootHex: FieldHex): Promise<{ txHash: string }> {
+export async function publishRoot(rootHex: FieldHex, opts?: SponsorOption): Promise<{ txHash: string }> {
   const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
   const source = await rpcServer.getAccount(issuerKeypair.publicKey());
 
@@ -282,8 +321,7 @@ export async function publishRoot(rootHex: FieldHex): Promise<{ txHash: string }
   tx = await rpcServer.prepareTransaction(tx);
   tx.sign(issuerKeypair);
 
-  const sent = await rpcServer.sendTransaction(tx);
-  return { txHash: sent.hash };
+  return submitSorobanSponsoredOrDirect(tx, opts);
 }
 
 /** Issue a direct payment of `asset` to `boundAddress`. Signed by ISSUER_SECRET.
@@ -293,6 +331,7 @@ export async function publishRoot(rootHex: FieldHex): Promise<{ txHash: string }
 export async function issuePayment(
   boundAddress: string,
   asset: { code: string; issuer: string; amount: string },
+  opts?: SponsorOption,
 ): Promise<{ txHash: string }> {
   const server = new Horizon.Server(env.HORIZON_URL);
   const source = await server.loadAccount(issuerKeypair.publicKey());
@@ -311,14 +350,14 @@ export async function issuePayment(
     .setTimeout(60)
     .build();
   tx.sign(issuerKeypair);
-  const res = await server.submitTransaction(tx);
-  return { txHash: res.hash };
+  return submitClassicSponsoredOrDirect(tx, opts);
 }
 
 /** Issue a testnet claimable balance of `asset` claimable by `boundAddress`. Signed by ISSUER_SECRET. */
 export async function issueClaimableBalance(
   boundAddress: string,
   asset: { code: string; issuer: string; amount: string },
+  opts?: SponsorOption,
 ): Promise<{ txHash: string }> {
   const server = new Horizon.Server(env.HORIZON_URL);
   const source = await server.loadAccount(issuerKeypair.publicKey());
@@ -340,8 +379,7 @@ export async function issueClaimableBalance(
     .setTimeout(60)
     .build();
   tx.sign(issuerKeypair);
-  const res = await server.submitTransaction(tx);
-  return { txHash: res.hash };
+  return submitClassicSponsoredOrDirect(tx, opts);
 }
 
 /**
@@ -354,6 +392,7 @@ export async function issueClaimableBalance(
 export async function issueSorobanAsset(
   boundAddress: string,
   asset: { code: string; issuer: string; amount: string },
+  opts?: SponsorOption,
 ): Promise<{ txHash: string }> {
   const stellarAsset = asset.issuer ? new Asset(asset.code, asset.issuer) : Asset.native();
   const contract = new Contract(stellarAsset.contractId(env.NETWORK_PASSPHRASE));
@@ -380,18 +419,16 @@ export async function issueSorobanAsset(
   tx = await rpcServer.prepareTransaction(tx);
   tx.sign(issuerKeypair);
 
-  const sent = await rpcServer.sendTransaction(tx);
-  const result = await pollTransaction(sent.hash);
-  if (result.status !== "SUCCESS") {
-    throw new Error(`Soroban reward ${isIssuerAsset ? "mint" : "transfer"} failed`);
-  }
-  return { txHash: sent.hash };
+  return submitSorobanSponsoredOrDirect(tx, opts);
 }
 
 /** Flip is_verified(address)=true on the registry contract. Signed by ISSUER_SECRET.
  *  NOTE: the CredentialRegistry contract currently has no `set_verified` method;
  *  this helper is preserved for when the contract is extended. */
-export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: string }> {
+export async function setVerifiedFlag(
+  boundAddress: string,
+  opts?: SponsorOption,
+): Promise<{ txHash: string }> {
   const source = await rpcServer.getAccount(issuerKeypair.publicKey());
   const contract = new Contract(env.CREDENTIAL_REGISTRY_CONTRACT_ID);
   const built = new TransactionBuilder(source, {
@@ -409,8 +446,7 @@ export async function setVerifiedFlag(boundAddress: string): Promise<{ txHash: s
     .build();
   const prepared = await rpcServer.prepareTransaction(built);
   prepared.sign(issuerKeypair);
-  const sent = await rpcServer.sendTransaction(prepared);
-  return { txHash: sent.hash };
+  return submitSorobanSponsoredOrDirect(prepared, opts);
 }
 
 /** Re-sign an existing transaction envelope (base64 XDR) with ISSUER_SECRET.

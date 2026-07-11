@@ -21,6 +21,8 @@ export const limiters = {
   claim: make("rl:claim", 20),
   sep12: make("rl:sep12", 30),
   sep8: make("rl:sep8", 30),
+  sep10: make("rl:sep10", 30),
+  holderWallet: make("rl:holderWallet", 20),
 };
 
 export class RateLimitError extends AppError {

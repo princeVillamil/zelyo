@@ -3,8 +3,9 @@ import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { db } from "../lib/db";
 import { env } from "../lib/env";
-import { issueClaimableBalance, issuePayment, setVerifiedFlag } from "../lib/stellar";
+import { issueClaimableBalance, issuePayment, issueSorobanAsset, setVerifiedFlag } from "../lib/stellar";
 import { explorerTxUrl } from "../lib/explorer";
+import { isContractAddress } from "../lib/stellar";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 
@@ -164,18 +165,26 @@ export async function claimGate(
   }
 
   let rewardTxHash: string;
+  const sponsor = env.USE_CHANNELS ? ("channels" as const) : undefined;
+  const sponsorArgs = sponsor ? [{ sponsor }] : [];
   try {
     if (gate.rewardType === "CLAIMABLE_BALANCE" || gate.rewardType === "REGULATED_ASSET") {
       const cfg = rewardConfigSchema.parse(gate.rewardConfig);
       if (!cfg.asset) throw new AppError("GATE_MISCONFIGURED", 500, "Gate reward asset missing.");
-      // Native XLM (empty issuer) lands immediately via direct payment. Custom assets
-      // still use claimable balances; a holder-signed claim step could be added later.
-      const isNativeXlm = cfg.asset.code === "XLM" && !cfg.asset.issuer;
-      ({ txHash: rewardTxHash } = isNativeXlm
-        ? await issuePayment(boundAddress, cfg.asset)
-        : await issueClaimableBalance(boundAddress, cfg.asset));
+      // Soroban smart wallets (C...) cannot receive classic payments or claimable balances,
+      // so route them through the asset's Stellar Asset Contract instead.
+      if (isContractAddress(boundAddress)) {
+        ({ txHash: rewardTxHash } = await issueSorobanAsset(boundAddress, cfg.asset, ...sponsorArgs));
+      } else {
+        // Native XLM (empty issuer) lands immediately via direct payment. Custom assets
+        // still use claimable balances; a holder-signed claim step could be added later.
+        const isNativeXlm = cfg.asset.code === "XLM" && !cfg.asset.issuer;
+        ({ txHash: rewardTxHash } = isNativeXlm
+          ? await issuePayment(boundAddress, cfg.asset, ...sponsorArgs)
+          : await issueClaimableBalance(boundAddress, cfg.asset, ...sponsorArgs));
+      }
     } else if (gate.rewardType === "FLAG") {
-      ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress));
+      ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress, ...sponsorArgs));
     } else {
       throw new AppError("GATE_MISCONFIGURED", 500, "Unknown reward type.");
     }

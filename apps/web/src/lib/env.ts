@@ -44,6 +44,28 @@ const EnvSchema = z.object({
   ISSUER_NAME: z.string().min(1),
   ISSUER_STELLAR_ACCOUNT: z.string().min(1),
 
+  // SEP-10 web authentication
+  // SEP10_SIGNER_SECRET is optional at build time; runtime guards in sep10.service throw
+  // if the feature is used without a configured signer.
+  SEP10_HOME_DOMAIN: z.string().min(1).default("localhost:3000"),
+  SEP10_SIGNER_SECRET: z.string().min(1).optional(),
+  SEP10_CHALLENGE_TTL_SECONDS: z.coerce.number().int().min(60).default(300),
+  SEP10_JWT_MAX_AGE_SECONDS: z.coerce.number().int().min(60).default(900),
+  SEP10_JWT_SECRET: z.union([z.string().min(32), z.literal("")]).optional(),
+
+  // Passkey-kit smart wallets (client-side config)
+  NEXT_PUBLIC_PASSKEY_KIT_RPC_URL: z.string().url().optional(),
+  NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE: z.string().min(1).optional(),
+  NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH: z.string().min(1).optional(),
+
+  // OpenZeppelin Stellar Channels fee sponsorship for gasless verify/claim transactions
+  USE_CHANNELS: boolish.default(false),
+  CHANNELS_URL: z.string().url().optional(),
+  CHANNELS_API_KEY: z.string().min(1).optional(),
+
+  // Feature gates (client-readable)
+  NEXT_PUBLIC_SEP45_ENABLED: boolish.default(false),
+
   NEXT_PUBLIC_EXPLORER_BASE: z.string().url().optional(),
 });
 

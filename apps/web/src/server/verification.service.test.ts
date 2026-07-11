@@ -12,7 +12,16 @@ vi.mock("@/lib/stellar", () => ({
   submitRegister: vi.fn(),
   verifyProofOffchain: vi.fn(),
 }));
-vi.mock("@/lib/env", () => ({ env: { ZK_VERIFY_MODE: "onchain", NEXT_PUBLIC_EXPLORER_BASE: "https://explorer.test", LOG_LEVEL: "silent" } }));
+vi.mock("@/lib/env", () => ({
+  env: {
+    ZK_VERIFY_MODE: "onchain",
+    NEXT_PUBLIC_EXPLORER_BASE: "https://explorer.test",
+    LOG_LEVEL: "silent",
+    USE_CHANNELS: false,
+    CHANNELS_URL: undefined,
+    CHANNELS_API_KEY: undefined,
+  },
+}));
 vi.mock("@/lib/db", () => ({
   db: {
     nullifier: { create: vi.fn().mockResolvedValue({}) },
@@ -107,6 +116,24 @@ describe("verifyAndRegister", () => {
     expect(r).toMatchObject({ ok: false, result: "INVALID_PROOF" });
     expect(stellar.submitRegister).not.toHaveBeenCalled();
     (env as { ZK_VERIFY_MODE: string }).ZK_VERIFY_MODE = "onchain";
+  });
+
+  it("Path B: passes sponsor option when USE_CHANNELS is enabled", async () => {
+    (env as { ZK_VERIFY_MODE: string; USE_CHANNELS: boolean }).ZK_VERIFY_MODE = "server";
+    (env as { ZK_VERIFY_MODE: string; USE_CHANNELS: boolean }).USE_CHANNELS = true;
+    vi.mocked(stellar.isRootValid).mockResolvedValue(true);
+    vi.mocked(stellar.isNullifierUsed).mockResolvedValue(false);
+    vi.mocked(stellar.verifyProofOffchain).mockResolvedValue(true);
+    vi.mocked(stellar.submitRegister).mockResolvedValue({ txHash: "TXCH" });
+
+    const r = await verifyAndRegister(input);
+
+    expect(stellar.submitRegister).toHaveBeenCalledWith(bundle.publicInputs, boundStellarAddress, {
+      sponsor: "channels",
+    });
+    expect(r).toMatchObject({ ok: true, result: "VERIFIED", txHash: "TXCH" });
+    (env as { ZK_VERIFY_MODE: string; USE_CHANNELS: boolean }).ZK_VERIFY_MODE = "onchain";
+    (env as { ZK_VERIFY_MODE: string; USE_CHANNELS: boolean }).USE_CHANNELS = false;
   });
 
   it("ERROR on unexpected failure", async () => {

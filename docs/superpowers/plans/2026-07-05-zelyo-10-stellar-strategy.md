@@ -20,7 +20,7 @@
 - [x] **Phase 10 Prerequisites** — Verified 2026-07-06: Tasks 9.6, 9.7, 4.1/4.2, 7.7, 7.1 are implemented and their targeted unit tests pass. See audit notes below.
 - [-] **Task 10.1 — Native On-Chain Verification (Path A)** — Partial / blocked on testnet capabilities. The wiring (`submitVerifyAndRegister`, `verify_and_register`) is in place, and the dishonest verifier stub has been corrected to return `false` for all proofs. `ZK_VERIFY_MODE` is reverted to `server` in `.env`, the Path A registry test now expects `InvalidProof`, and `docs/features.md` has been corrected. Real on-chain UltraHonk verification is not possible on the current Soroban testnet (protocol 27) per the Phase 0 decision record `docs/superpowers/decisions/zk-verify-mode.md`.
 - [x] **Task 10.2 — Reusable-KYC for Anchors (SEP-12)** — Implemented 2026-07-06: SEP-12 customer API (`/api/sep12/customer`) with GET/PUT, `Sep12Customer` schema/migration, ZK verification binding, rate limiting, audit logging, and unit tests.
-- [ ] **Task 10.3 — Passkeys & Gasless Transactions (Launchtube)**
+- [x] **Task 10.3 — Passkeys & Gasless Transactions (OpenZeppelin Stellar Channels)**
 - [x] **Task 10.4 — Token-Gated Rewards & Asset Controls (SEP-8)** — Implemented 2026-07-07. SEP-8 approval server, `REGULATED_ASSET` reward type, auto-generated gate slug, and tests. See detailed breakdown below.
 
 ---
@@ -53,7 +53,7 @@ HOLDER (WASM Prover)                 API SERVER / GATEWAY                  SOROB
 - Modified: [contracts/credential_registry](file:///Users/jeffreyvillamil/Desktop/theblokc/zelyo/contracts/credential_registry) — wire verification logic to `verify_and_register`
 - Create: `apps/web/src/app/api/sep12/route.ts` — mock/draft endpoint for SEP-12 KYC collections
 - Create: `apps/web/src/lib/passkey.ts` — configuration helper for `passkey-kit`
-- Create: `apps/web/src/lib/launchtube.ts` — fee-sponsorship integration
+- Create: `apps/web/src/lib/channels.ts` — fee-sponsorship integration via OpenZeppelin Stellar Channels
 
 ---
 

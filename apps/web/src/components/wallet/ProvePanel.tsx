@@ -8,6 +8,13 @@ import { proveCredential, ProverError } from "@/lib/prover.client";
 import { FoilStampButton } from "@/components/FoilStampButton";
 import { TypewriterLog, type LogLine } from "@/components/TypewriterLog";
 
+export interface LinkedWallet {
+  id: string;
+  type: "STELLAR_ACCOUNT" | "PASSKEY_SMART_WALLET";
+  address: string;
+  isDefault: boolean;
+}
+
 export interface ProvePanelCredential {
   id: string;
   attributes: Attributes;
@@ -29,10 +36,19 @@ const RESULT_COPY: Record<string, string> = {
   ERROR: "The verification could not be completed. Please try again.",
 };
 
-export function ProvePanel({ credential, gate }: { credential: ProvePanelCredential; gate?: string | undefined }) {
+export function ProvePanel({
+  credential,
+  gate,
+  linkedWallets,
+}: {
+  credential: ProvePanelCredential;
+  gate?: string | undefined;
+  linkedWallets: LinkedWallet[];
+}) {
   const router = useRouter();
   // Default: reveal only `track`; name/grade hidden.
   const [disclose, setDisclose] = useState<Partial<Record<keyof Attributes, boolean>>>({ track: true });
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [lines, setLines] = useState<LogLine[]>([]);
@@ -42,7 +58,16 @@ export function ProvePanel({ credential, gate }: { credential: ProvePanelCredent
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    // Auto-select the default wallet (or first linked wallet) on mount.
+    if (linkedWallets.length > 0 && !selectedWalletId) {
+      const defaultWallet = linkedWallets.find((w) => w.isDefault) ?? linkedWallets[0]!;
+      setSelectedWalletId(defaultWallet.id);
+      setAddress(defaultWallet.address);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const selectedWallet = linkedWallets.find((w) => w.id === selectedWalletId);
 
   const log = (event: string, status = "OK") => {
     const time = new Date().toISOString().slice(11, 19);
@@ -152,17 +177,56 @@ export function ProvePanel({ credential, gate }: { credential: ProvePanelCredent
         </fieldset>
 
         <div className="mt-stack-md">
-          <label className="font-label text-label-md uppercase text-secondary" htmlFor="addr">
-            Stellar Address
-          </label>
-          <input
-            id="addr"
-            aria-label="Stellar Address"
-            className="mt-unit w-full border-b border-outline bg-transparent font-mono text-body-md focus:border-primary focus:outline-none"
-            placeholder="G…"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
+          <p className="font-label text-label-md uppercase text-secondary">Linked Wallet</p>
+          {linkedWallets.length === 0 ? (
+            <div className="mt-unit rounded border border-outline-variant bg-surface-container-lowest p-stack-md">
+              <p className="font-body text-body-md text-on-surface-variant">
+                No wallet is linked to your account. You need a linked Stellar or passkey wallet to
+                bind this proof to an address.
+              </p>
+              <a
+                href="/wallet/keys"
+                className="mt-stack-sm inline-block font-label text-label-md uppercase text-primary hover:underline"
+              >
+                Link a wallet →
+              </a>
+            </div>
+          ) : (
+            <>
+              <div className="mt-unit rounded border border-outline-variant bg-surface-container-lowest p-stack-md">
+                <p className="font-label text-caption uppercase text-secondary">
+                  {selectedWallet?.type === "PASSKEY_SMART_WALLET"
+                    ? "Passkey Smart Wallet"
+                    : "Stellar Account"}
+                  {selectedWallet?.isDefault && (
+                    <span className="ml-stack-sm text-primary">· Default</span>
+                  )}
+                </p>
+                <p className="font-mono text-caption text-primary break-all">{selectedWallet?.address}</p>
+              </div>
+              {linkedWallets.length > 1 && (
+                <div className="mt-stack-sm flex flex-wrap gap-stack-sm">
+                  {linkedWallets.map((wallet) => (
+                    <button
+                      key={wallet.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedWalletId(wallet.id);
+                        setAddress(wallet.address);
+                      }}
+                      className={`rounded border px-stack-sm py-unit font-mono text-caption transition-colors ${
+                        wallet.id === selectedWalletId
+                          ? "border-primary bg-primary-container text-on-primary-container"
+                          : "border-outline-variant bg-surface-container text-on-surface hover:bg-surface-container-high"
+                      }`}
+                    >
+                      {wallet.address.slice(0, 6)}…{wallet.address.slice(-6)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="mt-stack-md">
@@ -182,7 +246,7 @@ export function ProvePanel({ credential, gate }: { credential: ProvePanelCredent
 
         <FoilStampButton
           className="mt-stack-lg"
-          disabled={!mounted || busy || !address || !passphrase}
+          disabled={!mounted || busy || !selectedWallet || !passphrase}
           onClick={onGenerate}
         >
           {busy ? "Sealing…" : "Generate ZK-Proof"}

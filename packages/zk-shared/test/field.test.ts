@@ -32,4 +32,18 @@ describe("field helpers", () => {
     expect(a).toMatch(/^0x[0-9a-f]{64}$/);
     expect(fieldHexToBigInt(a)).toBeLessThan(BN254_MODULUS);
   });
+
+  it("encodes a Soroban C-address (contract ID) to a field deterministically and within range", () => {
+    const c = "CAHX5B3TNCIJKMJE4BZPJH7NGEEM6GW3ZPXZECK6ZO6BLHIRRA2HSU6Q";
+    const a = encodeAddressToField(c);
+    const b = encodeAddressToField(c);
+    expect(a).toBe(b);
+    expect(a).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(fieldHexToBigInt(a)).toBeLessThan(BN254_MODULUS);
+  });
+
+  it("rejects invalid or non-Stellar addresses", () => {
+    expect(() => encodeAddressToField("not-an-address")).toThrow();
+    expect(() => encodeAddressToField("")).toThrow();
+  });
 });

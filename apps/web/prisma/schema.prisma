@@ -24,14 +24,20 @@ enum VerificationResult {
   ERROR
 }
 
+enum WalletType {
+  STELLAR_ACCOUNT
+  PASSKEY_SMART_WALLET
+}
+
 model User {
-  id           String     @id @default(cuid())
-  username     String     @unique
+  id           String         @id @default(cuid())
+  username     String         @unique
   passwordHash String
-  role         Role       @default(HOLDER)
+  role         Role           @default(HOLDER)
   holderKey    HolderKey?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  wallets      HolderWallet[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 model Issuer {
@@ -167,4 +173,20 @@ model Sep12Customer {
   updatedAt      DateTime @updatedAt
 
   @@index([stellarAccount])
+}
+
+model HolderWallet {
+  id           String     @id @default(cuid())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  type         WalletType
+  address      String     // G... or C...
+  credentialId String?    // passkey keyIdBase64 when type = PASSKEY_SMART_WALLET
+  isDefault    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, address])
+  @@index([userId])
+  @@index([address])
 }

@@ -4,6 +4,7 @@ const sendTransaction = vi.fn(async () => ({ hash: "TXHASH123", status: "PENDING
 const getTransaction = vi.fn(async () => ({ status: "SUCCESS" }));
 const prepareTransaction = vi.fn(async (tx: unknown) => tx);
 const getAccount = vi.fn(async () => ({ accountId: () => "GISSUER", sequenceNumber: () => "1" }));
+const submitSponsored = vi.fn(async () => ({ hash: "LAUNCHHASH" }));
 
 vi.mock("@stellar/stellar-sdk", () => {
   class Server {
@@ -19,7 +20,7 @@ vi.mock("@stellar/stellar-sdk", () => {
     TransactionBuilder: class {
       addOperation() { return this; }
       setTimeout() { return this; }
-      build() { return { sign: vi.fn(), hash: () => Buffer.alloc(32) }; }
+      build() { return { sign: vi.fn(), hash: () => Buffer.alloc(32), toEnvelope: () => ({ toXDR: () => "MOCKXDR" }) }; }
     },
     BASE_FEE: "100",
     Networks: { TESTNET: "Test SDF Network ; September 2015" },
@@ -27,6 +28,10 @@ vi.mock("@stellar/stellar-sdk", () => {
     Address: class { constructor(public a: string) {} toScVal() { return {}; } },
   };
 });
+
+vi.mock("../channels", () => ({
+  submitSponsored,
+}));
 
 vi.mock("../env", () => ({
   env: {
@@ -39,7 +44,10 @@ vi.mock("../env", () => ({
 }));
 
 describe("stellar.publishRoot", () => {
-  beforeEach(() => { sendTransaction.mockClear(); });
+  beforeEach(() => {
+    sendTransaction.mockClear();
+    submitSponsored.mockClear();
+  });
 
   it("converts a 0x root to 32 bytes", async () => {
     const { hexToBytes32 } = await import("../stellar");
@@ -53,5 +61,14 @@ describe("stellar.publishRoot", () => {
     const res = await publishRoot(("0x" + "01".repeat(32)) as never);
     expect(res.txHash).toBe("TXHASH123");
     expect(sendTransaction).toHaveBeenCalledTimes(1);
+    expect(submitSponsored).not.toHaveBeenCalled();
+  });
+
+  it("submits via OpenZeppelin Channels when sponsor option is set", async () => {
+    const { publishRoot } = await import("../stellar");
+    const res = await publishRoot(("0x" + "01".repeat(32)) as never, { sponsor: "channels" });
+    expect(res.txHash).toBe("LAUNCHHASH");
+    expect(submitSponsored).toHaveBeenCalledTimes(1);
+    expect(sendTransaction).not.toHaveBeenCalled();
   });
 });

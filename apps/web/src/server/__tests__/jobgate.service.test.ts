@@ -7,6 +7,7 @@ const {
   claimCreate,
   issueClaimableBalance,
   issuePayment,
+  issueSorobanAsset,
   setVerifiedFlag,
 } = vi.hoisted(() => ({
   gateFindUnique: vi.fn(),
@@ -15,6 +16,7 @@ const {
   claimCreate: vi.fn(),
   issueClaimableBalance: vi.fn(),
   issuePayment: vi.fn(),
+  issueSorobanAsset: vi.fn(),
   setVerifiedFlag: vi.fn(),
 }));
 
@@ -25,11 +27,25 @@ vi.mock("../../lib/db", () => ({
     gateClaim: { findUnique: claimFindUnique, create: claimCreate },
   },
 }));
-vi.mock("../../lib/stellar", () => ({ issueClaimableBalance, issuePayment, setVerifiedFlag }));
+vi.mock("../../lib/stellar", () => ({
+  issueClaimableBalance,
+  issuePayment,
+  issueSorobanAsset,
+  setVerifiedFlag,
+  isContractAddress: (addr: string) => addr.startsWith("C"),
+}));
+vi.mock("../../lib/env", () => ({
+  env: {
+    USE_CHANNELS: false,
+    ISSUER_STELLAR_ACCOUNT: "GISSUER",
+    LOG_LEVEL: "silent",
+  },
+}));
 vi.mock("../../lib/explorer", () => ({ explorerTxUrl: vi.fn((txHash: string) => `https://explorer.test/tx/${txHash}`) }));
 
 import { claimGate } from "../jobgate.service";
 import type { FieldHex } from "@zelyo/zk-shared";
+import { env } from "../../lib/env";
 
 const NULL = "0xnull" as FieldHex;
 
@@ -51,7 +67,7 @@ const verified = {
 };
 
 beforeEach(() => {
-  for (const m of [gateFindUnique, verificationFindFirst, claimFindUnique, claimCreate, issueClaimableBalance, issuePayment, setVerifiedFlag]) m.mockReset();
+  for (const m of [gateFindUnique, verificationFindFirst, claimFindUnique, claimCreate, issueClaimableBalance, issuePayment, issueSorobanAsset, setVerifiedFlag]) m.mockReset();
 });
 
 describe("claimGate", () => {
@@ -132,6 +148,71 @@ describe("claimGate", () => {
       explorerUrl: "https://explorer.test/tx/CBTX",
       rewardType: "REGULATED_ASSET",
     });
+  });
+
+  it("issues a Soroban asset for a C... smart-wallet destination", async () => {
+    const cAddress = `C${"A".repeat(55)}`;
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue({ ...verified, boundAddress: cAddress });
+    claimFindUnique.mockResolvedValue(null);
+    issueSorobanAsset.mockResolvedValue({ txHash: "SOROTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, cAddress, "tx1");
+
+    expect(issueSorobanAsset).toHaveBeenCalledWith(cAddress, {
+      code: "ZELYO",
+      issuer: "GISSUER",
+      amount: "1",
+    });
+    expect(issuePayment).not.toHaveBeenCalled();
+    expect(issueClaimableBalance).not.toHaveBeenCalled();
+    expect(claimCreate).toHaveBeenCalledWith({
+      data: { jobGateId: "g1", nullifierHex: "0xnull", boundAddress: cAddress, txHash: "SOROTX" },
+    });
+    expect(res).toEqual({
+      txHash: "SOROTX",
+      explorerUrl: "https://explorer.test/tx/SOROTX",
+      rewardType: "CLAIMABLE_BALANCE",
+    });
+  });
+
+  it("issues a Soroban asset for native XLM when the destination is a C... wallet", async () => {
+    const cAddress = `C${"A".repeat(55)}`;
+    gateFindUnique.mockResolvedValue({
+      ...gate("CLAIMABLE_BALANCE"),
+      rewardConfig: { asset: { code: "XLM", issuer: "", amount: "10" } },
+    });
+    verificationFindFirst.mockResolvedValue({ ...verified, boundAddress: cAddress });
+    claimFindUnique.mockResolvedValue(null);
+    issueSorobanAsset.mockResolvedValue({ txHash: "SOROTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, cAddress, "tx1");
+
+    expect(issueSorobanAsset).toHaveBeenCalledWith(cAddress, { code: "XLM", issuer: "", amount: "10" });
+    expect(issuePayment).not.toHaveBeenCalled();
+    expect(issueClaimableBalance).not.toHaveBeenCalled();
+    expect(res.txHash).toBe("SOROTX");
+  });
+
+  it("passes sponsor option when USE_CHANNELS is enabled", async () => {
+    (env as { USE_CHANNELS: boolean }).USE_CHANNELS = true;
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    issueClaimableBalance.mockResolvedValue({ txHash: "CBTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
+
+    expect(issueClaimableBalance).toHaveBeenCalledWith(
+      "GHOLDER",
+      { code: "ZELYO", issuer: "GISSUER", amount: "1" },
+      { sponsor: "channels" },
+    );
+    expect(res.txHash).toBe("CBTX");
+    (env as { USE_CHANNELS: boolean }).USE_CHANNELS = false;
   });
 
   it("flips the verified flag for a FLAG gate", async () => {

@@ -3,9 +3,10 @@ import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { db } from "../lib/db";
 import { env } from "../lib/env";
-import { issueClaimableBalance, issuePayment, issueSorobanAsset, setVerifiedFlag } from "../lib/stellar";
+import { issueClaimableBalance, issuePayment, issuePathPayment, issueSorobanAsset, setVerifiedFlag } from "../lib/stellar";
 import { explorerTxUrl } from "../lib/explorer";
-import { isContractAddress } from "../lib/stellar";
+import { isContractAddress, isReceiveAssetChoice } from "../lib/stellar";
+import type { AssetChoice } from "../lib/stellar";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 
@@ -23,7 +24,10 @@ export type GateSummary = {
   rewardType: string;
   expiresAt: string | null;
 };
-export type GateDetail = GateSummary & { id: string };
+export type GateDetail = GateSummary & {
+  id: string;
+  rewardConfig: z.infer<typeof rewardConfigSchema>;
+};
 
 export async function listGates(): Promise<GateSummary[]> {
   const gates = await db.jobGate.findMany({ orderBy: { createdAt: "asc" } });
@@ -47,6 +51,7 @@ export async function getGate(slug: string): Promise<GateDetail | null> {
     description: g.description,
     requiredPredicates: predicateSchema.array().parse(g.requiredPredicates),
     rewardType: g.rewardType,
+    rewardConfig: rewardConfigSchema.parse(g.rewardConfig),
     expiresAt: g.expiresAt?.toISOString() ?? null,
   };
 }
@@ -106,6 +111,7 @@ export async function createGate(input: CreateGateInput): Promise<GateDetail> {
     description: gate.description,
     requiredPredicates: predicateSchema.array().parse(gate.requiredPredicates),
     rewardType: gate.rewardType,
+    rewardConfig: rewardConfigSchema.parse(gate.rewardConfig),
     expiresAt: gate.expiresAt?.toISOString() ?? null,
   };
 }
@@ -116,6 +122,7 @@ export async function claimGate(
   nullifierHex: FieldHex,
   boundAddress: string,
   txHash: string,
+  receiveAsset?: AssetChoice,
 ): Promise<{ txHash?: string; explorerUrl?: string; rewardType: string }> {
   const gate = await db.jobGate.findUnique({ where: { slug } });
   if (!gate) throw new AppError("GATE_NOT_FOUND", 404, "No such job gate.");
@@ -154,14 +161,26 @@ export async function claimGate(
     throw new AppError("PROOF_NOT_ELIGIBLE", 422, "The proof does not satisfy this gate.");
   }
 
-  // Idempotent per (gate, nullifier) — the chain already blocks Sybil; this blocks double-issue.
+  // The chain's nullifier registry already blocks Sybil re-use; the
+  // @@unique([jobGateId, nullifierHex]) constraint blocks double-issue. Surface the
+  // rejection explicitly — a second claim is an error the holder should SEE, not a
+  // silent repeat success.
   const existing = await db.gateClaim.findUnique({
     where: { jobGateId_nullifierHex: { jobGateId: gate.id, nullifierHex } },
   });
   if (existing) {
-    return existing.txHash != null
-      ? { txHash: existing.txHash, explorerUrl: explorerTxUrl(existing.txHash), rewardType: gate.rewardType }
-      : { rewardType: gate.rewardType };
+    throw new AppError(
+      "ALREADY_CLAIMED",
+      409,
+      `This proof already claimed its reward on ${existing.createdAt.toLocaleDateString()}. One proof, one reward — the second claim was rejected.`,
+      existing.txHash
+        ? {
+            txHash: existing.txHash,
+            explorerUrl: explorerTxUrl(existing.txHash),
+            claimedAt: existing.createdAt.toISOString(),
+          }
+        : { claimedAt: existing.createdAt.toISOString() },
+    );
   }
 
   let rewardTxHash: string;
@@ -171,9 +190,28 @@ export async function claimGate(
     if (gate.rewardType === "CLAIMABLE_BALANCE" || gate.rewardType === "REGULATED_ASSET") {
       const cfg = rewardConfigSchema.parse(gate.rewardConfig);
       if (!cfg.asset) throw new AppError("GATE_MISCONFIGURED", 500, "Gate reward asset missing.");
-      // Soroban smart wallets (C...) cannot receive classic payments or claimable balances,
-      // so route them through the asset's Stellar Asset Contract instead.
-      if (isContractAddress(boundAddress)) {
+      if (receiveAsset) {
+        // Holder chose a different receive asset — convert the issuer's XLM via the
+        // SDEX with a strict-send path payment. Guarded: XLM-funded gates only,
+        // whitelisted assets only, classic wallets only (SAC has no path payments).
+        const isXlmGate = cfg.asset.code === "XLM" && !cfg.asset.issuer;
+        if (!isXlmGate) {
+          throw new AppError("ASSET_CHOICE_UNSUPPORTED", 422, "Asset choice is only available for XLM rewards.");
+        }
+        if (!isReceiveAssetChoice(receiveAsset)) {
+          throw new AppError("ASSET_CHOICE_UNSUPPORTED", 422, "That receive asset is not supported.");
+        }
+        if (isContractAddress(boundAddress)) {
+          throw new AppError("ASSET_CHOICE_UNSUPPORTED", 422, "Asset choice requires a classic Stellar wallet (G… address).");
+        }
+        if (receiveAsset.code === "XLM" && !receiveAsset.issuer) {
+          ({ txHash: rewardTxHash } = await issuePayment(boundAddress, cfg.asset, ...sponsorArgs));
+        } else {
+          ({ txHash: rewardTxHash } = await issuePathPayment(boundAddress, cfg.asset, receiveAsset, ...sponsorArgs));
+        }
+      } else if (isContractAddress(boundAddress)) {
+        // Soroban smart wallets (C...) cannot receive classic payments or claimable
+        // balances, so route them through the asset's Stellar Asset Contract instead.
         ({ txHash: rewardTxHash } = await issueSorobanAsset(boundAddress, cfg.asset, ...sponsorArgs));
       } else {
         // Native XLM (empty issuer) lands immediately via direct payment. Custom assets

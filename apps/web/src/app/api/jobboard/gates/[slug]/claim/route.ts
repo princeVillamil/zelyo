@@ -11,6 +11,13 @@ const claimBodySchema = z.object({
   nullifierHex: z.string().regex(/^0x[0-9a-f]{1,64}$/),
   boundAddress: z.string().regex(/^(G|C)[A-Z2-7]{55}$/),
   txHash: z.string().min(1).max(128),
+  // Optional SDEX receive-asset choice; validated against the whitelist in the service.
+  receiveAsset: z
+    .object({
+      code: z.string().min(1).max(12),
+      issuer: z.string().regex(/^G[A-Z2-7]{55}$/).or(z.literal("")),
+    })
+    .optional(),
 });
 
 export async function POST(
@@ -29,14 +36,14 @@ export async function POST(
     if (!parsed.success) {
       throw new AppError("INVALID_BODY", 400, "Invalid claim payload.");
     }
-    const { nullifierHex, boundAddress, txHash } = parsed.data;
+    const { nullifierHex, boundAddress, txHash, receiveAsset } = parsed.data;
 
     try {
-      const result = await claimGate(slug, nullifierHex as FieldHex, boundAddress, txHash);
+      const result = await claimGate(slug, nullifierHex as FieldHex, boundAddress, txHash, receiveAsset);
       await audit("jobgate.claim", {
         target: slug,
         ip,
-        meta: { nullifierHex, txHash, rewardType: result.rewardType, ok: true },
+        meta: { nullifierHex, txHash, receiveAsset, rewardType: result.rewardType, ok: true },
       });
       return NextResponse.json(result);
     } catch (err) {

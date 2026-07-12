@@ -1,22 +1,23 @@
 # Zelyo
 
-> Verifiable credentials, sealed with zero-knowledge proofs — prove one fact without revealing who you are.
+> **Verifiable credentials, sealed with zero-knowledge proofs.** Prove one fact without revealing who you are.
 
 Zelyo is a privacy-preserving credential protocol that lets issuers mint tamper-proof credentials, holders store them locally, and verifiers confirm specific claims — all without ever seeing the underlying personal data. Built on **Stellar Soroban** smart contracts and **Noir** zero-knowledge circuits, Zelyo turns sensitive credentials into selective, wallet-bound, Sybil-resistant reveals.
 
-| | |
-| --- | --- |
-| **Version** | `0.0.0` (pre-release) |
+|             |                                                                                   |
+| ----------- | --------------------------------------------------------------------------------- |
+| **Status**  | v0.0.0 — pre-release |
 | **License** | [LICENSE_PLACEHOLDER] |
-| **Monorepo** | pnpm workspaces (`apps/*`, `packages/*`) |
-| **Primary Stack** | Next.js 16 · React 19 · TypeScript 6 · Stellar Soroban |
-| **ZK Stack** | Noir 1.0.0-beta.22 · Barretenberg / bb.js · BN254 Poseidon2 |
-| **CI/CD** | GitHub Actions → Railway |
-| **Live Demo** | [DEMO_URL_PLACEHOLDER] |
 
 ---
 
-## 🚨 Problem
+## Pitch deck
+
+A draft investor deck (MARP) lives at [`docs/pitch-deck.md`](docs/pitch-deck.md) — sized for a 3-minute pitch.
+
+---
+
+## 🧩 Problem
 
 Identity verification today is broken:
 
@@ -27,11 +28,9 @@ Identity verification today is broken:
 
 For freelancers, professionals, and anyone crossing borders, the cost of proving you are qualified is privacy itself.
 
----
-
 ## 🌟 Vision
 
-A world where credentials are **portable, private, and provable**. Zelyo replaces "trust me, here is everything" with "here is a cryptographic proof of exactly one fact" — bound to your wallet, usable once, and never tied to your name on-chain.
+A world where credentials are **portable, private, and provable**. Zelyo replaces "trust me, here is everything" with "here is a cryptographic proof of exactly one fact" — bound to your wallet, user-controlled, and never tied to your name on-chain.
 
 We believe the future of work needs an identity layer that is:
 
@@ -39,9 +38,9 @@ We believe the future of work needs an identity layer that is:
 - **Privacy-preserving** — only the disclosed attribute leaves the device.
 - **Composable** — any issuer, any verifier, any reward gate.
 
----
-
 ## 🎯 Purpose
+
+Built for the **Stellar Hackathon 2026**.
 
 Zelyo exists to make privacy-preserving verification practical for real products. It gives developers, issuers, and platforms a full-stack starter kit for:
 
@@ -52,340 +51,254 @@ Zelyo exists to make privacy-preserving verification practical for real products
 
 The chain records only a **nullifier** and a **bound wallet address**. Your name, your full credential, and your secret never reach it.
 
----
-
 ## 👥 Target Users
 
-| User | Why Zelyo? |
-| --- | --- |
-| **Issuers** (universities, bootcamps, certifiers) | Mint fraud-resistant credentials and publish roots to a public registry without running a database of personal details. |
-| **Holders** (freelancers, remote workers, professionals) | Carry proof of skills in your wallet; reveal only what the opportunity requires. |
-| **Verifiers** (employers, marketplaces, DAOs) | Confirm claims cryptographically with no PII liability and no manual checks. |
-| **Developers** | Extend the protocol with new gates, credentials, and reward types using the ZK + Soroban scaffold. |
-
----
+- **Issuers** (universities, bootcamps, certifiers) — Mint fraud-resistant credentials and publish roots to a public registry without running a database of personal details.
+- **Holders** (freelancers, remote workers, professionals) — Carry proof of skills in your wallet; reveal only what the opportunity requires.
+- **Verifiers** (employers, marketplaces, DAOs) — Confirm claims cryptographically with no PII liability and no manual checks.
+- **Developers** — Extend the protocol with new gates, credentials, and reward types using the ZK + Soroban scaffold.
 
 ## ✨ Features
 
-### Credential Lifecycle
+- **Credential Lifecycle** — Issuer minting portal for Merkle tree leaves, Merkle-tree registry on Soroban with revocation/history, holder wallet with encrypted storage, and local secret management (IndexedDB, WebCrypto).
+- **Zero-Knowledge Proving** — In-browser UltraHonk proofs via `@aztec/bb.js`/Noir, selective disclosure of `track`, address binding, and Sybil resistance (deterministic nullifiers).
+- **Verification & Rewards** — Server-side verification (Path B), on-chain verification stub (Path A), and gated job board (claim token rewards or verified flags).
+- **Hardening & Quality** — Security headers (CSP, COOP/COEP), rate limiting (Redis), PII-safe audit logging, accessibility compliance (WCAG 2.1 AA, Playwright + axe), and 290+ tests.
 
-- 🏛️ **Issuer minting portal** — admins log in and issue credentials that become leaves in a Merkle tree.
-- 🛡️ **Merkle-tree registry** — roots are anchored on Stellar Soroban; history and revocation are tracked on-chain.
-- 💼 **Holder wallet** — credentials are stored as encrypted files in private S3-compatible storage, served via short-lived signed URLs.
-- 🔐 **Local secret management** — holder secrets are generated in-browser with WebCrypto, persisted encrypted in IndexedDB, and never sent to the server.
+## 🏗️ Architecture
 
-### Zero-Knowledge Proving
+The secret `s` and the full credential never leave the holder's browser. The server sees only the disclosed attribute, a nullifier, and a bound wallet address. The chain sees nothing but hashes.
 
-- ⚡ **In-browser UltraHonk proofs** — powered by `@aztec/bb.js` and Noir; no trusted server sees the witness.
-- 🔍 **Selective disclosure** — reveal a single attribute (e.g., `track`) without exposing name, email, or dates.
-- 🔗 **Address binding** — proofs are bound to a Stellar wallet, preventing credential transfer.
-- 🚫 **Sybil resistance** — deterministic nullifiers block double-spending of the same credential.
+```mermaid
+flowchart LR
+    I[Issuer portal] -->|mint · publish root| S[Next.js server]
+    H[Holder browser<br/>proof + secret stay local] -->|proof bundle| S
+    S -->|verify · register nullifier| R[CredentialRegistry<br/>Soroban]
+    S --> DB[(Postgres mirror)]
+    S --> X[Horizon / SDEX<br/>reward payouts]
+```
 
-### Verification & Rewards
+```mermaid
+sequenceDiagram
+    actor I as Issuer
+    actor H as Holder
+    participant S as Server
+    participant C as Registry contract
+    I->>S: Mint credential
+    S->>C: Anchor Merkle root
+    H->>H: Generate ZK proof (discloses one attribute)
+    H->>S: Submit proof
+    S->>C: Verify + register nullifier
+    S-->>H: Proof receipt
+    H->>S: Claim gated reward
+    S-->>H: Reward tx (second claim → rejected)
+```
 
-- ✅ **Server-side verification** — Path B (current default) verifies proofs off-chain and mirrors results to the Soroban registry.
-- 🧩 **On-chain verification stub** — Path A contract is wired for future protocol support of BN254/Poseidon host functions.
-- 🎁 **Gated job board** — verifiers post reward gates; holders claim token rewards or verified flags after a successful reveal.
-- 🔗 **Explorer links** — every on-chain action surfaces a Stellar Expert link so users can audit what is (and is not) recorded.
-
-### Hardening & Quality
-
-- 🛡️ **Security headers** — centralized CSP, COOP/COEP for WASM threading, HSTS, XFO, and referrer/permissions policies.
-- 📊 **Rate limiting** — per-IP floors on auth, verify, register, mint, and claim endpoints via Redis.
-- 📝 **Audit logging** — PII-safe audit trail: only hashes, nullifiers, tx hashes, and result codes are stored.
-- ♿ **Accessibility floor** — WCAG 2.1 AA checks with Playwright + axe; visible focus, ≥40 px hit targets, reduced-motion support.
-- 🧪 **130+ tests** — Vitest unit tests, Playwright e2e acceptance specs, and contract `cargo test` coverage.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-| --- | --- |
-| **Frontend** | Next.js 16.2, React 19.2, TypeScript 6.0.3, TailwindCSS 4.3 |
-| **Auth** | Auth.js v5 beta with credentials provider + Prisma adapter |
-| **Database** | PostgreSQL 16, Prisma 7.8, `@prisma/adapter-pg` |
-| **Cache / Rate limits** | Redis 7, `ioredis`, `rate-limiter-flexible` |
-| **Object Storage** | MinIO (local), S3-compatible bucket (prod) |
-| **Smart Contracts** | Rust 1.92, `soroban-sdk` 26, `wasm32v1-none` |
-| **Zero Knowledge** | Noir 1.0.0-beta.22, `@noir-lang/noir_js`, `@aztec/bb.js` |
-| **ZK Shared Lib** | `@zelyo/zk-shared` workspace package with Poseidon2 / BN254 field math |
-| **Tooling** | pnpm 10.33, Node 22, ESLint 9, Vitest 4, Playwright |
-| **Hosting** | Railway (Nixpacks builder) |
-
----
-
-## 🚀 Local Development Setup
-
-### Prerequisites
-
-- Node.js 22+ and pnpm 10.33+
-- Docker + Docker Compose
-- Rust 1.92+ with `wasm32v1-none` target
-- Stellar CLI
-- Noir (`nargo` 1.0.0-beta.22) and Barretenberg `bb` CLI — see [`docs/toolchain.md`](./docs/toolchain.md)
-
-### 1. Clone and install
+## 🚀 How to Run Locally
 
 ```bash
+# 1. Clone
 git clone [REPO_URL_PLACEHOLDER]
 cd zelyo
+
+# 2. Install deps (requires Node 22+ and pnpm 10.33.0)
 pnpm install
-```
 
-### 2. Start local infrastructure
-
-```bash
-docker compose up -d
-```
-
-This brings up PostgreSQL 16, Redis 7, and MinIO with a pre-created `zelyo` bucket.
-
-### 3. Configure environment
-
-```bash
+# 3. Configure environment
 cp .env.example .env
-# Edit .env with your secrets, especially AUTH_SECRET, ADMIN_PASSWORD, and ISSUER_SECRET
-```
+# Set the required values:
+#   AUTH_SECRET=$(openssl rand -base64 48)
+#   ADMIN_PASSWORD=<strong admin password>
+#   ISSUER_SECRET=<S... issuer secret key>
 
-### 4. Migrate and seed the database
+# 4. Start backing services (Postgres + Redis + MinIO)
+docker compose up -d
 
-```bash
+# 5. Migrate + seed the database
 pnpm --filter @zelyo/web db:migrate
 pnpm --filter @zelyo/web db:seed
-```
 
-The seed creates the admin user, issuer record, empty Merkle tree, and sample job gate.
-
-### 5. Run the web app
-
-```bash
+# 6. Run the web app
 pnpm dev
+# → http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Log in with `admin` / your `ADMIN_PASSWORD`.
 
-### 6. (Optional) Build and deploy contracts to testnet
-
-```bash
-pnpm contracts:build
-pnpm contracts:deploy
-```
-
-Copy the printed `CREDENTIAL_REGISTRY_CONTRACT_ID` and `VERIFIER_CONTRACT_ID` into `.env`. Contracts are deployed once per network, not on every app deploy.
-
-### 7. (Optional) Build the ZK circuit
-
-```bash
-pnpm zk:build
-```
-
-Produces circuit artifacts, verification key, and `manifest.json` under `apps/web/public/circuit`.
-
----
+> **Full developer reference** (scripts, env vars, branching, CI) lives further down in this README under [Developer reference](#developer-reference).
 
 ## 🌐 Deployment
 
-Zelyo ships to **Railway** via `railway.json` and `nixpacks.toml`.
+Zelyo is deployed to **Stellar Testnet** and hosted on **Railway**. The network configuration is pinned at the environment level via `STELLAR_NETWORK` (staging/production = `testnet`).
 
-### Railway services
+### Testnet
 
-- **Web** — this repo.
-- **PostgreSQL** plugin → injects `DATABASE_URL` and `DIRECT_URL`.
-- **Redis** plugin → injects `REDIS_URL`.
-- **Object Storage** plugin (or any S3-compatible bucket) → set `S3_*` variables.
+Deployed via Railway from `develop` (auto-deploy on merge into `develop`).
 
-### Required Railway variables
-
-All secrets live in Railway only. The only public client variable is `NEXT_PUBLIC_EXPLORER_BASE`.
-
-```
-APP_URL, AUTH_SECRET, AUTH_URL, AUTH_TRUST_HOST=true,
-DATABASE_URL, DIRECT_URL, REDIS_URL,
-S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_FORCE_PATH_STYLE,
-STELLAR_NETWORK=testnet, NETWORK_PASSPHRASE, SOROBAN_RPC_URL, HORIZON_URL,
-ISSUER_SECRET, ISSUER_STELLAR_ACCOUNT,
-CREDENTIAL_REGISTRY_CONTRACT_ID, VERIFIER_CONTRACT_ID,
-ZK_SCOPE_APP_ID, ZK_VERIFY_MODE=server,
-CIRCUIT_ARTIFACT_BASE=/circuit,
-ADMIN_USERNAME, ADMIN_PASSWORD, ISSUER_NAME,
-NEXT_PUBLIC_EXPLORER_BASE
-```
-
-### Release flow
-
-1. Railway runs the Nixpacks build from `railway.json`.
-2. `preDeployCommand` runs `prisma migrate deploy` and `prisma db seed`.
-3. `startCommand` runs `pnpm start`.
-4. Healthcheck hits `/api/health`.
-
-Contracts are deployed separately from a developer machine or dedicated CI job — never during the web release. See [`docs/DEPLOY.md`](./docs/DEPLOY.md) for the full runbook.
-
----
+- **App URL**: https://zelyo.one/
+- **Credential Registry Contract**: [`CARUNSUOW2P4ZJZ63NOYPPEKIM2BM2M3NKL6PNN6NJYEN7P4HFRV223J`](https://stellar.expert/explorer/testnet/contract/CARUNSUOW2P4ZJZ63NOYPPEKIM2BM2M3NKL6PNN6NJYEN7P4HFRV223J)
+- **Verifier Contract**: [`CBA3KJQOJ7IZGHAM2MA37UDGICHOD6MULIJOD4OECDFJZP6GSA7FYJ7Y`](https://stellar.expert/explorer/testnet/contract/CBA3KJQOJ7IZGHAM2MA37UDGICHOD6MULIJOD4OECDFJZP6GSA7FYJ7Y)
+- **📸 Credential Registry Contract on Stellar Expert**:
+  ![Credential Registry Contract](docs/CredentialRegistryContract.png)
+- **📸 Verifier Contract on Stellar Expert**:
+  ![Verifier Contract](docs/VerifierContract.png)
 
 ## 🎥 Demo
 
-- **Live app:** [DEMO_URL_PLACEHOLDER]
-- **Video walkthrough:** [VIDEO_URL_PLACEHOLDER]
-- **Pitch deck:** [DECK_URL_PLACEHOLDER]
+- 🔗 **Live App**: https://zelyo.one/
+- 🎬 **Walkthrough Video**: `[VIDEO_URL_PLACEHOLDER]`
+- 🖼️ **Pitch Deck**: `[DECK_URL_PLACEHOLDER]`
 
-> Quick flow to try locally:
-> 1. Log in as the seeded admin at `/login`.
-> 2. Mint a credential for a holder at `/issuer/mint`.
-> 3. Log in as the holder, back up the holder secret at `/wallet/keys`.
-> 4. Generate a ZK proof at `/wallet/prove/[credentialId]`.
-> 5. See the reveal result at `/verify/result/[txHash]`.
-> 6. Claim a gated reward at `/jobs/[slug]`.
+## 👨💻 Team
 
----
-
-## 👋 Team
-
-| Name | Role | GitHub / Contact |
+| Name | Role | GitHub |
 | --- | --- | --- |
-| [TEAM_MEMBER_1] | [ROLE_PLACEHOLDER] | [LINK_PLACEHOLDER] |
-| [TEAM_MEMBER_2] | [ROLE_PLACEHOLDER] | [LINK_PLACEHOLDER] |
-| [TEAM_MEMBER_3] | [ROLE_PLACEHOLDER] | [LINK_PLACEHOLDER] |
+| Prince Jeffrey Villamil | software developer | [@princeVillamil](https://github.com/princeVillamil) |
 
-We are builders, researchers, and designers who believe privacy infrastructure should be beautiful, usable, and open.
+## 📜 License
 
----
-
-## 📄 License
-
-[LICENSE_PLACEHOLDER] — see [`LICENSE`](./LICENSE) for details.
+[LICENSE_PLACEHOLDER]
 
 ---
 
-## 🧑‍💻 Developer Reference
+## Developer reference
 
-### Architecture Overview
+### Stack at a glance
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           Holder Browser                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │ Holder Secret│  │ ZK Prover    │  │ Wallet / Claim Panel     │  │
-│  │ (WebCrypto)  │  │ (Noir + bb.js│  │ (React + Next.js)        │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────────┘  │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │ proof, publicInputs
-┌────────────────────▼────────────────────────────────────────────────┐
-│                         Next.js App (@zelyo/web)                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │ Auth.js      │  │ Credential   │  │ Verification Service     │  │
-│  │ Prisma/DB    │  │ Service      │  │ (server-side Path B)     │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────────┘  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │ Job Gate     │  │ Stellar      │  │ Audit / Rate Limit       │  │
-│  │ Service      │  │ Helpers      │  │ Security Headers         │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────────┘  │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │ set_root / register / tx mirror
-┌────────────────────▼────────────────────────────────────────────────┐
-│                    Stellar Soroban (testnet)                        │
-│  ┌────────────────────────┐      ┌────────────────────────────┐    │
-│  │ credential_registry    │      │ verifier                   │    │
-│  │ - root set / revoke    │      │ - UltraHonk verify stub    │    │
-│  │ - register (Path B)    │      │   (Path A future)          │    │
-│  │ - verify_and_register  │      │                            │    │
-│  └────────────────────────┘      └────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| Layer         | Tech                                                                          |
+| ------------- | ----------------------------------------------------------------------------- |
+| Runtime       | Node.js 22+, pnpm 10.33.0                                                     |
+| Framework     | Next.js 16.2, React 19.2                                                      |
+| UI            | TailwindCSS 4.3, shadcn/ui, lucide-react, framer-motion                        |
+| Auth          | Auth.js v5 beta with credentials provider + Prisma adapter                   |
+| DB            | PostgreSQL 16, Prisma 7.8, `@prisma/adapter-pg`                               |
+| Cache / queue | Redis 7 (`ioredis`), `rate-limiter-flexible`                                  |
+| Storage       | MinIO (dev) / S3-compatible bucket (prod)                                     |
+| Blockchain    | Stellar / Soroban — `@stellar/stellar-sdk`                                    |
+| Contracts     | Rust 1.92, `soroban-sdk` 26, `wasm32v1-none`                                  |
+| Zero Knowledge| Noir 1.0.0-beta.22, `@noir-lang/noir_js`, `@aztec/bb.js`                      |
 
-### Project Structure
+### Prerequisites
 
-```
-zelyo/
-├── apps/
-│   └── web/                    # Next.js application
-│       ├── prisma/             # Schema, migrations, seed
-│       ├── public/circuit/     # ZK circuit artifacts
-│       ├── src/
-│       │   ├── app/            # App router pages
-│       │   ├── components/     # Reusable UI
-│       │   ├── lib/            # Shared clients / utilities
-│       │   ├── server/         # Domain services
-│       │   └── middleware.ts   # Security headers / auth
-│       └── tests/              # Vitest + Playwright specs
-├── packages/
-│   └── zk-shared/              # Poseidon2 + field math + contract types
-├── contracts/
-│   ├── credential_registry/    # Soroban credential registry contract
-│   └── verifier/               # Soroban ZK verifier contract
-├── circuits/                   # Noir circuit source
-├── scripts/                    # Contract deploy, ZK build helpers
-├── docs/                       # Runbooks and feature log
-├── .github/workflows/          # CI + E2E acceptance
-├── docker-compose.yml          # Local infra
-├── railway.json                # Railway build/deploy config
-└── nixpacks.toml               # Node 22 + pnpm 10 toolchain
-```
+- Node.js `22+` and pnpm `10.33.0+`
+- Docker + Docker Compose
+- Rust `1.92+` with `wasm32v1-none` target
+- Stellar CLI
+- Noir (`nargo` 1.0.0-beta.22) and Barretenberg `bb` CLI — see [`docs/toolchain.md`](./docs/toolchain.md)
+
+### Local services map
+
+| Service  | Port(s)     | Notes                                              |
+| -------- | ----------- | -------------------------------------------------- |
+| Next.js  | 3000        | `pnpm dev`                                         |
+| Postgres | 5432        | `zelyo / zelyo / zelyo`                            |
+| Redis    | 6379        | —                                                  |
+| MinIO    | 9000 / 9001 | console at `:9001`, `minioadmin / minioadmin`      |
 
 ### Scripts
 
-| Script | Description |
-| --- | --- |
-| `pnpm dev` | Start the Next.js dev server |
-| `pnpm build` | Build the web app for production |
-| `pnpm start` | Start the production Next.js server |
-| `pnpm lint` | Lint all workspace packages |
-| `pnpm typecheck` | Run TypeScript checks across the monorepo |
-| `pnpm test` | Run unit tests across all packages |
-| `pnpm test:e2e` | Run Playwright acceptance tests |
-| `pnpm db:migrate` | Run Prisma migrations in dev |
-| `pnpm db:seed` | Seed the database |
-| `pnpm zk:build` | Compile Noir circuit and write verification key |
-| `pnpm contracts:build` | Build Soroban contracts to WASM |
-| `pnpm contracts:deploy` | Deploy contracts to Stellar testnet |
+#### App
 
-### Environment Variables
+| Script           | Purpose                                      |
+| ---------------- | -------------------------------------------- |
+| `pnpm dev`       | Start the Next.js dev server with HMR        |
+| `pnpm build`     | Build the web app for production             |
+| `pnpm start`     | Start the production Next.js server          |
+| `pnpm typecheck` | Run TypeScript checks across the monorepo    |
+| `pnpm lint`      | Lint all workspace packages                  |
 
-| Variable | Purpose | Scope |
-| --- | --- | --- |
-| `APP_URL` | Canonical app URL | Server |
-| `AUTH_SECRET` | Auth.js signing secret (≥32 bytes) | Server secret |
-| `DATABASE_URL` / `DIRECT_URL` | PostgreSQL connections | Server secret |
-| `REDIS_URL` | Redis connection | Server secret |
-| `S3_*` | S3-compatible object storage config | Server secret |
-| `STELLAR_NETWORK` | `testnet` | Server |
-| `SOROBAN_RPC_URL` / `HORIZON_URL` | Stellar endpoints | Server |
-| `ISSUER_SECRET` | Server-side signer for roots and rewards | Server secret |
-| `CREDENTIAL_REGISTRY_CONTRACT_ID` | Deployed registry contract | Server |
-| `VERIFIER_CONTRACT_ID` | Deployed verifier contract | Server |
-| `ZK_SCOPE_APP_ID` | App domain separator for nullifiers | Server |
-| `ZK_VERIFY_MODE` | `server` (Path B) or `onchain` (Path A) | Server |
-| `CIRCUIT_ARTIFACT_BASE` | Public path for circuit files | Server |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Seeded admin credentials | Server secret |
-| `ISSUER_NAME` / `ISSUER_STELLAR_ACCOUNT` | Issuer metadata | Server |
-| `NEXT_PUBLIC_EXPLORER_BASE` | Stellar Expert base URL | Public |
+#### Tests
 
-> **Security rule:** only `NEXT_PUBLIC_EXPLORER_BASE` is exposed to the browser. No secret variable uses the `NEXT_PUBLIC_` prefix.
+| Script                    | Purpose                                          |
+| ------------------------- | ------------------------------------------------ |
+| `pnpm test`               | Run unit tests across all packages               |
+| `pnpm test:e2e`           | Run Playwright end-to-end acceptance tests        |
 
-### CI/CD
+#### Database
 
-- **CI (`ci.yml`)** — runs on every PR to `develop`. Installs deps, lints, typechecks, runs unit tests, builds the app, and fails on critical `pnpm audit` findings.
-- **E2E / Acceptance (`e2e.yml`)** — runs on push to `develop` or manually. Brings up postgres/redis/minio, migrates/seeds, builds, and runs Playwright specs including auth, reveals, and accessibility. Kept out of the PR-blocking path because reveal specs depend on live testnet secrets.
-- **Railway deploy** — `railway.json` defines the build, pre-deploy migration/seed, start command, and healthcheck. `nixpacks.toml` pins Node 22 and pnpm 10.
+| Script                   | Purpose                              |
+| ------------------------ | ------------------------------------ |
+| `pnpm db:migrate`        | Run Prisma migrations in dev         |
+| `pnpm db:seed`           | Seed the database                    |
 
-### Branching Strategy
+#### Contracts (Soroban)
 
-- `main` — production-ready releases.
-- `develop` — integration branch; all PRs merge here first.
-- Feature branches — branch from `develop`, follow the pattern `feat/...`, `fix/...`, `docs/...`.
-- No auto-merge: humans review and merge every PR.
+| Script                  | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
+| `pnpm contracts:build`  | Build Soroban contracts to WASM                     |
+| `pnpm contracts:deploy` | Deploy contracts to Stellar testnet                 |
 
----
+#### ZK Circuits
 
-## 📚 Further Reading
+| Script                  | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
+| `pnpm zk:build`         | Compile Noir circuit and write verification key     |
 
-- [`docs/features.md`](./docs/features.md) — append-only log of shipped phases and deviations.
-- [`docs/DEPLOY.md`](./docs/DEPLOY.md) — complete Railway deployment and contract runbook.
-- [`docs/toolchain.md`](./docs/toolchain.md) — Noir, Barretenberg, Rust, and Stellar CLI setup.
-- [`contracts/`](./contracts) — Soroban smart contract source and tests.
-- [`circuits/`](./circuits) — Noir zero-knowledge circuit and tests.
-- [`packages/zk-shared/`](./packages/zk-shared) — shared field math, Poseidon2 helpers, and contract types.
+### Project layout
 
----
+```
+apps/
+  web/                  Next.js web application
+    prisma/             Prisma schema, migrations, and seed scripts
+    public/circuit/     Compiled ZK circuit artifacts (verification key, bytecode)
+    src/
+      app/              App Router pages (issuer portal, holder wallet, result views)
+      components/       Reusable React components
+      lib/              Shared helper utilities (stellar client, rate limiters)
+      server/           Domain services (verification, sep12, sep8)
+    tests/              Vitest unit and Playwright e2e suites
+packages/
+  zk-shared/            Workspace package for Poseidon2 math and contract client types
+contracts/
+  credential_registry/  Soroban credential registry smart contract (enforces roots/nullifiers)
+  verifier/             Soroban ZK verifier contract (Path A verification stub)
+circuits/               Noir zero-knowledge circuit source code
+scripts/                Contract deployment and ZK build tooling
+docs/                   Runbooks, feature changelogs, and toolchain guides
+```
 
-Built with care by the Zelyo team. Privacy is the default.
+### Branching & CI
+
+| Branch                  | Role                                       |
+| ----------------------- | ------------------------------------------ |
+| `main`                  | Production-ready; protected.               |
+| `develop`               | Integration branch; all PRs merge here.    |
+| `feat/*`, `fix/*`, …    | Short-lived feature branches.              |
+
+CI (`.github/workflows/ci.yml`) runs on push and PR to develop:
+
+- **node** lane — installs dependencies, lints, typechecks, runs unit tests, builds the web app, checks dependencies.
+- **e2e** lane (`e2e.yml`) — runs end-to-end integration tests, migrates/seeds DB, and runs Playwright specs.
+
+### Environment variables
+
+`.env.example` is the source of truth — copy it and fill the marked secrets. The shape:
+
+- **Core** — `NODE_ENV`, `APP_URL`, `LOG_LEVEL`
+- **Auth** — `AUTH_SECRET`, `AUTH_URL`, `AUTH_TRUST_HOST`
+- **Database** — `DATABASE_URL`, `DIRECT_URL`
+- **Redis** — `REDIS_URL`
+- **Object Storage** — `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`
+- **Stellar** — `STELLAR_NETWORK`, `NETWORK_PASSPHRASE`, `SOROBAN_RPC_URL`, `HORIZON_URL`, `ISSUER_SECRET`, `CREDENTIAL_REGISTRY_CONTRACT_ID`, `VERIFIER_CONTRACT_ID`
+- **ZK** — `ZK_SCOPE_APP_ID`, `ZK_VERIFY_MODE`, `CIRCUIT_ARTIFACT_BASE`
+- **SEP-10** — `SEP10_HOME_DOMAIN`, `SEP10_SIGNER_SECRET`, `SEP10_CHALLENGE_TTL_SECONDS`, `SEP10_JWT_MAX_AGE_SECONDS`, `SEP10_JWT_SECRET`
+- **Passkey-kit** — `NEXT_PUBLIC_PASSKEY_KIT_RPC_URL`, `NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE`, `NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH`
+- **OpenZeppelin Stellar Channels** — `USE_CHANNELS`, `CHANNELS_URL`, `CHANNELS_API_KEY`
+- **Feature gates** — `NEXT_PUBLIC_SEP45_ENABLED`
+- **Seed** — `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ISSUER_NAME`, `ISSUER_STELLAR_ACCOUNT`
+
+> **Never** put a Stellar secret key (like `ISSUER_SECRET`) in public client variables. No secret variable uses the `NEXT_PUBLIC_` prefix.
+
+### Deployment infrastructure
+
+- Deployed via **Railway** utilizing `railway.json` and `nixpacks.toml`.
+- Standalone Next.js bundle is built with `pnpm build`.
+- Migration/seed are automatically run via `preDeployCommand` using `prisma migrate deploy` and `prisma db seed`.
+- Production build runs via `pnpm start`.
+
+### Further reading
+
+- [`SPEC.md`](./SPEC.md) — full product and architecture spec
+- [`docs/features.md`](./docs/features.md) — running feature log
+- [`docs/DEPLOY.md`](./docs/DEPLOY.md) — Railway deploy and contract guides
+- [`docs/toolchain.md`](./docs/toolchain.md) — toolchain configuration guides

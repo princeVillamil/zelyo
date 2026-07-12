@@ -66,6 +66,31 @@ export function toStroops(amount: string): bigint {
 /** Option to route a transaction through a fee sponsor instead of direct RPC/Horizon. */
 export type SponsorOption = { sponsor?: "channels" };
 
+/** An asset the holder may choose to receive a gate reward in (converted via the SDEX). */
+export type AssetChoice = { code: string; issuer: string };
+
+/** Whitelisted receive-asset choices parsed from SDEX_RECEIVE_ASSETS ("CODE:ISSUER,CODE2:ISSUER2"). */
+export function listReceiveAssetChoices(): AssetChoice[] {
+  const raw = env.SDEX_RECEIVE_ASSETS;
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const [code, issuer = ""] = entry.split(":");
+      return { code: code ?? "", issuer };
+    })
+    .filter((choice) => choice.code.length > 0);
+}
+
+/** True when `choice` is in the SDEX_RECEIVE_ASSETS whitelist. */
+export function isReceiveAssetChoice(choice: AssetChoice): boolean {
+  return listReceiveAssetChoices().some(
+    (c) => c.code === choice.code && c.issuer === choice.issuer,
+  );
+}
+
 /** Submit a Soroban transaction directly or via Launchtube fee sponsorship, then poll. */
 async function submitSorobanSponsoredOrDirect(
   tx: Transaction,
@@ -345,6 +370,56 @@ export async function issuePayment(
         destination: boundAddress,
         asset: stellarAsset,
         amount: asset.amount,
+      }),
+    )
+    .setTimeout(60)
+    .build();
+  tx.sign(issuerKeypair);
+  return submitClassicSponsoredOrDirect(tx, opts);
+}
+
+/**
+ * Convert a native-XLM gate reward into `destAsset` via the SDEX at claim time:
+ * a strict-send path payment — the issuer sends exactly `sendAsset.amount` and
+ * the holder receives whatever the best path yields (1% slippage floor).
+ * The destination account must already trust `destAsset`.
+ */
+export async function issuePathPayment(
+  boundAddress: string,
+  sendAsset: { code: string; issuer: string; amount: string },
+  destAsset: AssetChoice,
+  opts?: SponsorOption,
+): Promise<{ txHash: string }> {
+  const server = new Horizon.Server(env.HORIZON_URL);
+  const source = await server.loadAccount(issuerKeypair.publicKey());
+  const send = sendAsset.issuer ? new Asset(sendAsset.code, sendAsset.issuer) : Asset.native();
+  const dest = destAsset.issuer ? new Asset(destAsset.code, destAsset.issuer) : Asset.native();
+
+  const paths = await server.strictSendPaths(send, sendAsset.amount, [dest]).call();
+  const best = paths.records[0];
+  if (!best) {
+    throw new Error(`No SDEX path from ${sendAsset.code} to ${destAsset.code}`);
+  }
+  // Accept 1% slippage below the quoted destination amount.
+  const destMin = (Number(best.destination_amount) * 0.99).toFixed(7);
+  const path = best.path.map((hop) =>
+    hop.asset_type === "native"
+      ? Asset.native()
+      : new Asset(hop.asset_code ?? "", hop.asset_issuer ?? ""),
+  );
+
+  const tx = new TransactionBuilder(source, {
+    fee: BASE_FEE,
+    networkPassphrase: env.NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.pathPaymentStrictSend({
+        sendAsset: send,
+        sendAmount: sendAsset.amount,
+        destination: boundAddress,
+        destAsset: dest,
+        destMin,
+        path,
       }),
     )
     .setTimeout(60)

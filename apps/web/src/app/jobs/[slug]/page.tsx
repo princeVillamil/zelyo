@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { getGate } from "../../../server/jobgate.service";
+import { listReceiveAssetChoices } from "../../../lib/stellar";
 import { ClaimPanel } from "./ClaimPanel";
-import { PrivacyPanel } from "./PrivacyPanel";
+import { PrivacyToggle } from "../../../components/PrivacyToggle";
 import { db } from "@/lib/db";
 
 // Reads live gate data — render on-demand, never prerender at build.
@@ -23,6 +24,7 @@ export default async function GateDetailPage({
   const proveHref = `/wallet?gate=${encodeURIComponent(slug)}`;
 
   let disclosedRaw: Record<string, string> = {};
+  let attributes: Record<string, string> | null = null;
 
   if (txHash && nullifierHex && boundAddress) {
     const verification = await db.verification.findFirst({
@@ -32,10 +34,28 @@ export default async function GateDetailPage({
     });
     if (verification && verification.jobGate?.slug === slug) {
       disclosedRaw = (verification.disclosed as { raw?: Record<string, string> }).raw ?? {};
+      // Feed the before/after toggle the holder's own credential values (demo-only;
+      // see the ROADMAP shortlist privacy note).
+      if (verification.credentialId) {
+        const credential = await db.credential.findUnique({
+          where: { id: verification.credentialId },
+          select: { attributes: true },
+        });
+        attributes = (credential?.attributes as Record<string, string> | null) ?? null;
+      }
     }
   }
 
   const isExpired = gate.expiresAt ? new Date() > new Date(gate.expiresAt) : false;
+
+  // Asset choice is offered only when the gate pays native XLM (the SDEX conversion
+  // source); the whitelist itself comes from SDEX_RECEIVE_ASSETS.
+  const gateAsset = gate.rewardConfig.asset;
+  const isXlmReward = gateAsset?.code === "XLM" && !gateAsset.issuer;
+  const receiveChoices =
+    gate.rewardType === "CLAIMABLE_BALANCE" && isXlmReward
+      ? listReceiveAssetChoices().filter((c) => !(c.code === "XLM" && !c.issuer))
+      : [];
 
   return (
     <main className="py-stack-lg">
@@ -59,7 +79,8 @@ export default async function GateDetailPage({
       )}
       {Object.keys(disclosedRaw).length > 0 && (
         <div className="mt-stack-lg">
-          <PrivacyPanel
+          <PrivacyToggle
+            attributes={attributes}
             disclosed={disclosedRaw}
             boundAddress={boundAddress ?? ""}
             nullifier={nullifierHex ?? ""}
@@ -74,6 +95,7 @@ export default async function GateDetailPage({
           initialNullifierHex={nullifierHex ?? null}
           initialBoundAddress={boundAddress ?? null}
           isExpired={isExpired}
+          receiveChoices={receiveChoices}
         />
       </div>
     </main>

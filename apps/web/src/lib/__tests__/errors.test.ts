@@ -8,6 +8,16 @@ describe("AppError boundary", () => {
     expect(r.body).toEqual({ error: { code: "UNAUTHORIZED", message: "Sign in required" } });
   });
 
+  it("includes details when provided, omits them otherwise", () => {
+    const withDetails = toErrorResponse(
+      new AppError("ALREADY_CLAIMED", 409, "Already claimed.", { txHash: "abc" }),
+    );
+    expect(withDetails.body.error.details).toEqual({ txHash: "abc" });
+
+    const without = toErrorResponse(new AppError("UNAUTHORIZED", 401, "Sign in required"));
+    expect(without.body.error).not.toHaveProperty("details");
+  });
+
   it("never leaks unknown errors", () => {
     const r = toErrorResponse(new Error("connect ECONNREFUSED 5432 password=hunter2"));
     expect(r.status).toBe(500);

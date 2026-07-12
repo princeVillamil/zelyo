@@ -63,6 +63,18 @@ const EnvSchema = z.object({
   CHANNELS_URL: z.string().url().optional(),
   CHANNELS_API_KEY: z.string().min(1).optional(),
 
+  // SEP-38 anchor RFQ (indicative prices + firm quotes for fiat/crypto conversion).
+  // Optional at build time; the SEP-38 service runtime-guards these and throws if the
+  // feature is used without a configured anchor.
+  SEP38_ANCHOR_URL: z.string().url().optional(),
+  SEP38_API_KEY: z.string().min(1).optional(),
+
+  // SDEX asset-choice at claim: comma-separated CODE:ISSUER pairs the holder may
+  // choose to receive a native-XLM gate reward in, converted via a strict-send path
+  // payment (empty issuer segment = native XLM). Optional; when unset the claim
+  // flow offers no asset choice.
+  SDEX_RECEIVE_ASSETS: z.string().optional(),
+
   // Feature gates (client-readable)
   NEXT_PUBLIC_SEP45_ENABLED: boolish.default(false),
 

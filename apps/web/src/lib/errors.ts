@@ -3,19 +3,28 @@ export class AppError extends Error {
     public readonly code: string,
     public readonly httpStatus: number,
     public readonly publicMessage: string,
+    public readonly details?: Record<string, string>,
   ) {
     super(publicMessage);
     this.name = "AppError";
   }
 }
 
-export type ErrorBody = { error: { code: string; message: string } };
+export type ErrorBody = {
+  error: { code: string; message: string; details?: Record<string, string> };
+};
 
 export function toErrorResponse(err: unknown): { status: number; body: ErrorBody } {
   if (err instanceof AppError) {
     return {
       status: err.httpStatus,
-      body: { error: { code: err.code, message: err.publicMessage } },
+      body: {
+        error: {
+          code: err.code,
+          message: err.publicMessage,
+          ...(err.details ? { details: err.details } : {}),
+        },
+      },
     };
   }
   // Unknown errors: never leak the message/stack/DB detail.

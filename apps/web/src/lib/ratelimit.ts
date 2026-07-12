@@ -22,6 +22,7 @@ export const limiters = {
   sep12: make("rl:sep12", 30),
   sep8: make("rl:sep8", 30),
   sep10: make("rl:sep10", 30),
+  sep38: make("rl:sep38", 30),
   holderWallet: make("rl:holderWallet", 20),
 };
 

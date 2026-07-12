@@ -7,8 +7,10 @@ const {
   claimCreate,
   issueClaimableBalance,
   issuePayment,
+  issuePathPayment,
   issueSorobanAsset,
   setVerifiedFlag,
+  isReceiveAssetChoice,
 } = vi.hoisted(() => ({
   gateFindUnique: vi.fn(),
   verificationFindFirst: vi.fn(),
@@ -16,8 +18,10 @@ const {
   claimCreate: vi.fn(),
   issueClaimableBalance: vi.fn(),
   issuePayment: vi.fn(),
+  issuePathPayment: vi.fn(),
   issueSorobanAsset: vi.fn(),
   setVerifiedFlag: vi.fn(),
+  isReceiveAssetChoice: vi.fn(),
 }));
 
 vi.mock("../../lib/db", () => ({
@@ -30,8 +34,10 @@ vi.mock("../../lib/db", () => ({
 vi.mock("../../lib/stellar", () => ({
   issueClaimableBalance,
   issuePayment,
+  issuePathPayment,
   issueSorobanAsset,
   setVerifiedFlag,
+  isReceiveAssetChoice,
   isContractAddress: (addr: string) => addr.startsWith("C"),
 }));
 vi.mock("../../lib/env", () => ({
@@ -67,7 +73,7 @@ const verified = {
 };
 
 beforeEach(() => {
-  for (const m of [gateFindUnique, verificationFindFirst, claimFindUnique, claimCreate, issueClaimableBalance, issuePayment, issueSorobanAsset, setVerifiedFlag]) m.mockReset();
+  for (const m of [gateFindUnique, verificationFindFirst, claimFindUnique, claimCreate, issueClaimableBalance, issuePayment, issuePathPayment, issueSorobanAsset, setVerifiedFlag, isReceiveAssetChoice]) m.mockReset();
 });
 
 describe("claimGate", () => {
@@ -233,20 +239,25 @@ describe("claimGate", () => {
     });
   });
 
-  it("is idempotent: returns the existing claim without re-issuing", async () => {
+  it("rejects a second claim for the same nullifier (one proof, one reward)", async () => {
     gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
     verificationFindFirst.mockResolvedValue(verified);
-    claimFindUnique.mockResolvedValue({ txHash: "OLDTX" });
+    claimFindUnique.mockResolvedValue({
+      txHash: "OLDTX",
+      createdAt: new Date("2026-07-01T00:00:00Z"),
+    });
 
-    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
-
+    await expect(claimGate("data-engineering", NULL, "GHOLDER", "tx1")).rejects.toMatchObject({
+      code: "ALREADY_CLAIMED",
+      httpStatus: 409,
+      details: {
+        txHash: "OLDTX",
+        explorerUrl: "https://explorer.test/tx/OLDTX",
+        claimedAt: "2026-07-01T00:00:00.000Z",
+      },
+    });
     expect(issueClaimableBalance).not.toHaveBeenCalled();
     expect(claimCreate).not.toHaveBeenCalled();
-    expect(res).toEqual({
-      txHash: "OLDTX",
-      explorerUrl: "https://explorer.test/tx/OLDTX",
-      rewardType: "CLAIMABLE_BALANCE",
-    });
   });
 
   it("rejects an unknown gate", async () => {
@@ -302,5 +313,81 @@ describe("claimGate", () => {
 
     const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
     expect(res.txHash).toBe("CBTX");
+  });
+});
+
+describe("claimGate asset choice (SDEX)", () => {
+  const xlmGate = () => ({
+    ...gate("CLAIMABLE_BALANCE"),
+    rewardConfig: { asset: { code: "XLM", issuer: "", amount: "10" } },
+  });
+  const usdc = { code: "USDC", issuer: "GUSDC" };
+
+  it("converts an XLM reward to the chosen asset via path payment", async () => {
+    gateFindUnique.mockResolvedValue(xlmGate());
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    isReceiveAssetChoice.mockReturnValue(true);
+    issuePathPayment.mockResolvedValue({ txHash: "PATHTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1", usdc);
+
+    expect(issuePathPayment).toHaveBeenCalledWith(
+      "GHOLDER",
+      { code: "XLM", issuer: "", amount: "10" },
+      usdc,
+    );
+    expect(issuePayment).not.toHaveBeenCalled();
+    expect(res.txHash).toBe("PATHTX");
+  });
+
+  it("treats an XLM choice as a plain payment (no conversion)", async () => {
+    gateFindUnique.mockResolvedValue(xlmGate());
+    verificationFindFirst.mockResolvedValue(verified);
+    claimFindUnique.mockResolvedValue(null);
+    isReceiveAssetChoice.mockReturnValue(true);
+    issuePayment.mockResolvedValue({ txHash: "PAYTX" });
+    claimCreate.mockResolvedValue({});
+
+    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1", { code: "XLM", issuer: "" });
+
+    expect(issuePayment).toHaveBeenCalled();
+    expect(issuePathPayment).not.toHaveBeenCalled();
+    expect(res.txHash).toBe("PAYTX");
+  });
+
+  it("rejects asset choice for non-XLM gates", async () => {
+    gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE")); // ZELYO reward
+    verificationFindFirst.mockResolvedValue(verified);
+
+    await expect(claimGate("data-engineering", NULL, "GHOLDER", "tx1", usdc)).rejects.toMatchObject({
+      code: "ASSET_CHOICE_UNSUPPORTED",
+      httpStatus: 422,
+    });
+    expect(issuePathPayment).not.toHaveBeenCalled();
+  });
+
+  it("rejects a receive asset outside the whitelist", async () => {
+    gateFindUnique.mockResolvedValue(xlmGate());
+    verificationFindFirst.mockResolvedValue(verified);
+    isReceiveAssetChoice.mockReturnValue(false);
+
+    await expect(claimGate("data-engineering", NULL, "GHOLDER", "tx1", usdc)).rejects.toMatchObject({
+      code: "ASSET_CHOICE_UNSUPPORTED",
+    });
+    expect(issuePathPayment).not.toHaveBeenCalled();
+  });
+
+  it("rejects asset choice for Soroban contract wallets", async () => {
+    gateFindUnique.mockResolvedValue(xlmGate());
+    verificationFindFirst.mockResolvedValue({ ...verified, boundAddress: "CWALLET" });
+    isReceiveAssetChoice.mockReturnValue(true);
+
+    await expect(claimGate("data-engineering", NULL, "CWALLET", "tx1", usdc)).rejects.toMatchObject({
+      code: "ASSET_CHOICE_UNSUPPORTED",
+    });
+    expect(issuePathPayment).not.toHaveBeenCalled();
+    expect(issueSorobanAsset).not.toHaveBeenCalled();
   });
 });

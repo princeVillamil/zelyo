@@ -52,7 +52,7 @@ async function mirror(
   credentialId?: string,
   jobGateId?: string,
 ): Promise<void> {
-  const { nullifier, scope, boundAddress, disclosed } = bundle.publicInputs;
+  const { root, nullifier, scope, boundAddress, disclosed } = bundle.publicInputs;
   if (result === "VERIFIED" && txHash) {
     await db.nullifier.create({
       data: { nullifierHex: nullifier, scope, boundAddress, txHash },
@@ -61,6 +61,7 @@ async function mirror(
   await db.verification.create({
     data: {
       nullifierHex: nullifier,
+      rootHex: root,
       disclosed: { value: disclosed.value, raw: disclosed.raw },
       boundAddress,
       boundStellarAddress: boundStellarAddress ?? null,

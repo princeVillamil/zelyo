@@ -21,20 +21,25 @@ describe("VerifyResultPage", () => {
     expect(notFound).toHaveBeenCalled();
   });
 
-  it("renders the reveal panel for an existing verification", async () => {
+  it("renders the proof receipt for an existing verification", async () => {
     getVerificationByTxHash.mockResolvedValue({
       txHash: "tx1",
       result: "VERIFIED",
       nullifierHex: "0xnull",
+      rootHex: null,
+      rootAnchorTxHash: null,
       boundAddress: "GABC",
       disclosed: { track: "Data Engineering" },
       disclosedRaw: { track: "Data Engineering" },
       explorerUrl: "https://explorer.test/tx/tx1",
       createdAt: new Date("2026-06-23T00:00:00Z"),
       jobGateSlug: null,
+      jobGateTitle: null,
+      credentialId: null,
     });
     const ui = await VerifyResultPage({ params: Promise.resolve({ txHash: "tx1" }) });
     render(ui);
-    expect(screen.getByText(/nothing personal is recorded on-chain/i)).toBeInTheDocument();
+    expect(screen.getByText(/fact proven/i)).toBeInTheDocument();
+    expect(screen.getByText(/nothing personal revealed/i)).toBeInTheDocument();
   });
 });

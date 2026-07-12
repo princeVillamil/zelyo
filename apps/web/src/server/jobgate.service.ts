@@ -154,14 +154,26 @@ export async function claimGate(
     throw new AppError("PROOF_NOT_ELIGIBLE", 422, "The proof does not satisfy this gate.");
   }
 
-  // Idempotent per (gate, nullifier) — the chain already blocks Sybil; this blocks double-issue.
+  // The chain's nullifier registry already blocks Sybil re-use; the
+  // @@unique([jobGateId, nullifierHex]) constraint blocks double-issue. Surface the
+  // rejection explicitly — a second claim is an error the holder should SEE, not a
+  // silent repeat success.
   const existing = await db.gateClaim.findUnique({
     where: { jobGateId_nullifierHex: { jobGateId: gate.id, nullifierHex } },
   });
   if (existing) {
-    return existing.txHash != null
-      ? { txHash: existing.txHash, explorerUrl: explorerTxUrl(existing.txHash), rewardType: gate.rewardType }
-      : { rewardType: gate.rewardType };
+    throw new AppError(
+      "ALREADY_CLAIMED",
+      409,
+      `This proof already claimed its reward on ${existing.createdAt.toLocaleDateString()}. One proof, one reward — the second claim was rejected.`,
+      existing.txHash
+        ? {
+            txHash: existing.txHash,
+            explorerUrl: explorerTxUrl(existing.txHash),
+            claimedAt: existing.createdAt.toISOString(),
+          }
+        : { claimedAt: existing.createdAt.toISOString() },
+    );
   }
 
   let rewardTxHash: string;

@@ -5,6 +5,7 @@ import { FoilStampButton } from "@/components/FoilStampButton";
 import type { GateDetail } from "../../../server/jobgate.service";
 
 type ClaimResult = { txHash?: string; explorerUrl?: string; rewardType: string };
+type ClaimError = { code: string; message: string; details?: Record<string, string> };
 
 type Props = {
   gate: GateDetail;
@@ -28,9 +29,9 @@ export function ClaimPanel({
   const [boundAddress, setBoundAddress] = useState<string | null>(initialBoundAddress);
   const hasVerification = Boolean(txHash && nullifierHex && boundAddress);
 
-  const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error" | "rejected">("idle");
   const [result, setResult] = useState<ClaimResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ClaimError | null>(null);
 
   async function claim() {
     setStatus("claiming");
@@ -42,8 +43,13 @@ export function ClaimPanel({
     });
     const json = await res.json();
     if (!res.ok) {
-      setStatus("error");
-      setError(json?.error?.message ?? "Claim could not be completed.");
+      const claimError: ClaimError = {
+        code: json?.error?.code ?? "ERROR",
+        message: json?.error?.message ?? "Claim could not be completed.",
+        details: json?.error?.details,
+      };
+      setError(claimError);
+      setStatus(claimError.code === "ALREADY_CLAIMED" ? "rejected" : "error");
       return;
     }
     setResult(json as ClaimResult);
@@ -100,6 +106,36 @@ export function ClaimPanel({
     );
   }
 
+  if (status === "rejected" && error) {
+    return (
+      <div
+        role="alert"
+        className="border border-error-container bg-error-container/40 rounded-lg p-stack-md"
+      >
+        <p className="font-label text-label-md uppercase text-error">
+          Claim Rejected — Already Claimed
+        </p>
+        <p className="font-body text-body-md text-on-error-container mt-stack-sm">
+          {error.message}
+        </p>
+        <p className="font-body text-caption text-on-error-container mt-stack-sm">
+          The nullifier registry enforces one proof, one reward — this second claim never
+          reached the reward step.
+        </p>
+        {error.details?.explorerUrl && (
+          <a
+            href={error.details.explorerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-stack-sm inline-block font-label text-label-md uppercase text-error underline"
+          >
+            View the original reward on the explorer
+          </a>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <FoilStampButton
@@ -114,7 +150,7 @@ export function ClaimPanel({
           role="alert"
           className="mt-stack-sm border-l-4 border-error bg-error-container/40 px-stack-md py-stack-sm font-body text-body-md text-on-error-container"
         >
-          {error}
+          {error.message}
         </p>
       ) : null}
     </div>

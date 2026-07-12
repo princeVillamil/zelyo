@@ -233,20 +233,25 @@ describe("claimGate", () => {
     });
   });
 
-  it("is idempotent: returns the existing claim without re-issuing", async () => {
+  it("rejects a second claim for the same nullifier (one proof, one reward)", async () => {
     gateFindUnique.mockResolvedValue(gate("CLAIMABLE_BALANCE"));
     verificationFindFirst.mockResolvedValue(verified);
-    claimFindUnique.mockResolvedValue({ txHash: "OLDTX" });
+    claimFindUnique.mockResolvedValue({
+      txHash: "OLDTX",
+      createdAt: new Date("2026-07-01T00:00:00Z"),
+    });
 
-    const res = await claimGate("data-engineering", NULL, "GHOLDER", "tx1");
-
+    await expect(claimGate("data-engineering", NULL, "GHOLDER", "tx1")).rejects.toMatchObject({
+      code: "ALREADY_CLAIMED",
+      httpStatus: 409,
+      details: {
+        txHash: "OLDTX",
+        explorerUrl: "https://explorer.test/tx/OLDTX",
+        claimedAt: "2026-07-01T00:00:00.000Z",
+      },
+    });
     expect(issueClaimableBalance).not.toHaveBeenCalled();
     expect(claimCreate).not.toHaveBeenCalled();
-    expect(res).toEqual({
-      txHash: "OLDTX",
-      explorerUrl: "https://explorer.test/tx/OLDTX",
-      rewardType: "CLAIMABLE_BALANCE",
-    });
   });
 
   it("rejects an unknown gate", async () => {

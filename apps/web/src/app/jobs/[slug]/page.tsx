@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getGate } from "../../../server/jobgate.service";
 import { ClaimPanel } from "./ClaimPanel";
-import { PrivacyPanel } from "./PrivacyPanel";
+import { PrivacyToggle } from "../../../components/PrivacyToggle";
 import { db } from "@/lib/db";
 
 // Reads live gate data — render on-demand, never prerender at build.
@@ -23,6 +23,7 @@ export default async function GateDetailPage({
   const proveHref = `/wallet?gate=${encodeURIComponent(slug)}`;
 
   let disclosedRaw: Record<string, string> = {};
+  let attributes: Record<string, string> | null = null;
 
   if (txHash && nullifierHex && boundAddress) {
     const verification = await db.verification.findFirst({
@@ -32,6 +33,15 @@ export default async function GateDetailPage({
     });
     if (verification && verification.jobGate?.slug === slug) {
       disclosedRaw = (verification.disclosed as { raw?: Record<string, string> }).raw ?? {};
+      // Feed the before/after toggle the holder's own credential values (demo-only;
+      // see the ROADMAP shortlist privacy note).
+      if (verification.credentialId) {
+        const credential = await db.credential.findUnique({
+          where: { id: verification.credentialId },
+          select: { attributes: true },
+        });
+        attributes = (credential?.attributes as Record<string, string> | null) ?? null;
+      }
     }
   }
 
@@ -59,7 +69,8 @@ export default async function GateDetailPage({
       )}
       {Object.keys(disclosedRaw).length > 0 && (
         <div className="mt-stack-lg">
-          <PrivacyPanel
+          <PrivacyToggle
+            attributes={attributes}
             disclosed={disclosedRaw}
             boundAddress={boundAddress ?? ""}
             nullifier={nullifierHex ?? ""}

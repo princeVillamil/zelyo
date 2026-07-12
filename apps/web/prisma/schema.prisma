@@ -114,6 +114,7 @@ model Nullifier {
 model Verification {
   id                  String             @id @default(cuid())
   nullifierHex        String
+  rootHex             String? // Merkle root the proof was verified against (public input)
   disclosed           Json
   boundAddress        String             @db.VarChar(68)
   boundStellarAddress String?            @db.VarChar(56)

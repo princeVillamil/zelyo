@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 
-const { handlers, sub } = vi.hoisted(() => {
+const { handlers, sub, redisMock } = vi.hoisted(() => {
   const handlers = new Map<string, (channel: string, message: string) => void>();
   const sub = {
     subscribe: vi.fn(async () => undefined),
@@ -10,9 +10,15 @@ const { handlers, sub } = vi.hoisted(() => {
     unsubscribe: vi.fn(async () => undefined),
     quit: vi.fn(async () => undefined),
   };
-  return { handlers, sub };
+  const redisMock = {
+    lrange: vi.fn(async () => []),
+  };
+  return { handlers, sub, redisMock };
 });
-vi.mock("@/lib/redis", () => ({ redisSubscriber: () => sub }));
+vi.mock("@/lib/redis", () => ({
+  redis: redisMock,
+  redisSubscriber: () => sub,
+}));
 
 import { GET } from "./route";
 import { auth } from "@/auth";

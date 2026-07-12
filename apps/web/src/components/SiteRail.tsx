@@ -36,7 +36,8 @@ function isActive(pathname: string, href: string): boolean {
  */
 export function SiteRail({ role, username }: SiteRailProps) {
   const pathname = usePathname();
-  const [dimmed, setDimmed] = useState(false);
+  const [activeTick, setActiveTick] = useState<string | null>(null);
+  const dimmed = activeTick !== null;
   const nav = navForRole(role);
   const authed = role !== null;
 
@@ -46,6 +47,10 @@ export function SiteRail({ role, username }: SiteRailProps) {
         { href: "/login", label: "Sign in" },
         { href: "/register", label: "Register", cta: true },
       ];
+
+  const handleActive = (label: string) => () => setActiveTick(label);
+  const handleInactive = (label: string) => () =>
+    setActiveTick((prev) => (prev === label ? null : prev));
 
   return (
     <>
@@ -98,33 +103,27 @@ export function SiteRail({ role, username }: SiteRailProps) {
         {/* Logo — far top-left of the frame */}
         <Link
           href="/"
-          className="font-display text-[15px] leading-none tracking-[-0.01em] text-primary"
+          className="font-display text-label-md leading-none tracking-[-0.01em] text-primary"
         >
           Zelyo
         </Link>
 
         {/* Primary nav — vertically centered stack of ticks */}
-        <nav
-          className="flex flex-1 flex-col justify-center gap-5"
-          onMouseEnter={() => setDimmed(true)}
-          onMouseLeave={() => setDimmed(false)}
-        >
+        <nav className="flex flex-1 flex-col justify-center gap-5">
           {nav.map((item) => (
             <RailTick
               key={item.href}
               href={item.href}
               label={item.label}
               active={isActive(pathname, item.href)}
+              onActive={handleActive(item.label)}
+              onInactive={handleInactive(item.label)}
             />
           ))}
         </nav>
 
         {/* Auth + help — pinned to the bottom */}
-        <div
-          className="flex flex-col gap-5"
-          onMouseEnter={() => setDimmed(true)}
-          onMouseLeave={() => setDimmed(false)}
-        >
+        <div className="flex flex-col gap-5">
           {authed
             ? username && (
                 <span className="truncate font-mono text-caption text-on-surface-variant">
@@ -132,9 +131,21 @@ export function SiteRail({ role, username }: SiteRailProps) {
                 </span>
               )
             : auth.map((item) => (
-                <RailTick key={item.href} href={item.href} label={item.label} cta={item.cta ?? false} />
+                <RailTick
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  cta={item.cta ?? false}
+                  onActive={handleActive(item.label)}
+                  onInactive={handleInactive(item.label)}
+                />
               ))}
-          <RailTick href="/" label="Help" />
+          <RailTick
+            href="/"
+            label="Help"
+            onActive={handleActive("Help")}
+            onInactive={handleInactive("Help")}
+          />
         </div>
       </aside>
 
@@ -154,11 +165,15 @@ function RailTick({
   label,
   active = false,
   cta = false,
+  onActive,
+  onInactive,
 }: {
   href: string;
   label: string;
   active?: boolean;
   cta?: boolean;
+  onActive?: () => void;
+  onInactive?: () => void;
 }) {
   // Resting tick color: muted on cream; CTA + active get the foil green. On hover the
   // page dims, so the tick switches to pale mint to stay visible over the ink scrim.
@@ -166,19 +181,35 @@ function RailTick({
   // Base width is a class (not inline) so the group-hover width override can win.
   const restWidth = active ? "w-[var(--tick-active)]" : "w-[var(--tick)]";
 
+  const handlers: {
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+    onFocus?: () => void;
+    onBlur?: () => void;
+  } = {};
+  if (onActive) {
+    handlers.onMouseEnter = onActive;
+    handlers.onFocus = onActive;
+  }
+  if (onInactive) {
+    handlers.onMouseLeave = onInactive;
+    handlers.onBlur = onInactive;
+  }
+
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
       title={label}
-      className="group/tick relative flex h-4 items-center"
+      className="group/tick relative flex h-4 items-center focus-visible:outline-none"
+      {...handlers}
     >
       <span
-        className={`h-[2px] rounded-full transition-all duration-300 ease-in-out group-hover/tick:w-[var(--tick-expanded)] group-hover/tick:bg-primary-fixed-dim motion-reduce:transition-none ${restColor} ${restWidth}`}
+        className={`h-[2px] rounded-full transition-all duration-300 ease-in-out group-hover/tick:w-[var(--tick-expanded)] group-hover/tick:bg-primary-fixed-dim group-focus-visible/tick:w-[var(--tick-expanded)] group-focus-visible/tick:bg-primary-fixed-dim motion-reduce:transition-none ${restColor} ${restWidth}`}
       />
       {/* Label — plain cream text so it reads over the dimmed page, sitting just
           past the rail edge */}
-      <span className="pointer-events-none absolute top-1/2 left-[calc(var(--tick-expanded)_+_14px)] -translate-y-1/2 whitespace-nowrap font-label text-label-md uppercase tracking-[0.05em] text-background opacity-0 transition-opacity duration-300 ease-in-out group-hover/tick:opacity-100 motion-reduce:transition-none">
+      <span className="pointer-events-none absolute top-1/2 left-[calc(var(--tick-expanded)_+_14px)] -translate-y-1/2 whitespace-nowrap font-label text-label-md uppercase tracking-[0.05em] text-background opacity-0 transition-opacity duration-300 ease-in-out group-hover/tick:opacity-100 group-focus-visible/tick:opacity-100 motion-reduce:transition-none">
         {label}
       </span>
     </Link>

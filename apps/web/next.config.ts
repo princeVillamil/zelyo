@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ["@node-rs/argon2", "pino", "@stellar/stellar-sdk"],
+  transpilePackages: ["passkey-kit", "passkey-kit-sdk", "sac-sdk", "@simplewebauthn/browser"],
   async headers() {
     return [
       {

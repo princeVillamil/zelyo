@@ -9,7 +9,8 @@ fn verify_returns_bool() {
     let contract_id = env.register(Verifier, ());
     let client = VerifierClient::new(&env, &contract_id);
 
-    // With an empty proof, verify must return false (not panic).
+    // Path A is disabled on the current testnet (no BN254/Poseidon host fns),
+    // so the verifier returns false for all inputs without panicking.
     let empty = Bytes::new(&env);
     assert_eq!(client.verify(&empty, &empty), false);
 }

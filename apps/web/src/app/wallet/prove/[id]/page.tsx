@@ -24,11 +24,16 @@ export default async function ProvePage({
 
   const proof = await getMerkleProof(cred.leafIndex);
 
+  const wallets = await db.holderWallet.findMany({
+    where: { userId: session.user.id },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+  });
+
   return (
     <main className="py-stack-lg">
-      <p className="font-label text-label-md uppercase text-secondary">Holder Wallet</p>
-      <h1 className="font-display text-display-lg text-on-background mt-stack-sm">Seal a Proof</h1>
-      <p className="mt-stack-sm font-body text-body-md italic text-on-surface-variant">
+      <p className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Holder Wallet</p>
+      <h1 className="font-display text-display-lg text-primary mt-stack-sm">Seal a Proof</h1>
+      <p className="mt-stack-sm font-body text-body-md text-on-surface-variant">
         Cryptographically sealed via the Zelyo Protocol — nothing personal leaves this device.
       </p>
       <div className="mt-stack-lg">
@@ -41,6 +46,12 @@ export default async function ProvePage({
             root: proof.rootHex,
           }}
           gate={gate}
+          linkedWallets={wallets.map((w) => ({
+            id: w.id,
+            type: w.type,
+            address: w.address,
+            isDefault: w.isDefault,
+          }))}
         />
       </div>
     </main>

@@ -2,8 +2,10 @@ import "server-only";
 import { z } from "zod";
 import type { FieldHex } from "@zelyo/zk-shared";
 import { db } from "../lib/db";
-import { issueClaimableBalance, issuePayment, setVerifiedFlag } from "../lib/stellar";
+import { env } from "../lib/env";
+import { issueClaimableBalance, issuePayment, issueSorobanAsset, setVerifiedFlag } from "../lib/stellar";
 import { explorerTxUrl } from "../lib/explorer";
+import { isContractAddress } from "../lib/stellar";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
 
@@ -54,7 +56,7 @@ export type CreateGateInput = {
   title: string;
   description: string;
   requiredPredicates: Predicate[];
-  rewardType: "CLAIMABLE_BALANCE" | "FLAG";
+  rewardType: "CLAIMABLE_BALANCE" | "REGULATED_ASSET" | "FLAG";
   rewardConfig: z.infer<typeof rewardConfigSchema>;
   expiresAt: string | null;
 };
@@ -70,6 +72,20 @@ export async function createGate(input: CreateGateInput): Promise<GateDetail> {
       parsed.setHours(23, 59, 59, 999);
     }
     expiresAt = parsed;
+  }
+
+  if (input.rewardType === "REGULATED_ASSET") {
+    const cfg = rewardConfigSchema.parse(input.rewardConfig);
+    if (!cfg.asset) {
+      throw new AppError("GATE_MISCONFIGURED", 400, "REGULATED_ASSET reward requires an asset.");
+    }
+    if (cfg.asset.issuer !== env.ISSUER_STELLAR_ACCOUNT) {
+      throw new AppError(
+        "GATE_MISCONFIGURED",
+        400,
+        "REGULATED_ASSET reward must use an asset issued by the Zelyo issuer account.",
+      );
+    }
   }
 
   const gate = await db.jobGate.create({
@@ -117,6 +133,9 @@ export async function claimGate(
   if (!verification) {
     throw new AppError("PROOF_NOT_ELIGIBLE", 422, "No eligible verified proof for this gate.");
   }
+  if (verification.jobGateId && verification.jobGateId !== gate.id) {
+    throw new AppError("PROOF_NOT_ELIGIBLE", 422, "This proof was verified for a different gate.");
+  }
   const disclosedRaw = (verification.disclosed as { raw?: Record<string, string> }).raw ?? {};
 
   // A gate can only enforce a predicate on an attribute the proof actually disclosed —
@@ -146,18 +165,26 @@ export async function claimGate(
   }
 
   let rewardTxHash: string;
+  const sponsor = env.USE_CHANNELS ? ("channels" as const) : undefined;
+  const sponsorArgs = sponsor ? [{ sponsor }] : [];
   try {
-    if (gate.rewardType === "CLAIMABLE_BALANCE") {
+    if (gate.rewardType === "CLAIMABLE_BALANCE" || gate.rewardType === "REGULATED_ASSET") {
       const cfg = rewardConfigSchema.parse(gate.rewardConfig);
       if (!cfg.asset) throw new AppError("GATE_MISCONFIGURED", 500, "Gate reward asset missing.");
-      // Native XLM (empty issuer) lands immediately via direct payment. Custom assets
-      // still use claimable balances; a holder-signed claim step could be added later.
-      const isNativeXlm = cfg.asset.code === "XLM" && !cfg.asset.issuer;
-      ({ txHash: rewardTxHash } = isNativeXlm
-        ? await issuePayment(boundAddress, cfg.asset)
-        : await issueClaimableBalance(boundAddress, cfg.asset));
+      // Soroban smart wallets (C...) cannot receive classic payments or claimable balances,
+      // so route them through the asset's Stellar Asset Contract instead.
+      if (isContractAddress(boundAddress)) {
+        ({ txHash: rewardTxHash } = await issueSorobanAsset(boundAddress, cfg.asset, ...sponsorArgs));
+      } else {
+        // Native XLM (empty issuer) lands immediately via direct payment. Custom assets
+        // still use claimable balances; a holder-signed claim step could be added later.
+        const isNativeXlm = cfg.asset.code === "XLM" && !cfg.asset.issuer;
+        ({ txHash: rewardTxHash } = isNativeXlm
+          ? await issuePayment(boundAddress, cfg.asset, ...sponsorArgs)
+          : await issueClaimableBalance(boundAddress, cfg.asset, ...sponsorArgs));
+      }
     } else if (gate.rewardType === "FLAG") {
-      ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress));
+      ({ txHash: rewardTxHash } = await setVerifiedFlag(boundAddress, ...sponsorArgs));
     } else {
       throw new AppError("GATE_MISCONFIGURED", 500, "Unknown reward type.");
     }

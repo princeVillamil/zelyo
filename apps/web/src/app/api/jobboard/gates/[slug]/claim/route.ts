@@ -9,7 +9,7 @@ import { claimGate } from "../../../../../../server/jobgate.service";
 
 const claimBodySchema = z.object({
   nullifierHex: z.string().regex(/^0x[0-9a-f]{1,64}$/),
-  boundAddress: z.string().regex(/^G[A-Z2-7]{55}$/),
+  boundAddress: z.string().regex(/^(G|C)[A-Z2-7]{55}$/),
   txHash: z.string().min(1).max(128),
 });
 

@@ -17,10 +17,10 @@ export function fieldHexToBigInt(h: FieldHex): bigint {
   return v;
 }
 
-// Stellar G-address (StrKey: version byte + 32-byte ed25519 pubkey + CRC16) ->
-// a single BN254 field. We decode the StrKey, take the 32-byte raw pubkey, and
-// reduce it mod the field modulus. The Noir side receives the identical bigint
-// as bound_address.
+// Stellar StrKey -> a single BN254 field. Supports both public-key accounts
+// (G...: version byte 0x30 + 32-byte ed25519 pubkey + CRC16) and Soroban
+// contract IDs (C...: version byte 0x10 + 32-byte contract hash + CRC16).
+// The Noir side receives the identical bigint as bound_address.
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 function base32Decode(s: string): Uint8Array {
@@ -40,14 +40,31 @@ function base32Decode(s: string): Uint8Array {
   return Uint8Array.from(out);
 }
 
-export function encodeAddressToField(stellarPubKey: string): FieldHex {
-  if (!/^G[A-Z2-7]{55}$/.test(stellarPubKey)) {
-    throw new Error("expected a Stellar public key (G... StrKey)");
+function decodeStrKey(raw: string): { version: number; payload: Uint8Array } {
+  const decoded = base32Decode(raw);
+  if (decoded.length !== 35) {
+    throw new Error(`expected a 35-byte StrKey payload, got ${decoded.length}`);
   }
-  const decoded = base32Decode(stellarPubKey); // [version(1)] [pubkey(32)] [crc16(2)]
-  const pubkey = decoded.slice(1, 33);
-  let acc = 0n;
-  for (const byte of pubkey) acc = (acc << 8n) | BigInt(byte);
-  // Reduce into the field (32 bytes can exceed the 254-bit modulus; mod is exact).
-  return toFieldHex(acc % BN254_MODULUS);
+  return { version: decoded[0]!, payload: decoded.slice(1, 33) };
+}
+
+export function encodeAddressToField(stellarAddress: string): FieldHex {
+  if (/^G[A-Z2-7]{55}$/.test(stellarAddress)) {
+    const { payload } = decodeStrKey(stellarAddress);
+    let acc = 0n;
+    for (const byte of payload) acc = (acc << 8n) | BigInt(byte);
+    return toFieldHex(acc % BN254_MODULUS);
+  }
+
+  if (/^C[A-Z2-7]{55}$/.test(stellarAddress)) {
+    const { version, payload } = decodeStrKey(stellarAddress);
+    if (version !== 0x10) {
+      throw new Error("expected a Soroban contract StrKey (C... version byte 0x10)");
+    }
+    let acc = 0n;
+    for (const byte of payload) acc = (acc << 8n) | BigInt(byte);
+    return toFieldHex(acc % BN254_MODULUS);
+  }
+
+  throw new Error("expected a Stellar public key (G... StrKey) or contract ID (C... StrKey)");
 }

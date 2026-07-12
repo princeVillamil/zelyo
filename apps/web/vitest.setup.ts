@@ -37,6 +37,14 @@ const TEST_ENV: Record<string, string> = {
   ADMIN_PASSWORD: "a-strong-password",
   ISSUER_NAME: "Institute of Distributed Systems",
   ISSUER_STELLAR_ACCOUNT: "G".repeat(56),
+  SEP10_HOME_DOMAIN: "localhost:3000",
+  SEP10_SIGNER_SECRET: "S".repeat(56),
+  SEP10_CHALLENGE_TTL_SECONDS: "300",
+  SEP10_JWT_MAX_AGE_SECONDS: "900",
+  NEXT_PUBLIC_PASSKEY_KIT_RPC_URL: "https://soroban-testnet.stellar.org",
+  NEXT_PUBLIC_PASSKEY_KIT_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015",
+  NEXT_PUBLIC_PASSKEY_KIT_WALLET_WASM_HASH: "a".repeat(64),
+  NEXT_PUBLIC_SEP45_ENABLED: "true",
 };
 for (const [k, v] of Object.entries(TEST_ENV)) {
   process.env[k] ??= v;

@@ -5,10 +5,11 @@ import { verifyAndRegister } from "@/server/verification.service";
 import { limiters, consumeOrThrow, clientIp } from "@/lib/ratelimit";
 import { AppError, toErrorResponse } from "@/lib/errors";
 import { audit } from "@/lib/audit";
+import { db } from "@/lib/db";
 
 const fieldHex = z.string().regex(/^0x[0-9a-f]{64}$/);
 
-const stellarAddress = z.string().regex(/^G[A-Z2-7]{55}$/);
+const stellarAddress = z.string().regex(/^[GC][A-Z2-7]{55}$/);
 
 // `.strict()` everywhere so a payload carrying `s` (or any extra key) is rejected — the secret
 // must never reach the server.
@@ -29,6 +30,7 @@ const bodySchema = z
       .strict(),
     boundStellarAddress: stellarAddress,
     credentialId: z.string().optional(),
+    jobGateSlug: z.string().optional(),
   })
   .strict();
 
@@ -42,11 +44,23 @@ export async function POST(req: Request): Promise<Response> {
       throw new AppError("INVALID_INPUT", 400, "Invalid proof payload.");
     }
 
+    let jobGateId: string | undefined;
+    if (parsed.data.jobGateSlug) {
+      const gate = await db.jobGate.findUnique({
+        where: { slug: parsed.data.jobGateSlug },
+      });
+      if (!gate) {
+        throw new AppError("GATE_NOT_FOUND", 404, "No such job gate.");
+      }
+      jobGateId = gate.id;
+    }
+
     const result = await verifyAndRegister({
       proof: Uint8Array.from(parsed.data.proof),
       publicInputs: parsed.data.publicInputs as never,
       boundStellarAddress: parsed.data.boundStellarAddress,
       ...(parsed.data.credentialId !== undefined && { credentialId: parsed.data.credentialId }),
+      ...(jobGateId !== undefined && { jobGateId }),
     });
 
     // Audit the verify attempt — actor is anonymous (public route), ip + non-PII

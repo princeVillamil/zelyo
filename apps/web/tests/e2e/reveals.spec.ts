@@ -11,13 +11,14 @@ import { test, expect, type Page } from "./fixtures";
 // STATUS: Path B on-chain verification (5.1) is now wired. The
   // register → keys → mint → proving → submit flow is verified working.
   // `.fixme` dropped — tests 13.1–13.3 are ready to run.
-test.describe.configure({ mode: "serial", timeout: 420_000 });
+test.describe.configure({ mode: "serial", timeout: 900_000 });
 
 // The holder seals their identity secret under this passphrase on the Keys page,
 // then must re-enter the same passphrase on the Prove page to unseal it.
 const VAULT_PASSPHRASE = "e2e-vault-passphrase";
-// A valid (StrKey-decodable) Stellar address to bind the proof to. It is only
-// encoded into the proof as a binding — it does not need to be a funded account.
+// A valid (StrKey-decodable) Stellar address to link as the holder's default
+// wallet and bind the proof to. It is only encoded into the proof as a binding —
+// it does not need to be a funded account.
 const BOUND_ADDRESS = "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H";
 
 async function mintProveVerify(
@@ -32,10 +33,13 @@ async function mintProveVerify(
   await page.goto("/wallet/keys");
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate identity|generate|create key/i }).click();
-  // Wait for the rendered commitment VALUE ("Public identity commitment:"), which
-  // only appears after the secret is sealed into IndexedDB. The looser /commitment/i
-  // matches static intro copy and would let us navigate away mid-write, losing `s`.
-  await expect(page.getByText(/public identity commitment/i)).toBeVisible({ timeout: 30_000 });
+  // Wait for the generated BACKUP BLOB, which only renders after onGenerate has
+  // published the commitment AND sealed `s` into IndexedDB AND exported the
+  // backup. The "Public Identity Commitment" label is static copy (rendered even
+  // in the pre-generation "AWAITING SETUP" state), so waiting on it resolved
+  // immediately and let us navigate away mid-persist — losing `s` and failing
+  // the Prove page with "No holder secret found in this browser".
+  await expect(page.getByLabel(/backup blob output/i)).toBeVisible({ timeout: 30_000 });
 
   // Admin mints a data-engineering credential to this holder.
   await loginAs("admin");
@@ -67,16 +71,26 @@ async function mintProveVerify(
   // Wait for the session to be established before hitting a HOLDER-gated route,
   // otherwise /wallet redirects straight back to /login.
   await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+  // The Prove page binds proofs to a LINKED wallet (HolderWallet) — the manual
+  // "Stellar address" field no longer exists. Link the bound address through the
+  // wallet API while the holder session is active (page.request shares the
+  // browser context cookies); the panel auto-selects it as the default wallet.
+  const linkRes = await page.request.put("/api/holder/wallet", {
+    data: { type: "STELLAR_ACCOUNT", address: BOUND_ADDRESS, makeDefault: true },
+  });
+  expect(linkRes.ok()).toBeTruthy();
   await page.goto("/wallet");
   await page.getByRole("link", { name: /prove|generate proof/i }).first().click();
   await page.getByRole("checkbox", { name: /track/i }).check();
   // Only `track` is disclosable in the current circuit; other attribute checkboxes
   // are not rendered, so there is nothing to uncheck.
   await expect(page.getByRole("checkbox", { name: /grade|name/i })).toHaveCount(0);
-  await page.getByLabel(/stellar address/i).fill(BOUND_ADDRESS);
+  // The linked default wallet is auto-selected and rendered in place of the old
+  // manual address input; the Generate button stays disabled until it appears.
+  await expect(page.getByText(BOUND_ADDRESS).first()).toBeVisible();
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate zk-proof/i }).click();
-  await page.waitForURL(/\/verify\/result\//, { timeout: 180_000 });
+  await page.waitForURL(/\/verify\/result\//, { timeout: 300_000 });
   return holder;
 }
 
@@ -103,18 +117,21 @@ test("13.2 Sybil block: re-submitting the same nullifier shows NULLIFIER_USED", 
 }) => {
   await mintProveVerify(page, registerHolder, loginAs); // first submit succeeds
   // Re-run the proof for the SAME holder/scope → same nullifier → rejected on-chain.
+  // The wallet linked in the first run persists (HolderWallet is DB-backed), so the
+  // panel auto-selects it again — no address to type.
   await page.goto("/wallet");
   await page.getByRole("link", { name: /prove|generate proof/i }).first().click();
   await page.getByRole("checkbox", { name: /track/i }).check();
-  await page.getByLabel(/stellar address/i).fill(BOUND_ADDRESS);
+  await expect(page.getByText(BOUND_ADDRESS).first()).toBeVisible();
   await page.getByLabel(/passphrase/i).fill(VAULT_PASSPHRASE);
   await page.getByRole("button", { name: /generate zk-proof/i }).click();
-  // The panel surfaces the rejection as a user-visible alert (role="alert")
-  // and also logs the raw result code in the ledger. Target the alert paragraph
-  // to avoid a strict-mode violation from matching multiple elements.
-  await expect(page.locator('p[role="alert"]')).toContainText(
+  // The panel surfaces the rejection as an ERROR line in the prove console
+  // (role="log"), next to the raw NULLIFIER_USED result code — the dedicated
+  // <p role="alert"> was removed in the wallet migration. Scope to the single
+  // log region to avoid a strict-mode violation from matching multiple elements.
+  await expect(page.getByRole("log")).toContainText(
     /NULLIFIER_USED|already (been )?used|sybil/i,
-    { timeout: 180_000 },
+    { timeout: 300_000 },
   );
 });
 

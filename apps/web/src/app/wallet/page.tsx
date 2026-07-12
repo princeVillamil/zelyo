@@ -4,16 +4,20 @@ import { db } from "@/lib/db";
 import { isCredentialOrphaned } from "@/lib/orphan";
 import { getGate } from "@/server/jobgate.service";
 import { CredentialCard } from "@/components/wallet/CredentialCard";
+import { Pagination } from "@/components/Pagination";
 
 export default async function WalletPage({
   searchParams,
 }: {
-  searchParams: Promise<{ gate?: string }>;
+  searchParams: Promise<{ gate?: string; page?: string }>;
 }) {
   const session = await auth();
   if (!session || session.user.role !== "HOLDER") redirect("/login");
 
-  const { gate } = await searchParams;
+  const { gate, page } = await searchParams;
+  const currentPage = Math.max(1, parseInt(page || "1", 10));
+  const limit = 10;
+
   // When arriving from a gate, load it so we can (a) title the page and (b) tell whether
   // an existing proof already satisfies it — letting the holder claim without re-proving.
   const gateDetail = gate ? await getGate(gate) : null;
@@ -80,11 +84,15 @@ export default async function WalletPage({
   }));
   const orphanCount = decorated.filter((d) => d.orphaned).length;
 
+  const totalCredentials = credentials.length;
+  const totalPages = Math.ceil(totalCredentials / limit);
+  const paginatedDecorated = decorated.slice((currentPage - 1) * limit, currentPage * limit);
+
   return (
     <main className="py-stack-lg">
-      <p className="font-label text-label-md uppercase text-secondary">Holder Wallet</p>
-      <h1 className="font-display text-display-lg text-on-background mt-stack-sm">My Credentials</h1>
-      <p className="mt-stack-sm font-body text-body-md italic text-on-surface-variant">
+      <p className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">Holder Wallet</p>
+      <h1 className="font-display text-display-lg text-primary mt-stack-sm">My Credentials</h1>
+      <p className="mt-stack-sm font-body text-body-md text-on-surface-variant">
         Each entry is sealed in the registry. Personal data never leaves this folio.
       </p>
       {gateDetail && (
@@ -111,54 +119,58 @@ export default async function WalletPage({
           page to make {orphanCount > 1 ? "them" : "it"} provable again.
         </p>
       )}
-      {credentials.length === 0 ? (
+      {totalCredentials === 0 ? (
         <p className="mt-stack-lg font-body text-body-md">No credentials yet.</p>
       ) : (
-        <div className="mt-stack-lg grid grid-cols-1 gap-gutter md:grid-cols-2">
-          {decorated.map(({ c, orphaned }) => {
-            const p = provenByCred.get(c.id);
-            // Offer a one-click claim only when an existing proof actually satisfies this
-            // gate — same predicate check claimGate enforces, so the button never dead-ends.
-            let claimHref: string | undefined;
-            if (
-              p?.txHash &&
-              p.boundStellarAddress &&
-              gate &&
-              gateDetail &&
-              !gateExpired &&
-              gateDetail.requiredPredicates.every((pred) => p.disclosed[pred.attribute] === pred.equals)
-            ) {
-              const params = new URLSearchParams({
-                txHash: p.txHash,
-                nullifier: p.nullifierHex,
-                address: p.boundStellarAddress,
-              });
-              claimHref = `/jobs/${gate}?${params.toString()}`;
-            }
-            return (
-              <CredentialCard
-                key={c.id}
-                credential={{
-                  id: c.id,
-                  status: c.status,
-                  issuerName: c.issuer.name,
-                  attributes: c.attributes as never,
-                  leafIndex: c.leafIndex,
-                }}
-                signatureHash={c.leaf.leafHex}
-                orphaned={orphaned}
-                gate={gate}
-                proof={
-                  p
-                    ? { txHash: p.txHash, disclosed: Object.keys(p.disclosed), provenAt: p.provenAt }
-                    : undefined
-                }
-                claimHref={claimHref}
-              />
-            );
-          })}
-        </div>
+        <>
+          <div className="mt-stack-lg grid grid-cols-1 gap-gutter md:grid-cols-2">
+            {paginatedDecorated.map(({ c, orphaned }) => {
+              const p = provenByCred.get(c.id);
+              // Offer a one-click claim only when an existing proof actually satisfies this
+              // gate — same predicate check claimGate enforces, so the button never dead-ends.
+              let claimHref: string | undefined;
+              if (
+                p?.txHash &&
+                p.boundStellarAddress &&
+                gate &&
+                gateDetail &&
+                !gateExpired &&
+                gateDetail.requiredPredicates.every((pred) => p.disclosed[pred.attribute] === pred.equals)
+              ) {
+                const params = new URLSearchParams({
+                  txHash: p.txHash,
+                  nullifier: p.nullifierHex,
+                  address: p.boundStellarAddress,
+                });
+                claimHref = `/jobs/${gate}?${params.toString()}`;
+              }
+              return (
+                <CredentialCard
+                  key={c.id}
+                  credential={{
+                    id: c.id,
+                    status: c.status,
+                    issuerName: c.issuer.name,
+                    attributes: c.attributes as never,
+                    leafIndex: c.leafIndex,
+                  }}
+                  signatureHash={c.leaf.leafHex}
+                  orphaned={orphaned}
+                  gate={gate}
+                  proof={
+                    p
+                      ? { txHash: p.txHash, disclosed: Object.keys(p.disclosed), provenAt: p.provenAt }
+                      : undefined
+                  }
+                  claimHref={claimHref}
+                />
+              );
+            })}
+          </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} baseUrl="/wallet" queryParams={{ gate }} />
+        </>
       )}
     </main>
   );
 }
+

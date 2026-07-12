@@ -17,11 +17,15 @@ export default async function IssuerDashboard({ searchParams }: IssuerDashboardP
 
   const { q } = await searchParams;
 
-  const [issued, rootHex, lastPublish] = await Promise.all([
-    db.credential.count({ where: { status: "ACTIVE" } }),
-    getCurrentRoot(),
-    db.rootHistory.findFirst({ orderBy: { publishedAt: "desc" }, select: { txHash: true, publishedAt: true } }),
-  ]);
+  const [issued, rootHex, lastPublish, proofsVerified, uniqueCredentials, rewardsClaimed] =
+    await Promise.all([
+      db.credential.count({ where: { status: "ACTIVE" } }),
+      getCurrentRoot(),
+      db.rootHistory.findFirst({ orderBy: { publishedAt: "desc" }, select: { txHash: true, publishedAt: true } }),
+      db.verification.count({ where: { result: "VERIFIED" } }),
+      db.nullifier.count(),
+      db.gateClaim.count(),
+    ]);
 
   const where = q ? { OR: [{ id: { contains: q } }, { merkleRootHex: { contains: q } }] } : {};
   const items = await db.credential.findMany({
@@ -51,6 +55,32 @@ export default async function IssuerDashboard({ searchParams }: IssuerDashboardP
               className="foil-stamp inline-block w-full text-center rounded px-stack-md py-stack-sm font-label text-label-md uppercase text-on-primary hover:-translate-y-px transition-transform">
               Mint New Credential
             </a>
+          </div>
+
+          {/* What we learned: the B2B punchline — verifications happened, PII never arrived. */}
+          <div className="border border-outline-variant border-l-2 border-l-primary rounded-lg p-stack-md surface-container-lowest manuscript-glow">
+            <h2 className="font-label text-label-md uppercase text-secondary">What We Learned From Applicants</h2>
+            <div className="mt-stack-sm font-display text-headline-md text-primary">
+              0 personal data points
+            </div>
+            <p className="mt-stack-sm font-body text-caption text-on-surface-variant">
+              Every applicant arrived as a zero-knowledge proof and a nullifier hash. We never
+              saw a name, a grade, or a transcript — only the one fact each gate required.
+            </p>
+            <dl className="mt-stack-md grid grid-cols-3 gap-stack-sm text-center">
+              <div>
+                <dt className="font-label text-caption uppercase text-secondary">Proofs Verified</dt>
+                <dd className="font-display text-body-lg text-on-background">{proofsVerified}</dd>
+              </div>
+              <div>
+                <dt className="font-label text-caption uppercase text-secondary">Unique Credentials</dt>
+                <dd className="font-display text-body-lg text-on-background">{uniqueCredentials}</dd>
+              </div>
+              <div>
+                <dt className="font-label text-caption uppercase text-secondary">Rewards Claimed</dt>
+                <dd className="font-display text-body-lg text-on-background">{rewardsClaimed}</dd>
+              </div>
+            </dl>
           </div>
         </div>
 

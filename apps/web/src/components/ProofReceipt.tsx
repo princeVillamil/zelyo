@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { VerificationView } from "../server/verification-read.service";
 import { explorerTxUrl } from "../lib/explorer";
+import { env } from "../lib/env";
 import { ALL_ATTRIBUTE_LABELS } from "../lib/attribute-labels";
+import { ProofQr } from "./ProofQr";
 
 /**
  * Post-verification receipt: the fact that was proven, what was never revealed,
@@ -121,6 +123,18 @@ export function ProofReceipt({ view }: { view: VerificationView }) {
           <dd>{view.createdAt.toLocaleString()}</dd>
         </div>
       </dl>
+
+      {/* Share: a judge scans the QR and lands on this very receipt. */}
+      <div className="mt-stack-lg flex flex-wrap items-center gap-stack-md border-t border-outline-variant pt-stack-md">
+        <ProofQr url={`${env.APP_URL}/verify/result/${view.txHash}`} />
+        <div className="min-w-0 flex-1">
+          <p className="font-label text-label-md uppercase text-secondary">Share this proof</p>
+          <p className="font-body text-caption text-on-surface-variant mt-stack-sm">
+            Scan to open this receipt on any device — it shows the proof, the anchors, and what
+            stayed hidden. Never the person.
+          </p>
+        </div>
+      </div>
 
       <div className="mt-stack-lg flex flex-wrap items-center gap-stack-md">
         <a

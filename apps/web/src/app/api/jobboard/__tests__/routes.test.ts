@@ -52,10 +52,19 @@ describe("jobboard routes", () => {
     const body = { nullifierHex: "0xdeadbeef", boundAddress: "G" + "A".repeat(55), txHash: "tx1" };
     const res = await claimRoute(claimReq(body), { params: Promise.resolve({ slug: "data-engineering" }) });
     expect(enforceRateLimit).toHaveBeenCalledWith("claim", "1.2.3.4");
-    expect(claimGate).toHaveBeenCalledWith("data-engineering", "0xdeadbeef", "G" + "A".repeat(55), "tx1");
+    expect(claimGate).toHaveBeenCalledWith("data-engineering", "0xdeadbeef", "G" + "A".repeat(55), "tx1", undefined);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ txHash: "CBTX", rewardType: "CLAIMABLE_BALANCE" });
     expect(audit).toHaveBeenCalled();
+  });
+
+  it("POST claim passes a validated receiveAsset choice through to claimGate", async () => {
+    claimGate.mockResolvedValue({ txHash: "PATHTX", rewardType: "CLAIMABLE_BALANCE" });
+    const receiveAsset = { code: "USDC", issuer: "G" + "B".repeat(55) };
+    const body = { nullifierHex: "0xdeadbeef", boundAddress: "G" + "A".repeat(55), txHash: "tx1", receiveAsset };
+    const res = await claimRoute(claimReq(body), { params: Promise.resolve({ slug: "data-engineering" }) });
+    expect(claimGate).toHaveBeenCalledWith("data-engineering", "0xdeadbeef", "G" + "A".repeat(55), "tx1", receiveAsset);
+    expect(res.status).toBe(200);
   });
 
   it("POST claim rejects an invalid body with 400", async () => {

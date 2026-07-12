@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getGate } from "../../../server/jobgate.service";
+import { listReceiveAssetChoices } from "../../../lib/stellar";
 import { ClaimPanel } from "./ClaimPanel";
 import { PrivacyToggle } from "../../../components/PrivacyToggle";
 import { db } from "@/lib/db";
@@ -47,6 +48,15 @@ export default async function GateDetailPage({
 
   const isExpired = gate.expiresAt ? new Date() > new Date(gate.expiresAt) : false;
 
+  // Asset choice is offered only when the gate pays native XLM (the SDEX conversion
+  // source); the whitelist itself comes from SDEX_RECEIVE_ASSETS.
+  const gateAsset = gate.rewardConfig.asset;
+  const isXlmReward = gateAsset?.code === "XLM" && !gateAsset.issuer;
+  const receiveChoices =
+    gate.rewardType === "CLAIMABLE_BALANCE" && isXlmReward
+      ? listReceiveAssetChoices().filter((c) => !(c.code === "XLM" && !c.issuer))
+      : [];
+
   return (
     <main className="py-stack-lg">
       <p className="font-label text-label-md uppercase text-secondary">Registry Gate</p>
@@ -85,6 +95,7 @@ export default async function GateDetailPage({
           initialNullifierHex={nullifierHex ?? null}
           initialBoundAddress={boundAddress ?? null}
           isExpired={isExpired}
+          receiveChoices={receiveChoices}
         />
       </div>
     </main>

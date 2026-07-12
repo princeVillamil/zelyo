@@ -6,6 +6,7 @@ import type { GateDetail } from "../../../server/jobgate.service";
 
 type ClaimResult = { txHash?: string; explorerUrl?: string; rewardType: string };
 type ClaimError = { code: string; message: string; details?: Record<string, string> };
+type AssetChoice = { code: string; issuer: string };
 
 type Props = {
   gate: GateDetail;
@@ -14,6 +15,7 @@ type Props = {
   initialNullifierHex: string | null;
   initialBoundAddress: string | null;
   isExpired?: boolean;
+  receiveChoices?: AssetChoice[];
 };
 
 export function ClaimPanel({
@@ -23,6 +25,7 @@ export function ClaimPanel({
   initialNullifierHex,
   initialBoundAddress,
   isExpired = false,
+  receiveChoices = [],
 }: Props) {
   const [txHash, setTxHash] = useState<string | null>(initialTxHash);
   const [nullifierHex, setNullifierHex] = useState<string | null>(initialNullifierHex);
@@ -32,6 +35,7 @@ export function ClaimPanel({
   const [status, setStatus] = useState<"idle" | "claiming" | "done" | "error" | "rejected">("idle");
   const [result, setResult] = useState<ClaimResult | null>(null);
   const [error, setError] = useState<ClaimError | null>(null);
+  const [receiveAsset, setReceiveAsset] = useState<AssetChoice | null>(null);
 
   async function claim() {
     setStatus("claiming");
@@ -39,7 +43,12 @@ export function ClaimPanel({
     const res = await fetch(`/api/jobboard/gates/${gate.slug}/claim`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ nullifierHex, boundAddress, txHash }),
+      body: JSON.stringify({
+        nullifierHex,
+        boundAddress,
+        txHash,
+        ...(receiveAsset ? { receiveAsset } : {}),
+      }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -138,6 +147,46 @@ export function ClaimPanel({
 
   return (
     <div>
+      {receiveChoices.length > 0 && (
+        <fieldset className="mb-stack-md border border-outline-variant rounded-lg p-stack-md">
+          <legend className="font-label text-caption uppercase text-secondary px-1">
+            Receive reward as
+          </legend>
+          <div className="mt-stack-sm flex flex-wrap gap-stack-md">
+            <label className="flex items-center gap-1 font-body text-body-md text-on-background">
+              <input
+                type="radio"
+                name="receiveAsset"
+                checked={receiveAsset === null}
+                onChange={() => setReceiveAsset(null)}
+                disabled={status === "claiming"}
+              />
+              XLM (direct)
+            </label>
+            {receiveChoices.map((choice) => (
+              <label
+                key={choice.code}
+                className="flex items-center gap-1 font-body text-body-md text-on-background"
+              >
+                <input
+                  type="radio"
+                  name="receiveAsset"
+                  checked={receiveAsset?.code === choice.code}
+                  onChange={() => setReceiveAsset(choice)}
+                  disabled={status === "claiming"}
+                />
+                {choice.code} (via SDEX)
+              </label>
+            ))}
+          </div>
+          {receiveAsset && (
+            <p className="mt-stack-sm font-body text-caption text-on-surface-variant">
+              The issuer sends XLM; the Stellar DEX converts it to {receiveAsset.code} at the
+              best available rate. Your wallet must trust {receiveAsset.code}.
+            </p>
+          )}
+        </fieldset>
+      )}
       <FoilStampButton
         type="button"
         onClick={claim}

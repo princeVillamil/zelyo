@@ -63,6 +63,12 @@ const EnvSchema = z.object({
   CHANNELS_URL: z.string().url().optional(),
   CHANNELS_API_KEY: z.string().min(1).optional(),
 
+  // SEP-38 anchor RFQ (indicative prices + firm quotes for fiat/crypto conversion).
+  // Optional at build time; the SEP-38 service runtime-guards these and throws if the
+  // feature is used without a configured anchor.
+  SEP38_ANCHOR_URL: z.string().url().optional(),
+  SEP38_API_KEY: z.string().min(1).optional(),
+
   // Feature gates (client-readable)
   NEXT_PUBLIC_SEP45_ENABLED: boolish.default(false),
 

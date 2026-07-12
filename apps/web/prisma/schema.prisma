@@ -190,3 +190,24 @@ model HolderWallet {
   @@index([userId])
   @@index([address])
 }
+
+model RampQuote {
+  id            String    @id @default(cuid())
+  anchorQuoteId String? // firm-quote id returned by the anchor (null for purely indicative)
+  sellAsset     String // SEP-38 asset id: stellar:CODE:ISSUER | stellar:native | iso4217:USD
+  buyAsset      String
+  sellAmount    String?
+  buyAmount     String?
+  price         String? // firm quote price (buy_asset per sell_asset)
+  totalPrice    String?
+  feeAsset      String?
+  feeAmount     String?
+  expiresAt     DateTime?
+  status        String    @default("FIRM") // FIRM | EXPIRED | CONSUMED (CONSUMED when a payout attaches)
+  rawResponse   Json? // anchor response snapshot for audit; no PII
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([anchorQuoteId])
+  @@index([status])
+}

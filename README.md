@@ -17,7 +17,7 @@ A draft investor deck (MARP) lives at [`docs/pitch-deck.md`](docs/pitch-deck.md)
 
 ---
 
-## 🧩 Problem
+## Problem
 
 Identity verification today is broken:
 
@@ -28,7 +28,7 @@ Identity verification today is broken:
 
 For freelancers, professionals, and anyone crossing borders, the cost of proving you are qualified is privacy itself.
 
-## 🌟 Vision
+## Vision
 
 A world where credentials are **portable, private, and provable**. Zelyo replaces "trust me, here is everything" with "here is a cryptographic proof of exactly one fact" — bound to your wallet, user-controlled, and never tied to your name on-chain.
 
@@ -38,7 +38,7 @@ We believe the future of work needs an identity layer that is:
 - **Privacy-preserving** — only the disclosed attribute leaves the device.
 - **Composable** — any issuer, any verifier, any reward gate.
 
-## 🎯 Purpose
+## Purpose
 
 Built for the **Stellar Hackathon 2026**.
 
@@ -51,21 +51,21 @@ Zelyo exists to make privacy-preserving verification practical for real products
 
 The chain records only a **nullifier** and a **bound wallet address**. Your name, your full credential, and your secret never reach it.
 
-## 👥 Target Users
+## Target Users
 
 - **Issuers** (universities, bootcamps, certifiers) — Mint fraud-resistant credentials and publish roots to a public registry without running a database of personal details.
 - **Holders** (freelancers, remote workers, professionals) — Carry proof of skills in your wallet; reveal only what the opportunity requires.
 - **Verifiers** (employers, marketplaces, DAOs) — Confirm claims cryptographically with no PII liability and no manual checks.
 - **Developers** — Extend the protocol with new gates, credentials, and reward types using the ZK + Soroban scaffold.
 
-## ✨ Features
+## Features
 
 - **Credential Lifecycle** — Issuer minting portal for Merkle tree leaves, Merkle-tree registry on Soroban with revocation/history, holder wallet with encrypted storage, and local secret management (IndexedDB, WebCrypto).
 - **Zero-Knowledge Proving** — In-browser UltraHonk proofs via `@aztec/bb.js`/Noir, selective disclosure of `track`, address binding, and Sybil resistance (deterministic nullifiers).
 - **Verification & Rewards** — Server-side verification (Path B), on-chain verification stub (Path A), and gated job board (claim token rewards or verified flags).
 - **Hardening & Quality** — Security headers (CSP, COOP/COEP), rate limiting (Redis), PII-safe audit logging, accessibility compliance (WCAG 2.1 AA, Playwright + axe), and 290+ tests.
 
-## 🏗️ Architecture
+## Architecture
 
 The secret `s` and the full credential never leave the holder's browser. The server sees only the disclosed attribute, a nullifier, and a bound wallet address. The chain sees nothing but hashes.
 
@@ -94,7 +94,7 @@ sequenceDiagram
     S-->>H: Reward tx (second claim → rejected)
 ```
 
-## 🚀 How to Run Locally
+## How to Run Locally
 
 ```bash
 # 1. Clone
@@ -127,7 +127,7 @@ Log in with `admin` / your `ADMIN_PASSWORD`.
 
 > **Full developer reference** (scripts, env vars, branching, CI) lives further down in this README under [Developer reference](#developer-reference).
 
-## 🌐 Deployment
+## Deployment
 
 Zelyo is deployed to **Stellar Testnet** and hosted on **Railway**. The network configuration is pinned at the environment level via `STELLAR_NETWORK` (staging/production = `testnet`).
 
@@ -138,24 +138,24 @@ Deployed via Railway from `develop` (auto-deploy on merge into `develop`).
 - **App URL**: https://zelyo.one/
 - **Credential Registry Contract**: [`CARUNSUOW2P4ZJZ63NOYPPEKIM2BM2M3NKL6PNN6NJYEN7P4HFRV223J`](https://stellar.expert/explorer/testnet/contract/CARUNSUOW2P4ZJZ63NOYPPEKIM2BM2M3NKL6PNN6NJYEN7P4HFRV223J)
 - **Verifier Contract**: [`CBA3KJQOJ7IZGHAM2MA37UDGICHOD6MULIJOD4OECDFJZP6GSA7FYJ7Y`](https://stellar.expert/explorer/testnet/contract/CBA3KJQOJ7IZGHAM2MA37UDGICHOD6MULIJOD4OECDFJZP6GSA7FYJ7Y)
-- **📸 Credential Registry Contract on Stellar Expert**:
+- **Credential Registry Contract on Stellar Expert**:
   ![Credential Registry Contract](docs/CredentialRegistryContract.png)
-- **📸 Verifier Contract on Stellar Expert**:
+- **Verifier Contract on Stellar Expert**:
   ![Verifier Contract](docs/VerifierContract.png)
 
-## 🎥 Demo
+## Demo
 
-- 🔗 **Live App**: https://zelyo.one/
-- 🎬 **Walkthrough Video**: `[VIDEO_URL_PLACEHOLDER]`
-- 🖼️ **Pitch Deck**: `[DECK_URL_PLACEHOLDER]`
+- **Live App**: https://zelyo.one/
+- **Walkthrough Video**: https://youtu.be/W9nnpmCT1S0
+- **Pitch Deck**: https://docs.google.com/presentation/d/10nmex5KjB1tfd6j47sO1IX2YqIQynwwx/edit?usp=sharing&ouid=111714228907886670908&rtpof=true&sd=true
 
-## 👨💻 Team
+## Team
 
 | Name | Role | GitHub |
 | --- | --- | --- |
 | Prince Jeffrey Villamil | software developer | [@princeVillamil](https://github.com/princeVillamil) |
 
-## 📜 License
+## License
 
 [LICENSE_PLACEHOLDER]
 

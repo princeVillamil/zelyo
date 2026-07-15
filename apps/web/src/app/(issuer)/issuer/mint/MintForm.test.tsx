@@ -22,8 +22,10 @@ describe("MintForm", () => {
 
   it("renders the DATA→HASH→PROOF/ROOT schematic and the mint log console", () => {
     render(<MintForm />);
-    expect(screen.getByText(/Fig 1\.1/i)).toBeInTheDocument();
     expect(screen.getByText(/commitment preview/i)).toBeInTheDocument();
+    expect(screen.getByText(/^leaf$/i)).toBeInTheDocument();
+    expect(screen.getByText(/hash fn/i)).toBeInTheDocument();
+    expect(screen.getByText(/registry leaf/i)).toBeInTheDocument();
     expect(screen.getByTestId("mint-log")).toBeInTheDocument();
   });
 });

@@ -28,7 +28,9 @@ export function RegisterForm() {
       return;
     }
     await signIn("credentials", { ...values, redirect: false });
+    // Refresh so server components (SiteRail) re-render with the new session.
     router.push("/wallet");
+    router.refresh();
   }
 
   return (
@@ -45,6 +47,9 @@ export function RegisterForm() {
       <FoilStampButton type="submit" disabled={formState.isSubmitting}>
         Open Folio
       </FoilStampButton>
+      <a href="/login" className="font-label text-label-md uppercase tracking-[0.05em] text-secondary hover:text-primary">
+        Have an account? Sign in
+      </a>
     </form>
   );
 }

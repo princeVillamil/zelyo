@@ -4,14 +4,10 @@ import { RevealNarrative } from "../components/RevealNarrative";
 export default function HomePage() {
   return (
     <main className="py-stack-lg">
-      <p className="font-label text-label-md uppercase text-secondary">The Zelyo Protocol</p>
-      <h1 className="font-display text-display-lg text-on-background mt-stack-sm max-w-3xl">
+      <p className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary">The Zelyo Protocol</p>
+      <h1 className="font-display text-display-lg text-primary mt-stack-sm">
         Verifiable credentials, sealed with the gravity of a printed record.
       </h1>
-      <p className="font-body text-body-lg text-on-surface-variant mt-stack-md max-w-2xl">
-        Prove one fact about a credential in zero knowledge. The chain records only a nullifier —
-        never who you are.
-      </p>
 
       <div className="mt-stack-lg">
         <Link

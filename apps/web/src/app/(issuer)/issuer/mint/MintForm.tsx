@@ -133,11 +133,12 @@ export function MintForm() {
           <div className="absolute inset-0 bg-repeat-y opacity-5 pointer-events-none ledger-line" />
           
           <h2 className="font-label text-[11px] tracking-[0.14em] uppercase text-secondary mb-unit relative z-10">Commitment Preview</h2>
-          <p className="font-caption italic text-on-surface-variant relative z-10">Fig 1.1 — Distillation schematic</p>
-          
-          <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-0 mt-stack-md relative z-10 select-none">
+
+          {/* minmax(0,1fr) columns: plain 1fr has a min-content floor, so a long
+              track value would force the column wider than the card. */}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-0 mt-stack-md relative z-10 select-none">
             {/* Node 1: Leaf */}
-            <div className="border border-outline-variant bg-surface-container-lowest rounded-lg p-3 text-center flex flex-col justify-between min-h-[72px]">
+            <div className="border border-outline-variant bg-surface-container-lowest rounded-lg p-3 text-center flex flex-col justify-between min-h-[72px] min-w-0">
               <div className="font-label text-[11px] tracking-[0.1em] uppercase text-secondary truncate">Leaf</div>
               <div className="font-mono text-[12px] text-primary mt-1.5 truncate" title={values.track || "track"}>
                 {values.track || "track"}

@@ -57,7 +57,7 @@ export function SectionNav({ role }: { role: SectionRole }) {
   return (
     <nav
       aria-label={section.label}
-      className="relative z-10 mb-stack-md flex flex-wrap items-baseline justify-end gap-x-stack-md gap-y-unit md:absolute md:right-margin-page md:top-stack-lg md:mb-0"
+      className="absolute right-margin-mobile top-stack-lg z-10 flex max-w-[65%] flex-wrap items-baseline justify-end gap-x-stack-md gap-y-unit md:right-margin-page"
     >
       {section.links.map((link) => {
         const active = linkActive(pathname, link);

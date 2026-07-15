@@ -96,20 +96,31 @@
     </div>
 
     <figure class="hero-figure">
-      <div class="plate fig-placeholder" style="border:0;border-radius:0;">
-        <span class="watermark" aria-hidden="true">
-          <span class="material-symbols-outlined" style="font-size:96px;color:var(--color-secondary-fixed-dim);opacity:.55;">image</span>
-          <span class="label-md" style="color:var(--color-secondary);margin-top:10px;">Cover plate · awaiting engraving</span>
-        </span>
-        <!-- Image-generation placeholder (cover image) -->
-        <span class="prompt">
-          <span class="tag"><span class="material-symbols-outlined">image</span> Image prompt · Plate I</span>
-          <span class="txt">A wide editorial-archival cover illustration for “Zelyo,” a privacy-preserving credential protocol. Warm cream paper (#fbf9f5) with faint ledger rules and a subtle paper grain; deep evergreen ink (#051a17). Center: a large circular wax-foil signet seal with a raised outer rim and a minimal Merkle-tree glyph inside — three small nodes at the top converging through thin diagonal branch lines into one solid apex node, reading as a seal of authenticity. Around it, schematic line-art diagrams labelled “DATA → HASH → PROOF / ROOT” in thin engraved linework, like a scholarly plate from a cryptographic journal. Latin-numeral date “A.D. MMXXVI” in the corner. Letterpress/engraved feel, generous negative space, restrained and scholarly — no neon, no 3D, no cyberpunk, no people. Flat vector with one subtle diagonal foil gradient (#051a17 → #1a2f2b) on the seal only.</span>
-        </span>
+      <div class="plate folio-plate">
+        <article class="folio-card">
+          <span class="seal-badge">Proven ✓</span>
+          <p class="folio-no">Identity Folio No. 73</p>
+          <h3>Data Engineering Certificate</h3>
+          <dl>
+            <div><dt>Track</dt><dd>Data Engineering</dd></div>
+            <div><dt>Issuer</dt><dd>Institute of Distributed Systems</dd></div>
+            <div><dt>Issued</dt><dd>2026-07-14</dd></div>
+            <div><dt>Signature</dt><dd class="mono">0x244af422…</dd></div>
+          </dl>
+          <p class="status">Status: Active</p>
+          <p class="sealed">Sealed 7/14/2026 · revealed track</p>
+          <div class="actions">
+            <div class="links">
+              <span>Details</span>
+              <span>View proof</span>
+            </div>
+            <span class="prove-btn">Prove</span>
+          </div>
+        </article>
       </div>
       <figcaption class="figcaption">
-        <span class="cap">Fig. 1 — The Zelyo seal: many private leaves converge to one sealed, anonymous root.</span>
-        <span class="fig">Plate I · cover</span>
+        <span class="cap">Fig. 1 — A sealed credential folio: one fact revealed, everything else private.</span>
+        <span class="fig">Plate I · wallet</span>
       </figcaption>
     </figure>
   </div>

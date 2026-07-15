@@ -263,6 +263,25 @@ button { font: inherit; cursor: pointer; }
 .hero { position: relative; overflow: hidden; }
 .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: var(--sp-lg); align-items: center; padding-block: clamp(48px, 7vw, 88px); }
 .hero-figure { position: relative; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-xl); background: var(--color-surface-lowest); overflow: hidden; box-shadow: 0 0 40px rgba(99,94,86,0.05); }
+.hero-figure .hero-shot { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 25% center; }
+
+/* ---------- Folio demo card (mini mirror of the app's /wallet credential card) ---------- */
+.folio-plate { aspect-ratio: auto; padding: clamp(12px, 2vw, 20px); }
+.folio-card { position: relative; width: 100%; display: flex; flex-direction: column; background: linear-gradient(135deg, #051a17 0%, #1a2f2b 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10), 0 0 40px rgba(99,94,86,0.08); border-radius: var(--radius-lg); padding: clamp(14px, 2.4vw, 20px); color: var(--color-on-primary); }
+.folio-card .seal-badge { position: absolute; top: 14px; right: 14px; border: 1px solid var(--color-primary-fixed-dim); background: rgba(255,255,255,0.10); border-radius: var(--radius); padding: 2px 6px; font-family: var(--font-label); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-primary-fixed); }
+.folio-card .folio-no { margin: 0; padding-right: 84px; font-family: var(--font-label); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-primary-fixed-dim); }
+.folio-card h3 { margin: 2px 0 0; font-family: var(--font-display); font-size: clamp(19px, 2.2vw, 24px); line-height: 1.25; font-weight: 500; color: var(--color-on-primary); }
+.folio-card dl { margin: 12px 0 0; display: grid; gap: 2px; }
+.folio-card dl > div { display: flex; justify-content: space-between; gap: 12px; }
+.folio-card dt { font-family: var(--font-label); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-primary-fixed-dim); }
+.folio-card dd { margin: 0; font-family: var(--font-body); font-size: 13px; line-height: 20px; text-align: right; }
+.folio-card dd.mono { font-family: var(--font-mono); font-size: 11px; letter-spacing: -0.3px; }
+.folio-card .status { margin: 12px 0 0; font-family: var(--font-label); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-primary-fixed-dim); }
+.folio-card .sealed { margin: 2px 0 0; font-size: 10px; line-height: 14px; color: var(--color-primary-fixed-dim); }
+.folio-card .actions { margin-top: auto; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.folio-card .links { display: flex; gap: 16px; }
+.folio-card .links span { font-family: var(--font-label); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-primary-fixed-dim); text-decoration: underline; }
+.folio-card .prove-btn { display: inline-flex; align-items: center; background: var(--color-primary-fixed); color: var(--color-primary); border-radius: var(--radius); padding: 8px 16px; font-family: var(--font-label); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; text-decoration: none; cursor: default; }
 .hero-figure .plate { aspect-ratio: 4 / 5; position: relative; display: grid; place-items: center; }
 .hero-figure .plate .seal { width: 200px; height: 200px; }
 .hero-figure .plate::before {

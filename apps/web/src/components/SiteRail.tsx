@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useState } from "react";
 
 export type RailRole = "ADMIN" | "HOLDER" | null;
@@ -83,22 +84,21 @@ export function SiteRail({ role, username }: SiteRailProps) {
               {item.label}
             </Link>
           ))}
-          <Link href="/" className="font-label text-label-md uppercase tracking-[0.05em] text-on-surface-variant">
-            Help
-          </Link>
+          {authed && (
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="font-label text-label-md uppercase tracking-[0.05em] text-on-surface-variant"
+            >
+              Log out
+            </button>
+          )}
         </nav>
       </div>
 
       {/* ── Desktop: the animated hairline-tick rail ── */}
       <aside
-        style={
-          {
-            "--tick": "28px",
-            "--tick-active": "40px",
-            "--tick-expanded": "44px",
-          } as React.CSSProperties
-        }
-        className="fixed left-0 top-0 z-40 hidden h-screen w-16 shrink-0 flex-col overflow-visible bg-background px-3 py-8 md:flex"
+        className="site-rail fixed left-0 top-0 z-40 hidden h-screen w-16 shrink-0 flex-col overflow-visible bg-background px-3 py-8 md:flex"
       >
         {/* Logo — far top-left of the frame */}
         <Link
@@ -122,32 +122,46 @@ export function SiteRail({ role, username }: SiteRailProps) {
           ))}
         </nav>
 
-        {/* Auth + help — pinned to the bottom */}
+        {/* Auth + log out — pinned to the bottom */}
         <div className="flex flex-col gap-5">
-          {authed
-            ? username && (
+          {authed ? (
+            <>
+              {username && (
                 <span className="truncate font-mono text-caption text-on-surface-variant">
                   {username}
                 </span>
-              )
-            : auth.map((item) => (
-                <RailTick
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  cta={item.cta ?? false}
-                  onActive={handleActive(item.label)}
-                  onInactive={handleInactive(item.label)}
-                />
-              ))}
-          <RailTick
-            href="/"
-            label="Help"
-            onActive={handleActive("Help")}
-            onInactive={handleInactive("Help")}
-          />
+              )}
+              <RailAction
+                label="Log out"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                onActive={handleActive("Log out")}
+                onInactive={handleInactive("Log out")}
+              />
+            </>
+          ) : (
+            auth.map((item) => (
+              <RailTick
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                cta={item.cta ?? false}
+                onActive={handleActive(item.label)}
+                onInactive={handleInactive(item.label)}
+              />
+            ))
+          )}
         </div>
       </aside>
+
+      {/* ── Rail edge ornament: vertical hairline with a lozenge ── */}
+      <div
+        aria-hidden="true"
+        className="fixed left-16 top-0 z-40 hidden h-screen flex-col items-center py-8 md:flex"
+      >
+        <div className="w-px flex-1 bg-outline-variant" />
+        <span className="py-2 text-caption text-secondary">◆</span>
+        <div className="w-px flex-1 bg-outline-variant" />
+      </div>
 
       {/* ── Dimmer: translucent ink scrim between content and rail ── */}
       <div
@@ -157,6 +171,51 @@ export function SiteRail({ role, username }: SiteRailProps) {
         }`}
       />
     </>
+  );
+}
+
+function RailAction({
+  label,
+  onClick,
+  onActive,
+  onInactive,
+}: {
+  label: string;
+  onClick: () => void;
+  onActive?: () => void;
+  onInactive?: () => void;
+}) {
+  // Same tick micro-interaction as RailTick, but for actions (no navigation).
+  const handlers: {
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+    onFocus?: () => void;
+    onBlur?: () => void;
+  } = {};
+  if (onActive) {
+    handlers.onMouseEnter = onActive;
+    handlers.onFocus = onActive;
+  }
+  if (onInactive) {
+    handlers.onMouseLeave = onInactive;
+    handlers.onBlur = onInactive;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className="group/tick relative flex h-4 items-center focus-visible:outline-none"
+      {...handlers}
+    >
+      <span
+        className="h-[2px] w-[var(--tick)] rounded-full bg-on-surface-variant/45 transition-all duration-300 ease-in-out group-hover/tick:w-[var(--tick-expanded)] group-hover/tick:bg-primary-fixed-dim group-focus-visible/tick:w-[var(--tick-expanded)] group-focus-visible/tick:bg-primary-fixed-dim motion-reduce:transition-none"
+      />
+      <span className="pointer-events-none absolute top-1/2 left-[calc(var(--tick-expanded)_+_14px)] -translate-y-1/2 whitespace-nowrap font-label text-label-md uppercase tracking-[0.05em] text-background opacity-0 transition-opacity duration-300 ease-in-out group-hover/tick:opacity-100 group-focus-visible/tick:opacity-100 motion-reduce:transition-none">
+        {label}
+      </span>
+    </button>
   );
 }
 

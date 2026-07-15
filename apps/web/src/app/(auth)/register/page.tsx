@@ -7,9 +7,6 @@ export default function RegisterPage() {
         Identity Folio
       </p>
       <h1 className="mt-stack-sm font-display text-headline-md text-primary">Open a folio</h1>
-      <p className="mt-stack-sm font-body text-body-md italic text-on-surface-variant">
-        Your holder secret is generated on your device on first wallet visit — never here, never on our servers.
-      </p>
       <RegisterForm />
     </main>
   );

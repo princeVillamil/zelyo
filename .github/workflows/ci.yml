@@ -69,5 +69,21 @@ jobs:
           ADMIN_PASSWORD: build-placeholder
           ISSUER_NAME: Institute of Distributed Systems
 
+      # pnpm audit is dead upstream: npm retired the legacy audit endpoints it calls
+      # (410 Gone, every pnpm version incl. 12-alpha). dependency-review-action would
+      # be the usual replacement, but this repo is private and that action requires
+      # GitHub Advanced Security. OSV-Scanner reads pnpm-lock.yaml directly, needs no
+      # GH features, and works on private repos. It exits 1 on ANY vulnerability, so
+      # we gate on CRITICAL ourselves via the JSON report (GHSA severity field).
       - name: Audit (fail on critical)
-        run: pnpm audit --audit-level critical
+        run: |
+          curl -sSfL https://github.com/google/osv-scanner/releases/download/v2.4.0/osv-scanner_linux_amd64 -o "$RUNNER_TEMP/osv-scanner"
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+          "$RUNNER_TEMP/osv-scanner" scan source --lockfile=pnpm-lock.yaml --format json > osv.json || true
+          total=$(jq '[.results[].packages[].vulnerabilities[]] | length' osv.json)
+          critical=$(jq '[.results[].packages[].vulnerabilities[] | select(((.database_specific.severity // "") | ascii_upcase) == "CRITICAL")] | length' osv.json)
+          echo "OSV scan: $total known vulnerabilities, $critical critical (gate fails on critical only)"
+          if [ "$critical" -gt 0 ]; then
+            jq -r '.results[].packages[] | .package.name as $n | .vulnerabilities[] | select(((.database_specific.severity // "") | ascii_upcase) == "CRITICAL") | "CRITICAL: \($n) — \(.id)"' osv.json
+            exit 1
+          fi

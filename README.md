@@ -149,6 +149,8 @@ Deployed via Railway from `develop` (auto-deploy on merge into `develop`).
 - **Walkthrough Video**: https://youtu.be/W9nnpmCT1S0
 - **Pitch Deck**: https://docs.google.com/presentation/d/10nmex5KjB1tfd6j47sO1IX2YqIQynwwx/edit?usp=sharing&ouid=111714228907886670908&rtpof=true&sd=true
 
+![Zelyo](docs/Zelyo.png)
+
 ## Team
 
 | Name | Role | GitHub |

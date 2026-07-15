@@ -69,5 +69,11 @@ jobs:
           ADMIN_PASSWORD: build-placeholder
           ISSUER_NAME: Institute of Distributed Systems
 
+      # pnpm audit is dead upstream: npm retired the legacy audit endpoints it calls
+      # (410 Gone, every pnpm version incl. 12-alpha). dependency-review-action reads
+      # pnpm-lock.yaml and gates the PR against the GitHub Advisory Database instead —
+      # same fail-on-critical intent, and it only blocks on deps the PR introduces.
       - name: Audit (fail on critical)
-        run: pnpm audit --audit-level critical
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: critical

@@ -7,7 +7,7 @@ Zelyo is a privacy-preserving credential protocol that lets issuers mint tamper-
 |             |                                                                                   |
 | ----------- | --------------------------------------------------------------------------------- |
 | **Status**  | v0.0.0 — pre-release |
-| **License** | [LICENSE_PLACEHOLDER] |
+| **License** | MIT |
 
 ---
 
@@ -157,7 +157,7 @@ Deployed via Railway from `develop` (auto-deploy on merge into `develop`).
 
 ## License
 
-[LICENSE_PLACEHOLDER]
+MIT
 
 ---
 

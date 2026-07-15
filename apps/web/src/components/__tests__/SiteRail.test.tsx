@@ -4,22 +4,27 @@ import { SiteRail } from "../SiteRail";
 
 let pathname = "/jobs";
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
+vi.mock("next-auth/react", () => ({ signOut: vi.fn() }));
 
-// Board / Help (and role links) render in both the mobile strip and the desktop rail,
+// Board / Log out (and role links) render in both the mobile strip and the desktop rail,
 // so assert on counts rather than a single element.
 describe("SiteRail", () => {
-  it("always shows the Board link, the Zelyo wordmark, and Help", () => {
+  it("always shows the Board link and the Zelyo wordmark", () => {
     render(<SiteRail role={null} username={null} />);
     expect(screen.getAllByRole("link", { name: "Board" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Zelyo" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: "Help" }).length).toBeGreaterThan(0);
   });
 
-  it("shows Sign in and Register when signed out — never Sign out", () => {
+  it("shows Sign in and Register when signed out — never Log out", () => {
     render(<SiteRail role={null} username={null} />);
     expect(screen.getAllByRole("link", { name: "Sign in" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Register" }).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/Sign out/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Log out" })).not.toBeInTheDocument();
+  });
+
+  it("shows Log out for an authenticated HOLDER", () => {
+    render(<SiteRail role="HOLDER" username="alice" />);
+    expect(screen.getAllByRole("button", { name: "Log out" }).length).toBeGreaterThan(0);
   });
 
   it("shows Wallet (not Issuer) and the username for a HOLDER", () => {

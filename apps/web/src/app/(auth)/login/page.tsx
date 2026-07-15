@@ -8,9 +8,6 @@ export default function LoginPage() {
         The Zelyo Registry
       </p>
       <h1 className="mt-stack-sm font-display text-headline-md text-primary">Sign in</h1>
-      <p className="mt-stack-sm font-body text-body-md italic text-on-surface-variant">
-        Enter your credentials to access the registry.
-      </p>
       {/* useSearchParams() in LoginForm needs a Suspense boundary to prerender. */}
       <Suspense>
         <LoginForm />

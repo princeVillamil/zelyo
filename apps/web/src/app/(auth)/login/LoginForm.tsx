@@ -23,7 +23,12 @@ export function LoginForm() {
     setError(null);
     const res = await signIn("credentials", { ...values, redirect: false });
     if (res?.error) setError("Invalid credentials.");
-    else router.push(callbackUrl);
+    else {
+      // Server components (SiteRail in the root layout) read the session
+      // server-side — refresh so they re-render with the new auth state.
+      router.push(callbackUrl);
+      router.refresh();
+    }
   }
 
   return (
@@ -34,6 +39,13 @@ export function LoginForm() {
       <FoilStampButton type="submit" disabled={formState.isSubmitting}>
         Enter the Registry
       </FoilStampButton>
+      <div className="space-y-1 rounded-r border-l-2 border-primary bg-surface-container px-stack-md py-stack-sm">
+        <p className="font-label text-label-md uppercase tracking-[0.05em] text-secondary">
+          Demo account
+        </p>
+        <p className="font-mono text-caption text-on-surface-variant">username: admin</p>
+        <p className="font-mono text-caption text-on-surface-variant">password: admin123456789</p>
+      </div>
       <a href="/register" className="font-label text-label-md uppercase tracking-[0.05em] text-secondary hover:text-primary">
         Create a holder account
       </a>
